@@ -1,0 +1,25 @@
+{
+	"root": false,
+	"files": {
+		"includes": ["src/**", "!src/components/ui/**", "!src/routeTree.gen.ts"],
+		"ignoreUnknown": true
+	},
+	"assist": {
+		"enabled": true,
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"formatter": {
+		"lineWidth": 120,
+		"indentStyle": "space",
+		"indentWidth": 2
+	},
+	"json": {
+		"formatter": {
+			"trailingCommas": "none"
+		}
+	}
+}

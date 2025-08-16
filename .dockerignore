@@ -1,0 +1,118 @@
+# --- Dependencies ---
+**/node_modules
+**/.bun
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+# Keep lockfiles for Docker builds
+!bun.lockb
+!bun.lock
+
+# --- Environment files (secrets & config) ---
+**/.env
+**/.env.*
+.env.local
+.env.*.local
+!server/.env.docker
+!.env.example
+
+# --- Build output ---
+**/dist
+**/build
+**/.vite
+**/.vite-cache
+**/.cache
+**/coverage
+**/*.tsbuildinfo
+
+# --- Git ---
+**/.git
+**/.gitignore
+**/.gitattributes
+
+# --- System & IDE files ---
+**/.DS_Store
+**/Thumbs.db
+**/.vscode
+**/.idea
+**/.vs
+**/.project
+**/.settings
+**/.toolstarget
+**/.classpath
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/*.swp
+**/*.swo
+**/*.tmp
+
+# --- Logs ---
+**/*.log
+**/*.log.*
+**/bun-debug.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# --- Docker files ---
+**/Dockerfile*
+**/docker-compose*
+**/compose*
+**/.dockerignore
+
+# --- Client specific ---
+client/.tanstack
+
+# --- Server specific ---
+server/__tests__
+server/test
+server/*.test.*
+
+# --- Build artifacts ---
+**/bin
+**/obj
+**/charts
+
+# --- Linting & formatting ---
+**/.biome
+**/.biome.json
+
+# --- Documentation & scripts ---
+**/*.md
+**/README*
+**/LICENSE*
+**/Makefile
+**/*.sh
+**/scripts
+**/docs
+# Keep README for documentation
+!README.md
+
+# --- CI/CD & Kubernetes ---
+**/secrets.dev.yaml
+**/values.dev.yaml
+**/*.tgz
+k8s/
+monitoring/
+deploy-aks.ps1
+aks-manage.ps1
+
+# --- Shared workspace ---
+shared/test
+shared/*.test.*
+
+# --- Development files ---
+**/.coverage
+**/jest.config.*
+**/vitest.config.*
+**/.eslint*
+**/.prettier*
+**/tsconfig.json
+!server/tsconfig.json
+!client/tsconfig.json
+!shared/tsconfig.json
+
+# --- Traefik & monitoring ---
+**/prometheus.yml
+**/grafana/

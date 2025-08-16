@@ -1,0 +1,26 @@
+FROM oven/bun:canary-alpine
+
+WORKDIR /app
+
+# Copy only the essential files for migration
+COPY server/drizzle.config.ts ./
+COPY server/src/db ./src/db
+
+# Install drizzle packages with exact versions matching server
+RUN bun add drizzle-kit drizzle-orm postgres && \
+    bun pm cache rm
+
+# Create entrypoint script that validates required environment variables
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo '# Validate required environment variables' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$DB_HOST" ]; then echo "ERROR: DB_HOST environment variable is required" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$DB_PORT" ]; then echo "ERROR: DB_PORT environment variable is required" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$DB_NAME" ]; then echo "ERROR: DB_NAME environment variable is required" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$DB_USER" ]; then echo "ERROR: DB_USER environment variable is required" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'if [ -z "$DB_PASSWORD" ]; then echo "ERROR: DB_PASSWORD environment variable is required" && exit 1; fi' >> /app/entrypoint.sh && \
+    echo 'export DB_URL="postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"' >> /app/entrypoint.sh && \
+    echo 'exec "$@"' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["bunx", "drizzle-kit", "push"]

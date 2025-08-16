@@ -1,0 +1,379 @@
+services:
+  # Traefik - Modern reverse proxy and load balancer
+  traefik:
+    image: traefik:v3.5
+    container_name: chat-app-traefik
+    command:
+      # Enable Docker provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=chat-app-network
+      
+      # Configure entrypoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      
+      # Enable dashboard (disable in production)
+      - --api.dashboard=true
+      - --api.insecure=true
+      
+      # Configure Let's Encrypt (for production SSL)
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      
+      # Logging
+      - --log.level=${TRAEFIK_LOG_LEVEL}
+      - --accesslog=true
+      
+      # Metrics (for monitoring)
+      - --metrics.prometheus=true
+      - --metrics.prometheus.addentrypointslabels=true
+      - --metrics.prometheus.addserviceslabels=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_acme:/acme.json
+      - traefik_logs:/var/log/traefik
+    env_file:
+      - ./.env
+    labels:
+      # Dashboard routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.service=dashboard@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      
+      # Basic auth for dashboard (generate with: htpasswd -nb admin password)
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH}"
+      
+      # Redirect HTTP to HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.redirect-https.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.redirect-https.entrypoints=web"
+      - "traefik.http.routers.redirect-https.middlewares=redirect-to-https"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - chat-app-network
+
+  db:
+    image: postgres:17.5-alpine
+    container_name: chat-app-db
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--data-checksums --wal-segsize=64"
+    expose:
+      - "${DB_PORT}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=512MB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.7
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=8MB
+      -c max_connections=100
+    networks:
+      - chat-app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis cache with optimizations
+  redis:
+    image: redis:8.2-alpine
+    container_name: chat-app-redis
+    env_file:
+      - ./.env
+    expose:
+      - "${REDIS_PORT}"
+    volumes:
+      - redis_data:/data
+      - redis_config:/usr/local/etc/redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 64mb
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 300
+      --timeout 0
+      --save 900 1 300 10 60 10000
+    networks:
+      - chat-app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Database migration service
+  migrate:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile.migrate
+    container_name: chat-app-migrate
+    env_file:
+      - ./.env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - chat-app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Frontend client application
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: client-prod
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: chat-app-client
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=production
+      - BASE_API_SLUG=${BASE_API_SLUG}
+    expose:
+      - "80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      server:
+        condition: service_healthy
+    labels:
+      # Traefik configuration
+      - "traefik.enable=true"
+      
+      # HTTP router
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.routers.app.middlewares=app-compress"
+      
+      # HTTPS router
+      - "traefik.http.routers.app-secure.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.app-secure.entrypoints=websecure"
+      - "traefik.http.routers.app-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app-secure.middlewares=app-compress,security-headers"
+      
+      # Service configuration
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+      - "traefik.http.services.app.loadbalancer.healthcheck.path=/"
+      - "traefik.http.services.app.loadbalancer.healthcheck.interval=30s"
+      
+      # Compression middleware
+      - "traefik.http.middlewares.app-compress.compress=true"
+    networks:
+      - chat-app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+
+
+  # Backend API server
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server-prod
+    container_name: chat-app-server
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=production
+    expose:
+      - "${PORT}"
+    volumes:
+      - server_logs:/app/logs
+      - server_uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT}/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    labels:
+      # Traefik configuration
+      - "traefik.enable=true"
+      
+      # HTTP router
+      - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/${BASE_API_SLUG}`)"
+      - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.routers.api.middlewares=api-cors,api-ratelimit,api-compress"
+      
+      # HTTPS router
+      - "traefik.http.routers.api-secure.rule=Host(`${DOMAIN}`) && PathPrefix(`/${BASE_API_SLUG}`)"
+      - "traefik.http.routers.api-secure.entrypoints=websecure"
+      - "traefik.http.routers.api-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.api-secure.middlewares=api-cors,api-ratelimit,api-compress,security-headers"
+      
+      # Service configuration
+      - "traefik.http.services.api.loadbalancer.server.port=${PORT}"
+      - "traefik.http.services.api.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.api.loadbalancer.healthcheck.interval=30s"
+      
+      # Middleware definitions
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=https://${DOMAIN},${CLIENT_URL}"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolmaxage=86400"
+      
+      # Rate limiting
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=200"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.period=1m"
+      
+      # Compression
+      - "traefik.http.middlewares.api-compress.compress=true"
+      
+      # Security headers
+      - "traefik.http.middlewares.security-headers.headers.framedeny=true"
+      - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
+      - "traefik.http.middlewares.security-headers.headers.browserxssfilter=true"
+      - "traefik.http.middlewares.security-headers.headers.contenttypenosniff=true"
+      - "traefik.http.middlewares.security-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.security-headers.headers.permissionspolicy=camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    networks:
+      - chat-app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+networks:
+  # Internal network for application services
+  chat-app-network:
+    name: chat-app-internal
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # Database volumes
+  postgres_data:
+    name: chat-app-postgres-data
+  postgres_backups:
+    name: chat-app-postgres-backups
+  
+  # Cache volumes
+  redis_data:
+    name: chat-app-redis-data
+  redis_config:
+    name: chat-app-redis-config
+  
+  # Application volumes
+  server_logs:
+    name: chat-app-server-logs
+  server_uploads:
+    name: chat-app-server-uploads
+  
+  # Traefik volumes
+  traefik_acme:
+    name: chat-app-traefik-acme
+  traefik_logs:
+    name: chat-app-traefik-logs
+  
+
+
+# Health check configuration
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+
+# Logging configuration
+x-logging-defaults: &logging-defaults
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# Resource limits
+x-deploy-defaults: &deploy-defaults
+  resources:
+    limits:
+      memory: 512M
+      cpus: '0.5'
+    reservations:
+      memory: 256M
+      cpus: '0.25'

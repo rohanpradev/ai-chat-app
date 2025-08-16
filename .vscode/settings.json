@@ -1,0 +1,45 @@
+{
+	"[css]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "vscode.typescript-language-features"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"biome.enabled": true,
+	"editor.codeActionsOnSave": {
+		"source.action.useSortedAttributes.biome": "always",
+		"source.action.useSortedKeys.biome": "always",
+		"source.fixAll.biome": "always",
+		"source.organizeImports": "always"
+	},
+	"editor.fontFamily": "'MonoLisa', 'Fira Code', 'Courier New', monospace",
+	"editor.fontLigatures": "'calt', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'zero', 'onum'",
+	"editor.fontWeight": "600",
+	"editor.formatOnSave": false,
+	"eslint.enable": false,
+	"files.readonlyInclude": {
+		"**/routeTree.gen.ts": true
+	},
+	"files.watcherExclude": {
+		"**/routeTree.gen.ts": true
+	},
+	"prettier.enable": false,
+	"search.exclude": {
+		"**/routeTree.gen.ts": true
+	}
+}

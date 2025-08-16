@@ -1,0 +1,7 @@
+{
+	"dependencies": {
+		"@hono/zod-openapi": "^1.1.0"
+	},
+	"name": "@chat-app/shared",
+	"type": "module"
+}

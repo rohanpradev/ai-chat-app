@@ -1,0 +1,49 @@
+{
+	"root": false,
+	"extends": "//",
+	"files": {
+		"includes": ["src/**", "!**/drizzle/**", "!dist/**"],
+		"ignoreUnknown": true
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"semicolons": "always",
+			"trailingCommas": "none"
+		},
+		"assist": {
+			"enabled": true
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"domains": {
+			"project": "recommended"
+		},
+		"rules": {
+			"recommended": true,
+			"style": {
+				"noProcessEnv": "error",
+				"useImportType": "error",
+				"useBlockStatements": "off",
+				"useTrimStartEnd": "error",
+				"noNestedTernary": "error",
+				"useFilenamingConvention": {
+					"level": "error",
+					"options": {
+						"strictCase": false,
+						"filenameCases": ["kebab-case", "export"]
+					}
+				}
+			},
+			"suspicious": {
+				"noConsole": "warn",
+				"noExplicitAny": "off",
+				"noIrregularWhitespace": "error"
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			}
+		}
+	}
+}

@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"module": "ESNext",
+		"moduleResolution": "node",
+		"paths": {
+			"@client/*": ["client/*"],
+			"@server/*": ["server/*"],
+			"@shared/*": ["shared/*"]
+		},
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "ESNext"
+	}
+}

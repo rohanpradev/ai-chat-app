@@ -1,0 +1,34 @@
+{
+	"tasks": [
+		{
+			"command": "bun dev",
+			"group": "build",
+			"label": "Dev: Client",
+			"options": {
+				"cwd": "${workspaceFolder}/client"
+			},
+			"problemMatcher": [],
+			"type": "shell"
+		},
+		{
+			"command": "bun dev",
+			"group": "build",
+			"label": "Dev: Server",
+			"options": {
+				"cwd": "${workspaceFolder}/server"
+			},
+			"problemMatcher": [],
+			"type": "shell"
+		},
+		{
+			"dependsOn": ["Dev: Client", "Dev: Server"],
+			"dependsOrder": "parallel",
+			"group": {
+				"isDefault": true,
+				"kind": "build"
+			},
+			"label": "Dev: All"
+		}
+	],
+	"version": "2.0.0"
+}

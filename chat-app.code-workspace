@@ -1,0 +1,26 @@
+{
+	"extensions": {
+		"recommendations": ["oven.bun-vscode", "bradlc.vscode-tailwindcss", "ms-vscode.vscode-typescript-next"]
+	},
+	"folders": [
+		{
+			"path": "./"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"__azurite*": true,
+			"__blobstorage__": true,
+			"__queuestorage__": true,
+			"**/.DS_Store": true,
+			"**/.git": true,
+			"**/.hg": true,
+			"**/.svn": true,
+			"**/CVS": true,
+			"**/chat-app.code-workspace": true,
+			"**/Thumbs.db": true
+		},
+		"typescript.preferences.includePackageJsonAutoImports": "on",
+		"typescript.workspaceSymbols.scope": "allOpenProjects"
+	}
+}
