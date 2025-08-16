@@ -172,6 +172,12 @@ JWT_SECRET=your-super-secret-jwt-key
 # AI Configuration
 AZURE_OPENAI_API_KEY=your-azure-openai-key
 AZURE_OPENAI_ENDPOINT=your-azure-endpoint
+AZURE_DEPLOYMENT_NAME=your-deployment-name
+AZURE_RESOURCE_NAME=your-deployment-resource
+
+
+# AI TOOL KEYS
+SERPER_API_KEY=your-api-key
 
 # Application
 PORT=3000
