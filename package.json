@@ -3,7 +3,7 @@
 		"name": "Rohan Pradev"
 	},
 	"dependencies": {
-		"ai": "^5.0.15",
+		"ai": "^5.0.22",
 		"zod": "^4.0.17"
 	},
 	"description": "A chat application built with Bun, React, and Zod.",

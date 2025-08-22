@@ -1,12 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowLeft, Mail, Shield, User } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { profileQuery } from "@/lib/queries";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 import { Route as IndexRoute } from "@/routes/index";
-import { getInitials } from "@/utils";
 
 export const Route = createFileRoute("/(user)/profile")({
   beforeLoad: ({ context }) => {
@@ -53,12 +52,8 @@ function ProfileComponent() {
             <CardContent className="space-y-6">
               <div className="flex items-center space-x-4">
                 <Avatar className="w-16 h-16">
-                  <AvatarImage
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-                    alt={profileData?.name}
-                  />
-                  <AvatarFallback className="bg-blue-100 text-blue-700 text-lg font-semibold">
-                    {getInitials(profileData?.name || "")}
+                  <AvatarFallback className="bg-blue-100 text-blue-700">
+                    <User className="w-8 h-8" />
                   </AvatarFallback>
                 </Avatar>
                 <div>

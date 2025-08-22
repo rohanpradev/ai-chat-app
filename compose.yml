@@ -178,6 +178,8 @@ services:
     environment:
       - NODE_ENV=production
       - BASE_API_SLUG=${BASE_API_SLUG}
+      - SERVER_HOST=server
+      - SERVER_PORT=${SERVER_PORT}
     expose:
       - "80"
     restart: unless-stopped
@@ -241,14 +243,15 @@ services:
       - ./.env
     environment:
       - NODE_ENV=production
+      - DB_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
     expose:
-      - "${PORT}"
+      - "${SERVER_PORT}"
     volumes:
       - server_logs:/app/logs
       - server_uploads:/app/uploads
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${PORT}/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${SERVER_PORT}/health"]
       interval: 15s
       timeout: 10s
       retries: 3
@@ -276,7 +279,7 @@ services:
       - "traefik.http.routers.api-secure.middlewares=api-cors,api-ratelimit,api-compress,security-headers"
       
       # Service configuration
-      - "traefik.http.services.api.loadbalancer.server.port=${PORT}"
+      - "traefik.http.services.api.loadbalancer.server.port=${SERVER_PORT}"
       - "traefik.http.services.api.loadbalancer.healthcheck.path=/health"
       - "traefik.http.services.api.loadbalancer.healthcheck.interval=30s"
       

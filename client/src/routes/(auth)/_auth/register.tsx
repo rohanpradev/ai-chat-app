@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,10 @@ interface RegisterState {
 
 function RegisterForm() {
   const { mutateAsync } = useUserRegister();
+  const nameId = useId();
+  const emailId = useId();
+  const passwordId = useId();
+  const confirmPasswordId = useId();
 
   const registerAction = async (_prevState: RegisterState, formData: FormData): Promise<RegisterState> => {
     const name = formData.get("name") as string;
@@ -110,11 +114,11 @@ function RegisterForm() {
         <CardContent>
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
+              <Label htmlFor={nameId} className="text-sm font-medium">
                 Full Name
               </Label>
               <Input
-                id="name"
+                id={nameId}
                 name="name"
                 type="text"
                 placeholder="Enter your full name"
@@ -125,11 +129,11 @@ function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
+              <Label htmlFor={emailId} className="text-sm font-medium">
                 Email address
               </Label>
               <Input
-                id="email"
+                id={emailId}
                 name="email"
                 type="email"
                 placeholder="Enter your email address"
@@ -140,11 +144,11 @@ function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
+              <Label htmlFor={passwordId} className="text-sm font-medium">
                 Password
               </Label>
               <Input
-                id="password"
+                id={passwordId}
                 name="password"
                 type="password"
                 placeholder="Create a password (min. 6 characters)"
@@ -156,11 +160,11 @@ function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium">
+              <Label htmlFor={confirmPasswordId} className="text-sm font-medium">
                 Confirm Password
               </Label>
               <Input
-                id="confirmPassword"
+                id={confirmPasswordId}
                 name="confirmPassword"
                 type="password"
                 placeholder="Confirm your password"

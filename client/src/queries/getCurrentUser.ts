@@ -11,7 +11,6 @@ export const getCurrentUserQuery = () => {
     queryFn: () =>
       callApi("auth/me", {
         method: "GET",
-        credentials: "include",
       }),
   });
 };

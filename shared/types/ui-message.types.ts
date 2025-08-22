@@ -23,7 +23,8 @@ export const tools = {
 
 // Metadata schema
 const metadataSchema = z.object({
-	createdAt: z.string().datetime().optional(),
+	conversationId: z.string().optional(),
+	createdAt: z.iso.datetime().optional(),
 	totalTokens: z.number().optional(),
 });
 

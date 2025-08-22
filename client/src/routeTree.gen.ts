@@ -11,7 +11,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChatIndexRouteImport } from './routes/chat/index'
+import { Route as ChatNewRouteImport } from './routes/chat/new'
+import { Route as ChatConversationIdRouteImport } from './routes/chat/$conversationId'
 import { Route as userProfileRouteImport } from './routes/(user)/profile'
 import { Route as authAuthRouteRouteImport } from './routes/(auth)/_auth/route'
 import { Route as authAuthRegisterRouteImport } from './routes/(auth)/_auth/register'
@@ -23,10 +27,30 @@ const authRoute = authRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatNewRoute = ChatNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
+  id: '/$conversationId',
+  path: '/$conversationId',
+  getParentRoute: () => ChatRoute,
 } as any)
 const userProfileRoute = userProfileRouteImport.update({
   id: '/(user)/profile',
@@ -50,42 +74,73 @@ const authAuthLoginRoute = authAuthLoginRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof authAuthRouteRouteWithChildren
+  '/chat': typeof ChatRouteWithChildren
   '/profile': typeof userProfileRoute
+  '/chat/$conversationId': typeof ChatConversationIdRoute
+  '/chat/new': typeof ChatNewRoute
+  '/chat/': typeof ChatIndexRoute
   '/login': typeof authAuthLoginRoute
   '/register': typeof authAuthRegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof authAuthRouteRouteWithChildren
   '/profile': typeof userProfileRoute
+  '/chat/$conversationId': typeof ChatConversationIdRoute
+  '/chat/new': typeof ChatNewRoute
+  '/chat': typeof ChatIndexRoute
   '/login': typeof authAuthLoginRoute
   '/register': typeof authAuthRegisterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/chat': typeof ChatRouteWithChildren
   '/(auth)': typeof authRouteWithChildren
   '/(auth)/_auth': typeof authAuthRouteRouteWithChildren
   '/(user)/profile': typeof userProfileRoute
+  '/chat/$conversationId': typeof ChatConversationIdRoute
+  '/chat/new': typeof ChatNewRoute
+  '/chat/': typeof ChatIndexRoute
   '/(auth)/_auth/login': typeof authAuthLoginRoute
   '/(auth)/_auth/register': typeof authAuthRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/profile' | '/login' | '/register'
+  fullPaths:
+    | '/'
+    | '/chat'
+    | '/profile'
+    | '/chat/$conversationId'
+    | '/chat/new'
+    | '/chat/'
+    | '/login'
+    | '/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/profile' | '/login' | '/register'
+  to:
+    | '/'
+    | '/profile'
+    | '/chat/$conversationId'
+    | '/chat/new'
+    | '/chat'
+    | '/login'
+    | '/register'
   id:
     | '__root__'
     | '/'
+    | '/chat'
     | '/(auth)'
     | '/(auth)/_auth'
     | '/(user)/profile'
+    | '/chat/$conversationId'
+    | '/chat/new'
+    | '/chat/'
     | '/(auth)/_auth/login'
     | '/(auth)/_auth/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChatRoute: typeof ChatRouteWithChildren
   authRoute: typeof authRouteWithChildren
   userProfileRoute: typeof userProfileRoute
 }
@@ -99,12 +154,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/chat/': {
+      id: '/chat/'
+      path: '/'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/new': {
+      id: '/chat/new'
+      path: '/new'
+      fullPath: '/chat/new'
+      preLoaderRoute: typeof ChatNewRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/$conversationId': {
+      id: '/chat/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof ChatConversationIdRouteImport
+      parentRoute: typeof ChatRoute
     }
     '/(user)/profile': {
       id: '/(user)/profile'
@@ -137,6 +220,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ChatRouteChildren {
+  ChatConversationIdRoute: typeof ChatConversationIdRoute
+  ChatNewRoute: typeof ChatNewRoute
+  ChatIndexRoute: typeof ChatIndexRoute
+}
+
+const ChatRouteChildren: ChatRouteChildren = {
+  ChatConversationIdRoute: ChatConversationIdRoute,
+  ChatNewRoute: ChatNewRoute,
+  ChatIndexRoute: ChatIndexRoute,
+}
+
+const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
+
 interface authAuthRouteRouteChildren {
   authAuthLoginRoute: typeof authAuthLoginRoute
   authAuthRegisterRoute: typeof authAuthRegisterRoute
@@ -163,6 +260,7 @@ const authRouteWithChildren = authRoute._addFileChildren(authRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChatRoute: ChatRouteWithChildren,
   authRoute: authRouteWithChildren,
   userProfileRoute: userProfileRoute,
 }

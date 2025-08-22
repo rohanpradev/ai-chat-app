@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ function LoginComponent() {
   const { mutateAsync } = useUserLogin();
   const [showPassword, setShowPassword] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
+  const emailId = useId();
+  const passwordId = useId();
 
   const loginAction = async (_prevState: LoginState, formData: FormData): Promise<LoginState> => {
     const email = formData.get("email") as string;
@@ -108,11 +110,11 @@ function LoginComponent() {
         <CardContent>
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
+              <Label htmlFor={emailId} className="text-sm font-medium">
                 Email address
               </Label>
               <Input
-                id="email"
+                id={emailId}
                 name="email"
                 type="email"
                 placeholder="Enter your email address"
@@ -127,12 +129,12 @@ function LoginComponent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
+              <Label htmlFor={passwordId} className="text-sm font-medium">
                 Password
               </Label>
               <div className="relative">
                 <Input
-                  id="password"
+                  id={passwordId}
                   name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"

@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import * as HttpStatusCodes from "stoker/http-status-codes";
-import db from "@/db";
+import { db } from "@/db";
 import { users } from "@/db/schema";
 import type { AppRouteHandler } from "@/lib/types";
 import type { UpdateUserProfileRoute, UserProfileRoute } from "@/routes/profile/profile.route";

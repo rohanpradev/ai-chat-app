@@ -114,6 +114,13 @@ web_modules/
 !.env.example
 !*.env.example
 
+# Kubernetes secrets (contains sensitive data)
+k8s/secrets.yaml
+k8s/*-secrets.yaml
+
+# Keep template files
+!k8s/secrets.yaml.template
+
 # parcel-bundler cache (https://parceljs.org/)
 
 .parcel-cache

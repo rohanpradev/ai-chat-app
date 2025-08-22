@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LoadingSpinner } from "@/components/ui/loading";
@@ -34,25 +34,32 @@ declare module "@tanstack/react-router" {
   }
 }
 
+function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadUser(queryClient, auth).finally(() => {
+      setIsLoading(false);
+    });
+  }, []);
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <ThemeProvider defaultTheme="system" storageKey="chat-app-theme">
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  );
+}
+
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
 
 const root = createRoot(rootElement);
-
-// Show loading spinner initially
 root.render(
   <StrictMode>
-    <LoadingSpinner />
+    <App />
   </StrictMode>,
 );
-
-// Load user on app start
-loadUser(queryClient, auth).finally(() => {
-  root.render(
-    <StrictMode>
-      <ThemeProvider defaultTheme="system" storageKey="chat-app-theme">
-        <RouterProvider router={router} />
-      </ThemeProvider>
-    </StrictMode>,
-  );
-});

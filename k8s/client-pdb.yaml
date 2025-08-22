@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: client-pdb
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: client
+    app.kubernetes.io/part-of: chat-app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-app
+      app.kubernetes.io/component: client

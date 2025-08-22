@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bot, LogOut, Sparkles, Trash2, User as UserIcon } from "lucide-react";
+import { Bot, LogOut, Sparkles, User as UserIcon } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Route as UserRoute } from "@/routes/(user)/profile";
@@ -13,12 +13,10 @@ interface User {
 
 interface ChatHeaderProps {
   user: User;
-  messagesCount: number;
-  onClearChat: () => void;
   onLogout: () => void;
 }
 
-export function ChatHeader({ user, messagesCount, onClearChat, onLogout }: ChatHeaderProps) {
+export function ChatHeader({ user, onLogout }: ChatHeaderProps) {
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-card border-b border-border">
       <div className="flex items-center gap-3">
@@ -43,16 +41,7 @@ export function ChatHeader({ user, messagesCount, onClearChat, onLogout }: ChatH
             <UserIcon className="h-4 w-4" />
           </Link>
         </Button>
-        {messagesCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearChat}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
+
         <Button variant="ghost" size="sm" onClick={onLogout} className="text-muted-foreground">
           <LogOut className="h-4 w-4" />
         </Button>

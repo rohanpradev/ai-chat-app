@@ -23,9 +23,13 @@ export default defineConfig(({ mode }) => {
 			watch: {
 				ignored: ['**/node_modules/**', '**/.git/**']
 			},
-		},
-		define: {
-			"import.meta.env.VITE_API_URL": JSON.stringify(env.VITE_API_URL || "/api"),
+			proxy: {
+				'/api': {
+					target: `http://localhost:${env.SERVER_PORT || 3000}`,
+					changeOrigin: true,
+					secure: false,
+				},
+			},
 		},
 	};
 });
