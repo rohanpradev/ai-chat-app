@@ -43,13 +43,10 @@ COPY client/ ./client/
 
 # Build client
 WORKDIR /app/client
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
-RUN if [ -z "$VITE_API_URL" ]; then echo "ERROR: VITE_API_URL build argument is required" && exit 1; fi && \
-    bun run build
+RUN bun run build
 
 # Stage 4: Client production (minimal nginx)
-FROM nginx:1.27-alpine AS client-prod
+FROM nginx:1.29-alpine AS client-prod
 WORKDIR /app
 
 # Install curl for health checks
@@ -104,11 +101,11 @@ RUN rm -rf ../shared/node_modules/.cache || true && \
 USER appuser
 
 # Health check should use environment variable for port
-ENV PORT=3000
-EXPOSE $PORT
+ENV SERVER_PORT=3000
+EXPOSE $SERVER_PORT
 
 # Health check using environment variable for port
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD curl -f http://localhost:${SERVER_PORT}/health || exit 1
 
 CMD ["bun", "run", "src/index.ts"]

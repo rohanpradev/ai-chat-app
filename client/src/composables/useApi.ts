@@ -1,5 +1,3 @@
-const API_URL = import.meta.env.VITE_API_URL;
-
 interface ApiErrorResponse {
   message: string;
   status?: number;
@@ -12,7 +10,7 @@ export const useApi = () => {
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
     try {
-      const response = await fetch(`${API_URL}/${endpoint}`, {
+      const response = await fetch(`/api/${endpoint}`, {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",

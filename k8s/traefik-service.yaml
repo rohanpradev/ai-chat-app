@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.37.0 (fb0539e64)
+    traefik.enable: "true"
+    traefik.http.middlewares.auth.basicauth.users: admin:your_hashed_password_here
+    traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
+    traefik.http.routers.dashboard.middlewares: auth
+    traefik.http.routers.dashboard.rule: Host(`traefik.localhost`)
+    traefik.http.routers.dashboard.service: dashboard@internal
+    traefik.http.routers.redirect-https.entrypoints: web
+    traefik.http.routers.redirect-https.middlewares: redirect-to-https
+    traefik.http.routers.redirect-https.rule: hostregexp(`{host:.+}`)
+  labels:
+    io.kompose.service: traefik
+  name: traefik
+spec:
+  ports:
+    - name: "80"
+      port: 80
+      targetPort: 80
+    - name: "443"
+      port: 443
+      targetPort: 443
+    - name: "8080"
+      port: 8080
+      targetPort: 8080
+  selector:
+    io.kompose.service: traefik

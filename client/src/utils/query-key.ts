@@ -12,3 +12,8 @@ export const AUTH_QUERY_KEY = {
   login: ["auth", "login"],
   logout: ["auth", "logout"],
 };
+
+export const CHAT_QUERY_KEY = {
+  conversations: ["chat", "conversations"],
+  createConversation: ["chat", "create-conversation"],
+};

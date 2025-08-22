@@ -1,10 +1,10 @@
 import app from "@/app";
 import env from "@/utils/env";
 
-const PORT = env.PORT;
+const SERVER_PORT = env.SERVER_PORT;
 
 export default {
 	fetch: app.fetch,
 	idleTimeout: 250,
-	port: PORT
+	port: SERVER_PORT
 };

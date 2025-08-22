@@ -5,10 +5,6 @@ import router from "@/routes/ai/ai.index";
 
 // Mock AI SDK
 mock.module("ai", () => ({
-	generateText: mock(async () => ({
-		text: "Mocked AI response",
-		usage: { totalTokens: 50 }
-	})),
 	smoothStream: mock(() => ({})),
 	streamText: mock(() => ({
 		toUIMessageStreamResponse: mock(() => new Response("data: test\n\n"))
@@ -34,19 +30,6 @@ mock.module("@/middlewares/pino-logger", () => ({
 }));
 
 describe("AI Routes", () => {
-	describe("POST /ai/text", () => {
-		it("should return 401 without auth (expected behavior)", async () => {
-			const app = createApp().route("/", router);
-			const client = testClient(app);
-
-			const response = await client.ai.text.$post({
-				json: { messages: [{ id: "1", parts: [{ text: "test", type: "text" }], role: "user" }] }
-			});
-
-			expect(response.status).toBe(401);
-		});
-	});
-
 	describe("POST /ai/text-stream", () => {
 		it("should return 401 without auth (expected behavior)", async () => {
 			const app = createApp().route("/", router);

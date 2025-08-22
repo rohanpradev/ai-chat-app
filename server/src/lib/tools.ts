@@ -65,16 +65,15 @@ export const tools = {
 };
 
 export function getAvailableTools(toolNames?: string[]) {
-	if (!toolNames || toolNames.length === 0) {
-		return {};
-	}
-
-	const selectedTools: Record<string, any> = {};
-	for (const toolName of toolNames) {
-		if (tools[toolName]) {
-			selectedTools[toolName] = tools[toolName];
-		}
-	}
-
-	return selectedTools;
+	return (
+		toolNames?.reduce(
+			(selectedTools, toolName) => {
+				if (toolName in tools) {
+					selectedTools[toolName] = tools[toolName as keyof typeof tools];
+				}
+				return selectedTools;
+			},
+			{} as Record<string, (typeof tools)[keyof typeof tools]>
+		) ?? {}
+	);
 }

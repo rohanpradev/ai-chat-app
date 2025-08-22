@@ -1,8 +1,8 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-
+import { SQL } from "bun";
+import { drizzle } from "drizzle-orm/bun-sql";
 import * as schema from "@/db/schema";
 import env from "@/utils/env";
 
-const db = await drizzle(env.DB_URL, { schema });
+const client = new SQL(env.DB_URL);
 
-export default db;
+export const db = drizzle({ client, schema });

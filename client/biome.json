@@ -1,25 +1,26 @@
 {
-	"root": false,
-	"files": {
-		"includes": ["src/**", "!src/components/ui/**", "!src/routeTree.gen.ts"],
-		"ignoreUnknown": true
-	},
+	"$schema": "../node_modules/@biomejs/biome/configuration_schema.json",
 	"assist": {
-		"enabled": true,
 		"actions": {
 			"source": {
 				"organizeImports": "on"
 			}
-		}
+		},
+		"enabled": true
+	},
+	"files": {
+		"ignoreUnknown": true,
+		"includes": ["src/**", "!src/components/ui", "!src/routeTree.gen.ts"]
 	},
 	"formatter": {
-		"lineWidth": 120,
 		"indentStyle": "space",
-		"indentWidth": 2
+		"indentWidth": 2,
+		"lineWidth": 120
 	},
 	"json": {
 		"formatter": {
 			"trailingCommas": "none"
 		}
-	}
+	},
+	"root": false
 }

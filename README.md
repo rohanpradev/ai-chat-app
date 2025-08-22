@@ -55,8 +55,13 @@ A full-stack AI-powered chat application built with modern technologies for opti
 ### Prerequisites
 - **Bun** >= 1.0
 - **Docker** & **Docker Compose**
+- **Make** (for cross-platform commands)
 - **PostgreSQL** (or use Docker)
 - **Redis** (or use Docker)
+
+#### Additional for Kubernetes
+- **Minikube** or **Kubernetes cluster**
+- **kubectl** CLI tool
 
 ### 1. Clone the Repository
 ```bash
@@ -89,22 +94,43 @@ docker compose up -d db redis
 cd server && bun run db:migrate
 ```
 
-### 5. Development Mode
-```bash
-# Start all services in development
-bun run dev
-```
+### 5. Choose Your Development Method
 
-### 6. Production Deployment
+#### Option A: Local Development (Recommended for development)
 ```bash
-# Start with Docker Compose
+# Fast local development with hot reload
+make local
+```
+- Client: http://localhost:5173
+- Server: http://localhost:3000
+- Database/Redis in Docker
+
+#### Option B: Docker Compose (Production-like)
+```bash
+# Full Docker environment
+make docker
+# or
 make start
-
-# Or manually
-docker compose up -d
 ```
+- Application: http://localhost
+
+#### Option C: Kubernetes (Production)
+```bash
+# Complete Kubernetes deployment
+make kubernetes
+```
+- Uses Minikube for local Kubernetes
+- Production-ready configuration
 
 ## 🔧 Available Commands
+
+### Quick Start Commands
+```bash
+make help            # Show all available commands
+make local           # Local development (fastest)
+make docker          # Docker Compose deployment
+make kubernetes      # Kubernetes deployment
+```
 
 ### Development
 ```bash
@@ -113,14 +139,35 @@ bun run build        # Build all packages
 bun run test         # Run tests
 ```
 
-### Docker Commands
+### Makefile Commands
 ```bash
+# Development
+make local           # Start local development (client + server with bun dev)
+make dev             # Start development environment
+
+# Docker Deployment
+make docker          # Start Docker Compose services
 make start           # Start all services
 make stop            # Stop all services
 make restart         # Restart all services
 make status          # Show service status
 make logs            # Show logs
 make clean           # Clean up containers and volumes
+make build           # Build all images
+make health          # Test application health
+
+# Kubernetes Deployment
+make kubernetes      # Complete Kubernetes setup and deployment
+make k8s-setup       # Create Kubernetes secrets from .env file
+make k8s-build       # Build and load images for Kubernetes
+make k8s-deploy      # Deploy to Kubernetes
+make k8s-status      # Show Kubernetes deployment status and URLs
+make k8s-logs        # Show Kubernetes logs
+make k8s-cleanup     # Clean up Kubernetes resources
+make k8s-stop        # Stop Minikube
+
+# Help
+make help            # Show all available commands
 ```
 
 ### Database Commands

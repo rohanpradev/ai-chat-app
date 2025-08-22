@@ -1,7 +1,7 @@
 import { deleteCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import * as HttpStatusCodes from "stoker/http-status-codes";
-import db from "@/db";
+import { db } from "@/db";
 import { users } from "@/db/schema";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AuthRoute, CurrentUserRoute, LoginRoute, LogoutRoute } from "@/routes/auth/auth.route";

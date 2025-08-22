@@ -18,7 +18,9 @@ describe("Redis Cache Middleware", () => {
 	beforeEach(() => {
 		cache = new HonoRedisCache(mockRedisClient as any);
 		// Reset all mocks
-		Object.values(mockRedisClient).forEach((mockFn) => mockFn.mockClear());
+		Object.values(mockRedisClient).forEach((mockFn) => {
+			mockFn.mockClear();
+		});
 	});
 
 	describe("HonoRedisCache", () => {

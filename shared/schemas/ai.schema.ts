@@ -1,7 +1,10 @@
 import { z } from "@hono/zod-openapi";
 import type { UIMessage } from "ai";
+import { UIMessagesArraySchema } from "./ui-message.schema";
 
 export const AITextResponseSchema = z.object({
+	conversationId: z.string().optional().describe("ID of the conversation"),
+	messages: z.array(z.any()).describe("Array of chat messages including the AI response"),
 	text: z.string().describe("The response by the model to the input prompt").openapi({
 		description: "The detailed text the response of the model to the input.",
 		example: "The response by the model to the input prompt",
@@ -58,15 +61,17 @@ export const FileAttachmentSchema = z.object({
 	url: z.string().optional(),
 });
 
-export const ChatRequestSchema = z.object({
-	messages: z.array(z.any()).describe("Array of chat messages"),
-	model: z.string().optional().describe("AI model to use for the response").openapi({
-		description: "The AI model identifier",
-		example: "gpt-5-mini",
-	}),
-	tools: z.array(z.string()).optional().describe("Available tools for the AI to use"),
-	webSearch: z.boolean().optional().default(false).describe("Whether to enable web search").openapi({
-		description: "Enable web search capabilities",
-		example: false,
-	}),
-});
+export const ChatRequestSchema = z
+	.object({
+		// Accept multiple aliases from different clients/transports
+		chatId: z.string().optional().describe("Chat ID for persistence"),
+		conversationId: z.string().optional().describe("Alias for chatId used by older clients"),
+		id: z.string().optional().describe("Alias for chatId used by default useChat transport"),
+		// Prefer strong typing for messages
+		messages: UIMessagesArraySchema.describe("Array of chat messages"),
+		model: z.string().optional().describe("AI model to use"),
+		tools: z.array(z.string()).optional().describe("Available tools"),
+		webSearch: z.boolean().optional().default(false).describe("Enable web search"),
+	})
+	// Allow unknown props to safely ignore future additions from clients
+	.loose();

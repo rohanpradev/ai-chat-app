@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.37.0 (fb0539e64)
+    traefik.enable: "true"
+    traefik.http.middlewares.auth.basicauth.users: admin:your_hashed_password_here
+    traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
+    traefik.http.routers.dashboard.middlewares: auth
+    traefik.http.routers.dashboard.rule: Host(`traefik.localhost`)
+    traefik.http.routers.dashboard.service: dashboard@internal
+    traefik.http.routers.redirect-https.entrypoints: web
+    traefik.http.routers.redirect-https.middlewares: redirect-to-https
+    traefik.http.routers.redirect-https.rule: hostregexp(`{host:.+}`)
+  labels:
+    io.kompose.service: traefik
+  name: traefik
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: traefik
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.37.0 (fb0539e64)
+        traefik.enable: "true"
+        traefik.http.middlewares.auth.basicauth.users: admin:your_hashed_password_here
+        traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
+        traefik.http.routers.dashboard.middlewares: auth
+        traefik.http.routers.dashboard.rule: Host(`traefik.localhost`)
+        traefik.http.routers.dashboard.service: dashboard@internal
+        traefik.http.routers.redirect-https.entrypoints: web
+        traefik.http.routers.redirect-https.middlewares: redirect-to-https
+        traefik.http.routers.redirect-https.rule: hostregexp(`{host:.+}`)
+      labels:
+        io.kompose.service: traefik
+    spec:
+      containers:
+        - args:
+            - --providers.docker=true
+            - --providers.docker.exposedbydefault=false
+            - --providers.docker.network=chat-app-network
+            - --entrypoints.web.address=:80
+            - --entrypoints.websecure.address=:443
+            - --api.dashboard=true
+            - --api.insecure=true
+            - --certificatesresolvers.letsencrypt.acme.email=your_email@example.com
+            - --certificatesresolvers.letsencrypt.acme.storage=/acme.json
+            - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+            - --log.level=INFO
+            - --accesslog=true
+            - --metrics.prometheus=true
+            - --metrics.prometheus.addentrypointslabels=true
+            - --metrics.prometheus.addserviceslabels=true
+          envFrom:
+            - configMapRef:
+                name: env
+          image: traefik:v3.5
+          livenessProbe:
+            exec:
+              command:
+                - traefik
+                - healthcheck
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          name: chat-app-traefik
+          ports:
+            - containerPort: 80
+              protocol: TCP
+            - containerPort: 443
+              protocol: TCP
+            - containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /acme.json
+              name: traefik-acme
+            - mountPath: /var/log/traefik
+              name: traefik-logs
+      restartPolicy: Always
+      volumes:
+        - name: traefik-acme
+          persistentVolumeClaim:
+            claimName: traefik-acme
+        - name: traefik-logs
+          persistentVolumeClaim:
+            claimName: traefik-logs

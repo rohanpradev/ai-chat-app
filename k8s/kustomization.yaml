@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # ConfigMaps and Secrets
+  - env-configmap.yaml
+  - secrets.yaml
+  
+  # Persistent Volume Claims
+  - postgres-data-persistentvolumeclaim.yaml
+  - postgres-backups-persistentvolumeclaim.yaml
+  - redis-data-persistentvolumeclaim.yaml
+  - redis-config-persistentvolumeclaim.yaml
+  - server-logs-persistentvolumeclaim.yaml
+  - server-uploads-persistentvolumeclaim.yaml
+  - traefik-acme-persistentvolumeclaim.yaml
+  - traefik-logs-persistentvolumeclaim.yaml
+  
+  # Database
+  - db-deployment.yaml
+  - db-service.yaml
+  
+  # Redis
+  - redis-deployment.yaml
+  - redis-service.yaml
+  
+  # Migration Job
+  - migration-job.yaml
+  
+  # Server
+  - server-deployment.yaml
+  - server-service.yaml
+  - server-hpa.yaml
+  - server-pdb.yaml
+  
+  # Client
+  - client-deployment.yaml
+  - client-service.yaml
+  - client-hpa.yaml
+  - client-pdb.yaml
+  
+  # Traefik
+  - traefik-deployment.yaml
+  - traefik-service.yaml
+
+namespace: default
+
+# Add common annotations
+commonAnnotations:
+  app.kubernetes.io/managed-by: kustomize

@@ -10,7 +10,6 @@ export const getProfileQuery = () => {
     queryFn: () =>
       callApi("profile", {
         method: "GET",
-        credentials: "include",
       }),
   });
 };
