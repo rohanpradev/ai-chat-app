@@ -1,6 +1,6 @@
 export * from "./ai.schema";
 export * from "./auth.schema";
+export * from "./chat.schema";
 export * from "./common.schema";
-export * from "./conversation.schema";
 export * from "./profile.schema";
 export * from "./ui-message.schema";

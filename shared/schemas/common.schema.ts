@@ -1,5 +1,15 @@
 import { z } from "@hono/zod-openapi";
 
+export const ValidationErrorSchema = z
+	.object({
+		field: z.string().describe("Field name with validation error"),
+		message: z.string().describe("Validation error message"),
+	})
+	.openapi({
+		description: "Validation error details",
+		title: "ValidationError",
+	});
+
 export const CommonErrorResponseSchema = z
 	.object({
 		message: z.string().describe("Error message"),
@@ -8,20 +18,6 @@ export const CommonErrorResponseSchema = z
 		description: "Standard error response",
 		title: "CommonErrorResponse",
 	});
-
-export const SuccessMessageResponseSchema = z
-	.object({
-		message: z.string().describe("Success message"),
-	})
-	.openapi({
-		description: "Standard success response with message",
-		title: "SuccessMessageResponse",
-	});
-
-export const ValidationErrorSchema = z.object({
-	message: z.string().describe("Error description"),
-	path: z.string().describe("Field with error"),
-});
 
 export const CommonBadRequestResponseSchema = z
 	.object({

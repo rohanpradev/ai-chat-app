@@ -13,15 +13,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { conversationsQuery } from "@/lib/queries";
+import { getChatsQuery } from "@/queries/getChats";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 import { Route as NewChatRoute } from "@/routes/chat/new";
 
-export function ConversationSidebar() {
+export function ChatSidebar() {
   const params = useParams({ strict: false });
   const currentConversationId = params.conversationId;
-  const { data: conversationsData } = useSuspenseQuery(conversationsQuery());
-  const conversations = conversationsData?.data || [];
+  const { data: chatsData } = useSuspenseQuery(getChatsQuery());
+  const chats = chatsData?.data || [];
 
   return (
     <Sidebar variant="sidebar" className="w-64">
@@ -36,22 +36,22 @@ export function ConversationSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Conversations</SidebarGroupLabel>
+          <SidebarGroupLabel>Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {conversations?.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">No conversations yet</div>
+              {chats?.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">No chats yet</div>
               ) : (
-                conversations?.map((conversation) => (
-                  <SidebarMenuItem key={conversation.id}>
+                chats?.map((chat) => (
+                  <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton
                       asChild
-                      isActive={currentConversationId === conversation.id}
+                      isActive={currentConversationId === chat.id}
                       className="w-full justify-start gap-2"
                     >
-                      <Link to={ConversationRoute.to} params={{ conversationId: conversation.id }}>
+                      <Link to={ConversationRoute.to} params={{ conversationId: chat.id }}>
                         <MessageSquare className="h-4 w-4" />
-                        <span className="truncate">{conversation.title || "Untitled Chat"}</span>
+                        <span className="truncate">{chat.title || "Untitled Chat"}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

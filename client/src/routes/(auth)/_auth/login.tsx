@@ -40,8 +40,8 @@ function LoginComponent() {
   const passwordId = useId();
 
   const loginAction = async (_prevState: LoginState, formData: FormData): Promise<LoginState> => {
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const email = String(formData.get("email") || "");
+    const password = String(formData.get("password") || "");
     const fieldErrors: LoginState["fieldErrors"] = {};
 
     if (!email?.trim()) {
