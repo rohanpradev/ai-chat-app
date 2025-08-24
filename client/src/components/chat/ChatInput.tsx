@@ -1,4 +1,3 @@
-import type { UseChatHelpers } from "ai";
 import { GlobeIcon } from "lucide-react";
 import type { ClipboardEvent } from "react";
 import {
@@ -35,7 +34,7 @@ interface ChatInputProps {
   setFiles: (files: FileList | undefined) => void;
   onSubmit: (e: React.FormEvent) => void;
   onPaste: (e: ClipboardEvent<HTMLTextAreaElement>) => void;
-  status: UseChatHelpers["status"];
+  status: "submitted" | "streaming" | "ready" | "error";
 }
 
 export function ChatInput({

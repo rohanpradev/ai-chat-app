@@ -1,3 +1,4 @@
+import type { LogoutResponse } from "@chat-app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -10,9 +11,9 @@ export const useUserLogout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<LogoutResponse, Error>({
     mutationFn: () =>
-      callApi("auth/logout", {
+      callApi<LogoutResponse>("auth/logout", {
         method: "POST",
         credentials: "include",
       }),

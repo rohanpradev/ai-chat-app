@@ -1,5 +1,4 @@
 import { z } from "@hono/zod-openapi";
-import { CommonErrorResponseSchema, CommonUnauthorizedResponseSchema } from "./common.schema";
 
 export const UserDataSchema = z
 	.object({
@@ -12,8 +11,6 @@ export const UserDataSchema = z
 		title: "UserData",
 	});
 
-export const ErrorResponseSchema = CommonErrorResponseSchema;
-export const UnauthorizedResponseSchema = CommonUnauthorizedResponseSchema;
 export const RegisterUserRequestSchema = z
 	.object({
 		confirmPassword: z.string().min(6).max(100).describe("Password confirmation"),
@@ -86,4 +83,22 @@ export const MeResponseSchema = z
 	.openapi({
 		description: "Current user response",
 		title: "MeResponse",
+	});
+
+export const ErrorResponseSchema = z
+	.object({
+		message: z.string().describe("Error message"),
+	})
+	.openapi({
+		description: "Standard error response",
+		title: "ErrorResponse",
+	});
+
+export const UnauthorizedResponseSchema = z
+	.object({
+		message: z.string().describe("Unauthorized access message"),
+	})
+	.openapi({
+		description: "Unauthorized response",
+		title: "UnauthorizedResponse",
 	});

@@ -57,37 +57,4 @@ export const UIMessageSchema = z.object({
 	role: z.enum(["system", "user", "assistant"]),
 });
 
-export const UIMessageRequestSchema = z
-	.object({
-		messages: z.array(UIMessageSchema).describe("The messages to send to the AI model"),
-	})
-	.openapi({
-		description: "Request object containing an array of UI messages",
-		example: {
-			messages: [
-				{
-					id: "msg_1",
-					parts: [
-						{
-							state: "done",
-							text: "Hello, how are you?",
-							type: "text",
-						},
-					],
-					role: "user",
-				},
-			],
-		},
-	});
-
 export const UIMessagesArraySchema = z.array(UIMessageSchema);
-
-export {
-	FileUIPartSchema,
-	GenericUIPartSchema,
-	ReasoningUIPartSchema,
-	StepStartUIPartSchema,
-	TextUIPartSchema,
-	ToolUIPartSchema,
-	UIMessagePartSchema,
-};

@@ -33,10 +33,10 @@ function RegisterForm() {
   const confirmPasswordId = useId();
 
   const registerAction = async (_prevState: RegisterState, formData: FormData): Promise<RegisterState> => {
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
+    const name = String(formData.get("name") || "");
+    const email = String(formData.get("email") || "");
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(formData.get("confirmPassword") || "");
 
     if (!name?.trim()) {
       toast.error("Please enter your name");

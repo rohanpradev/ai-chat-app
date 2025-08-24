@@ -1,5 +1,8 @@
 import type { MyUIMessage } from "@chat-app/shared";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Response } from "@/components/ai-elements/response";
+import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/source";
+import { Task, TaskContent, TaskItem, TaskItemFile, TaskTrigger } from "@/components/ai-elements/task";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { SerperResults } from "@/components/chat/SerperResults";
 
@@ -7,9 +10,10 @@ interface MessagePartProps {
   part: MyUIMessage["parts"][0];
   messageId: string;
   index: number;
+  isStreaming?: boolean;
 }
 
-export function MessagePart({ part, messageId, index }: MessagePartProps) {
+export function MessagePart({ part, messageId, index, isStreaming = false }: MessagePartProps) {
   switch (part.type) {
     case "text":
       return <Response key={`${messageId}-${index}`}>{part.text}</Response>;
@@ -45,6 +49,53 @@ export function MessagePart({ part, messageId, index }: MessagePartProps) {
             {part.state === "output-error" && <ToolOutput output={undefined} errorText={part.errorText} />}
           </ToolContent>
         </Tool>
+      );
+    case "task":
+      return (
+        <Task key={`${messageId}-${index}`}>
+          <TaskTrigger title={part.title || "Task"} />
+          <TaskContent>
+            {part.items?.map((item: { type?: string; text?: string; file?: { name?: string } }, itemIndex: number) => (
+              <TaskItem key={`task-item-${itemIndex}`}>
+                {item.type === "file" && item.file ? (
+                  <span className="inline-flex items-center gap-1">
+                    {item.text}
+                    <TaskItemFile>
+                      <span>{item.file.name}</span>
+                    </TaskItemFile>
+                  </span>
+                ) : (
+                  item.text || ""
+                )}
+              </TaskItem>
+            ))}
+          </TaskContent>
+        </Task>
+      );
+    case "source-url":
+      return (
+        <Sources key={`${messageId}-${index}`}>
+          <SourcesTrigger count={1} />
+          <SourcesContent>
+            <Source href={part.url} title={part.title || new URL(part.url).hostname} />
+          </SourcesContent>
+        </Sources>
+      );
+    case "source-document":
+      return (
+        <Sources key={`${messageId}-${index}`}>
+          <SourcesTrigger count={1} />
+          <SourcesContent>
+            <Source href="#" title={part.title || `Document ${part.id}`} />
+          </SourcesContent>
+        </Sources>
+      );
+    case "reasoning":
+      return (
+        <Reasoning key={`${messageId}-${index}`} isStreaming={isStreaming}>
+          <ReasoningTrigger />
+          <ReasoningContent>{part.text}</ReasoningContent>
+        </Reasoning>
       );
     default:
       return null;
