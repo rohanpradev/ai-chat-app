@@ -1,11 +1,11 @@
-import type { User } from "@chat-app/shared";
+import type { LoginResponse, RegisterResponse, User } from "@chat-app/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { getCurrentUserQuery } from "@/queries/getCurrentUser";
 
 export interface AuthContext {
   isAuthenticated: boolean;
   user: User | null;
-  login: (user: User) => void;
+  login: (response: LoginResponse | RegisterResponse) => void;
   logout: () => void;
 }
 
@@ -13,10 +13,10 @@ export function createAuthContext(queryClient: QueryClient): AuthContext {
   const authContext: AuthContext = {
     isAuthenticated: false,
     user: null,
-    login: (user: User) => {
+    login: (response: LoginResponse | RegisterResponse) => {
       authContext.isAuthenticated = true;
-      authContext.user = user;
-      queryClient.setQueryData(getCurrentUserQuery().queryKey, user);
+      authContext.user = response.data;
+      queryClient.setQueryData(getCurrentUserQuery().queryKey, response.data);
     },
     logout: () => {
       authContext.isAuthenticated = false;
@@ -31,7 +31,7 @@ export async function loadUser(queryClient: QueryClient, authContext: AuthContex
   try {
     const user = await queryClient.fetchQuery(getCurrentUserQuery());
     if (user) {
-      authContext.login(user);
+      authContext.login({ data: user, message: 'User loaded' });
       return user;
     }
   } catch (_error) {

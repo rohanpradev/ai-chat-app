@@ -1,5 +1,4 @@
 import { z } from "@hono/zod-openapi";
-import { CommonBadRequestResponseSchema, CommonErrorResponseSchema } from "./common.schema";
 
 export const UserProfileDataSchema = z.object({
 	email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
@@ -33,5 +32,20 @@ export const UpdateProfileResponseSchema = z.object({
 	message: z.string().describe("Update success message"),
 });
 
-export const ProfileErrorResponseSchema = CommonErrorResponseSchema;
-export const BadRequestResponseSchema = CommonBadRequestResponseSchema;
+export const ProfileErrorResponseSchema = z
+	.object({
+		message: z.string().describe("Error message"),
+	})
+	.openapi({
+		description: "Profile error response",
+		title: "ProfileErrorResponse",
+	});
+
+export const BadRequestResponseSchema = z
+	.object({
+		message: z.string().describe("Bad request error message"),
+	})
+	.openapi({
+		description: "Bad request response",
+		title: "BadRequestResponse",
+	});

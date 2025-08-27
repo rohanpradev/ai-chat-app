@@ -7,8 +7,6 @@ const EnvSchema = z.object({
 	AUTH_COOKIE_NAME: z.string().default("token"),
 	// Make Azure settings optional for local/minikube without Azure hookup
 	AZURE_API_KEY: z.string().optional(),
-	AZURE_DEPLOYMENT_NAME: z.string().optional(),
-	AZURE_OPENAI_API_ENDPOINT: z.url().optional(),
 	AZURE_RESOURCE_NAME: z.string().optional(),
 	BASE_API_SLUG: z.string().default("api"),
 	CLIENT_URL: z.url(),
@@ -21,7 +19,7 @@ const EnvSchema = z.object({
 	// OPENAI_API_KEY: z.string(),
 	// OPENAI_ORG_ID: z.string(),
 	REDIS_URL: z.url(),
-	SERPER_API_KEY: z.string(),
+	// SERPER_API_KEY: z.string(),
 	SERVER_PORT: z.coerce.number().min(1).max(65535).default(3000)
 });
 

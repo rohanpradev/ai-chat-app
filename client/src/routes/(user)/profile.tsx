@@ -10,7 +10,7 @@ import { Route as IndexRoute } from "@/routes/index";
 export const Route = createFileRoute("/(user)/profile")({
   beforeLoad: ({ context }) => {
     if (!context.auth.isAuthenticated) {
-      throw redirect({ to: LoginRoute.to });
+      throw redirect({ to: LoginRoute.to, search: { redirect: undefined } });
     }
   },
   loader: async ({ context }) => {

@@ -1,5 +1,5 @@
-import { getConversationsQuery } from "@/queries/getConversations";
+import { getChatsQuery } from "@/queries/getChats";
 import { getCurrentUserQuery } from "@/queries/getCurrentUser";
 
 export const profileQuery = () => getCurrentUserQuery();
-export const conversationsQuery = () => getConversationsQuery();
+export const chatsQuery = () => getChatsQuery();

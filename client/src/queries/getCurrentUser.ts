@@ -5,11 +5,11 @@ import { AUTH_QUERY_KEY } from "@/utils/query-key";
 
 export const getCurrentUserQuery = () => {
   const { callApi } = useApi();
-  return queryOptions<User>({
+  return queryOptions({
     queryKey: AUTH_QUERY_KEY.user,
     retry: false,
     queryFn: () =>
-      callApi("auth/me", {
+      callApi<{ data: User; message: string }>("auth/me", {
         method: "GET",
       }),
   });

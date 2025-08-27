@@ -65,7 +65,7 @@ A full-stack AI-powered chat application built with modern technologies for opti
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/rohanpradev/ai-chat-app.git
 cd chat-app
 ```
 
@@ -218,8 +218,6 @@ JWT_SECRET=your-super-secret-jwt-key
 
 # AI Configuration
 AZURE_OPENAI_API_KEY=your-azure-openai-key
-AZURE_OPENAI_ENDPOINT=your-azure-endpoint
-AZURE_DEPLOYMENT_NAME=your-deployment-name
 AZURE_RESOURCE_NAME=your-deployment-resource
 
 

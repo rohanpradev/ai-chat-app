@@ -1,30 +1,40 @@
 import { useChat } from "@ai-sdk/react";
 import type { MyUIMessage } from "@chat-app/shared";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { DefaultChatTransport } from "ai";
 import type { ClipboardEvent } from "react";
 import { useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
-import { conversationsQuery } from "@/lib/queries";
+import { chatsQuery } from "@/lib/queries";
+import { Route as ChatIndexRoute } from "@/routes/chat/index";
 import { models } from "@/utils";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
 export const Route = createFileRoute("/chat/$conversationId")({
   loader: async ({ context, params }) => {
-    const conversations = await context.queryClient.ensureQueryData(conversationsQuery());
-    const conversation = conversations.data.find((c) => c.id === params.conversationId);
-    return { initialMessages: (conversation?.messages || []) as MyUIMessage[] };
+    // Conversations are already loaded by parent /chat route, so we can access from cache
+    const chats = context.queryClient.getQueryData(chatsQuery().queryKey);
+    const chat = chats?.find((c) => c.id === params.conversationId);
+
+    if (!chat) {
+      // Instead of throwing notFound, redirect to chat index where empty state is handled
+      throw redirect({ to: ChatIndexRoute.to, search: { redirect: undefined } });
+    }
+
+    return {
+      initialMessages: (chat?.messages || []) as MyUIMessage[],
+    };
   },
   component: ConversationChat,
 });
 
 function ConversationChat() {
   const { conversationId } = Route.useParams();
-  const { initialMessages } = Route.useLoaderData() as { initialMessages: MyUIMessage[] };
+  const { initialMessages } = Route.useLoaderData();
   const [input, setInput] = useState("");
-  const [model, setModel] = useState(models[0].id);
+  const [model, setModel] = useState(models[0].id); // This will now be "gpt-4.1-mini"
   const [webSearch, setWebSearch] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [files, setFiles] = useState<FileList | undefined>(undefined);

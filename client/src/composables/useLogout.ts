@@ -20,12 +20,12 @@ export const useUserLogout = () => {
       auth?.logout();
       queryClient.clear();
       toast.success("Successfully logged out.");
-      navigate({ to: LoginRoute.to });
+      navigate({ to: LoginRoute.to, search: { redirect: undefined } });
     },
     onError: () => {
       auth?.logout();
       queryClient.clear();
-      navigate({ to: LoginRoute.to });
+      navigate({ to: LoginRoute.to, search: { redirect: undefined } });
       toast.error("Logged out locally.");
     },
   });

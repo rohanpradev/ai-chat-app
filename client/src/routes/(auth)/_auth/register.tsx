@@ -217,7 +217,7 @@ function RegisterForm() {
       <div className="text-center">
         <p className="text-sm text-muted-foreground">
           Already have an account?&nbsp;
-          <Link to={LoginRoute.to} className="font-medium text-primary hover:text-primary/80 transition-colors">
+          <Link to={LoginRoute.to} search={{ redirect: undefined }} className="font-medium text-primary hover:text-primary/80 transition-colors">
             Sign in instead
           </Link>
         </p>

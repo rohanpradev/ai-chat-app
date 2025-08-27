@@ -14,6 +14,6 @@ export const AUTH_QUERY_KEY = {
 };
 
 export const CHAT_QUERY_KEY = {
-  conversations: ["chat", "conversations"],
-  createConversation: ["chat", "create-conversation"],
+  chats: ["chat", "chats"],
+  createChat: ["chat", "create-chat"],
 };
