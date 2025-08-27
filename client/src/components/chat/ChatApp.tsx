@@ -8,10 +8,10 @@ import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
-import { ChatSidebar } from "@/components/chat/ConversationSidebar";
+import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
-
+import { useLoadConversation } from "@/hooks/useLoadConversation";
 import { models } from "@/utils";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
@@ -34,7 +34,7 @@ const suggestions = [
 
 export function ChatApp({ user }: ChatAppProps) {
   const { mutate: logout } = useUserLogout();
-
+  const { mutate: loadConversationMutation } = useLoadConversation();
   const [input, setInput] = useState("");
   const [model, setModel] = useState(models[0].id);
   const [webSearch, setWebSearch] = useState(false);
@@ -48,6 +48,15 @@ export function ChatApp({ user }: ChatAppProps) {
       credentials: "include",
     }),
   });
+
+  const _loadConversation = (conversationId: string) => {
+    loadConversationMutation(conversationId, {
+      onSuccess(data) {
+        setMessages(data.messages);
+        setCurrentConversationId(conversationId);
+      },
+    });
+  };
 
   const _handleNewConversation = () => {
     setMessages([]);
@@ -123,7 +132,7 @@ export function ChatApp({ user }: ChatAppProps) {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="h-screen flex w-full">
-        <ChatSidebar />
+        <ConversationSidebar />
 
         <div className="flex-1 flex flex-col">
           <ChatHeader user={user} onLogout={() => logout()} />

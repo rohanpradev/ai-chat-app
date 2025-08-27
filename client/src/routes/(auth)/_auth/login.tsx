@@ -12,9 +12,15 @@ import { Route as RegisterRoute } from "@/routes/(auth)/_auth/register";
 import { Route as IndexRoute } from "@/routes/index";
 
 export const Route = createFileRoute("/(auth)/_auth/login")({
-  beforeLoad: ({ context }) => {
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      redirect: (search.redirect as string) || undefined,
+    };
+  },
+  beforeLoad: ({ context, search }) => {
     if (context.auth.isAuthenticated) {
-      throw redirect({ to: IndexRoute.to });
+      const redirectTo = search.redirect || IndexRoute.to;
+      throw redirect({ to: redirectTo });
     }
   },
   component: LoginComponent,
@@ -33,15 +39,16 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const MAX_LOGIN_ATTEMPTS = 5;
 
 function LoginComponent() {
-  const { mutateAsync } = useUserLogin();
+  const search = Route.useSearch();
+  const { mutateAsync } = useUserLogin(search.redirect);
   const [showPassword, setShowPassword] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const emailId = useId();
   const passwordId = useId();
 
   const loginAction = async (_prevState: LoginState, formData: FormData): Promise<LoginState> => {
-    const email = String(formData.get("email") || "");
-    const password = String(formData.get("password") || "");
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
     const fieldErrors: LoginState["fieldErrors"] = {};
 
     if (!email?.trim()) {

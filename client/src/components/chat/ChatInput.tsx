@@ -1,3 +1,4 @@
+import type { ChatStatus } from "ai";
 import { GlobeIcon } from "lucide-react";
 import type { ClipboardEvent } from "react";
 import {
@@ -15,11 +16,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { FileUpload } from "@/components/chat/FileUpload";
 import { ToolSelector } from "@/components/chat/ToolSelector";
-
-const models = [
-  { name: "GPT-5-mini", value: "gpt-5-mini" },
-  { name: "GPT-3.5", value: "gpt-3.5-turbo" },
-];
+import { models } from "@/utils";
 
 interface ChatInputProps {
   input: string;
@@ -34,7 +31,7 @@ interface ChatInputProps {
   setFiles: (files: FileList | undefined) => void;
   onSubmit: (e: React.FormEvent) => void;
   onPaste: (e: ClipboardEvent<HTMLTextAreaElement>) => void;
-  status: "submitted" | "streaming" | "ready" | "error";
+  status: ChatStatus;
 }
 
 export function ChatInput({
@@ -69,7 +66,7 @@ export function ChatInput({
             </PromptInputModelSelectTrigger>
             <PromptInputModelSelectContent>
               {models.map((model) => (
-                <PromptInputModelSelectItem key={model.value} value={model.value}>
+                <PromptInputModelSelectItem key={model.id} value={model.id}>
                   {model.name}
                 </PromptInputModelSelectItem>
               ))}

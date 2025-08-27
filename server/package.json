@@ -23,13 +23,13 @@
 		"bun": ">=1.2.0"
 	},
 	"dependencies": {
-		"@ai-sdk/azure": "^2.0.19",
-		"@ai-sdk/openai": "^2.0.19",
+		"@ai-sdk/azure": "^2.0.22",
+		"@ai-sdk/openai": "^2.0.22",
 		"@asteasolutions/zod-to-openapi": "^8.1.0",
 		"@chat-app/shared": "workspace:*",
 		"@hono/zod-openapi": "^1.1.0",
-		"@scalar/hono-api-reference": "^0.9.13",
-		"drizzle-orm": "^0.44.4",
+		"@scalar/hono-api-reference": "^0.9.16",
+		"drizzle-orm": "^0.44.5",
 		"drizzle-zod": "^0.8.3",
 		"hono": "^4.9.4",
 		"hono-pino": "^0.10.2",
@@ -38,9 +38,9 @@
 		"stoker": "^2.0.1"
 	},
 	"devDependencies": {
-		"@types/bun": "^1.2.20",
+		"@types/bun": "^1.2.21",
 		"@types/node": "^24.3.0",
-		"bun-types": "^1.2.20",
+		"bun-types": "^1.2.21",
 		"dotenv": "^17.2.1",
 		"drizzle-kit": "^0.31.4",
 		"postgres": "^3.4.7"

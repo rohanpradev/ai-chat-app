@@ -1,4 +1,3 @@
-import type { LogoutResponse } from "@chat-app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -11,9 +10,9 @@ export const useUserLogout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  return useMutation<LogoutResponse, Error>({
+  return useMutation({
     mutationFn: () =>
-      callApi<LogoutResponse>("auth/logout", {
+      callApi("auth/logout", {
         method: "POST",
         credentials: "include",
       }),
@@ -21,12 +20,12 @@ export const useUserLogout = () => {
       auth?.logout();
       queryClient.clear();
       toast.success("Successfully logged out.");
-      navigate({ to: LoginRoute.to });
+      navigate({ to: LoginRoute.to, search: { redirect: undefined } });
     },
     onError: () => {
       auth?.logout();
       queryClient.clear();
-      navigate({ to: LoginRoute.to });
+      navigate({ to: LoginRoute.to, search: { redirect: undefined } });
       toast.error("Logged out locally.");
     },
   });

@@ -5,10 +5,10 @@ import { PROFILE_QUERY_KEY } from "@/utils/query-key";
 
 export const getProfileQuery = () => {
   const { callApi } = useApi();
-  return queryOptions<GetProfileResponse>({
+  return queryOptions({
     queryKey: PROFILE_QUERY_KEY.userProfile,
     queryFn: () =>
-      callApi("profile", {
+      callApi<GetProfileResponse>("profile", {
         method: "GET",
       }),
   });

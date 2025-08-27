@@ -35,8 +35,8 @@ export const tools = {
 					},
 					method: "POST"
 				});
+
 				if (!response.ok) {
-					const _errorText = await response.text();
 					throw new Error(`Serper API error: ${response.status}`);
 				}
 

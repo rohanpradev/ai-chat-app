@@ -34,9 +34,35 @@ export const GetChatRequestSchema = z.object({
 	chatId: z.string().describe("Unique Chat identifier"),
 });
 
+export const CreateConversationRequestSchema = z.object({
+	title: z.string().optional().describe("Optional conversation title"),
+});
+
+export const UpdateConversationResponseSchema = z.object({
+	message: z.string().describe("Success message"),
+	success: z.boolean().describe("Operation success status"),
+});
+
 export const ChatErrorResponseSchema = CommonErrorResponseSchema;
 export const ChatBadRequestResponseSchema = CommonBadRequestResponseSchema;
+
+// Aliases for backward compatibility with server
+export const GetConversationsResponseSchema = GetChatsResponseSchema;
+export const CreateConversationResponseSchema = UpsertChatResponseSchema;
+export const GetConversationResponseSchema = GetChatResponseSchema;
+export const UpdateConversationRequestSchema = UpsertChatRequestSchema;
+export const ConversationErrorResponseSchema = ChatErrorResponseSchema;
+export const ConversationBadRequestResponseSchema = ChatBadRequestResponseSchema;
 
 export type Chat = z.infer<typeof ChatDataSchema>;
 export type UpsertChatRequest = z.infer<typeof UpsertChatRequestSchema>;
 export type UpsertChatResponse = z.infer<typeof UpsertChatResponseSchema>;
+
+// Aliases for backward compatibility
+export type Conversation = Chat;
+export type CreateConversationResponse = UpsertChatResponse;
+export type CreateConversationRequest = z.infer<typeof CreateConversationRequestSchema>;
+export type GetConversationsResponse = z.infer<typeof GetConversationsResponseSchema>;
+export type GetConversationResponse = z.infer<typeof GetConversationResponseSchema>;
+export type UpdateConversationRequest = z.infer<typeof UpdateConversationRequestSchema>;
+export type UpdateConversationResponse = z.infer<typeof UpdateConversationResponseSchema>;

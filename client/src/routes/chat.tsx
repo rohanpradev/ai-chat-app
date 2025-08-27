@@ -1,19 +1,31 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { ChatHeader } from "@/components/chat/ChatHeader";
-import { ChatSidebar } from "@/components/chat/ConversationSidebar";
+import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
-import { getChatsQuery } from "@/queries/getChats";
+import { chatsQuery } from "@/lib/queries";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 
 export const Route = createFileRoute("/chat")({
-  beforeLoad: ({ context }) => {
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      redirect: (search.redirect as string) || undefined,
+    };
+  },
+  beforeLoad: ({ context, location }) => {
+    // Centralized auth check for all chat routes
     if (!context.auth.isAuthenticated) {
-      throw redirect({ to: LoginRoute.to });
+      throw redirect({
+        to: LoginRoute.to,
+        search: {
+          redirect: location.href,
+        },
+      });
     }
   },
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(getChatsQuery());
+    // Pre-load conversations for all chat routes
+    return await context.queryClient.ensureQueryData(chatsQuery());
   },
   component: ChatLayout,
 });
@@ -29,7 +41,7 @@ function ChatLayout() {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="h-screen flex w-full">
-        <ChatSidebar />
+        <ConversationSidebar />
         <div className="flex-1 flex flex-col">
           <ChatHeader user={auth.user} onLogout={() => logout()} />
           <Outlet />
