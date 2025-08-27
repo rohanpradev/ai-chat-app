@@ -12,7 +12,7 @@ export async function convertFilesToDataURLs(files: FileList) {
             resolve({
               type: "file",
               mediaType: file.type,
-              url: String(reader.result),
+              url: reader.result as string,
             });
           };
           reader.onerror = reject;

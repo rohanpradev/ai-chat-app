@@ -4,58 +4,52 @@ interface ApiErrorResponse {
   details?: unknown;
 }
 
+interface ApiResponse<T> {
+  data: T;
+  message: string;
+}
+
 export const useApi = () => {
-  const callApi = async <T>(endpoint: string, options: RequestInit = {}, extractData = true): Promise<T> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  // Overload for extractData = true (default)
+  function callApi<T extends ApiResponse<any>>(
+    endpoint: string,
+    options?: RequestInit,
+    extractData?: true,
+  ): Promise<T["data"]>;
 
-    try {
-      const response = await fetch(`/api/${endpoint}`, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        signal: controller.signal,
-        ...options,
-      });
+  // Overload for extractData = false
+  function callApi<T>(endpoint: string, options: RequestInit, extractData: false): Promise<T>;
 
-      clearTimeout(timeoutId);
+  // Implementation
+  async function callApi<_T>(endpoint: string, options: RequestInit = {}, extractData = true): Promise<any> {
+    const response = await fetch(`/api/${endpoint}`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    });
 
-      if (!response.ok) {
-        let errorData: ApiErrorResponse;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = {
-            message: getStatusMessage(response.status),
-            status: response.status,
-          };
-        }
-
-        const error = new Error(errorData.message) as Error & { status: number };
-        error.status = response.status;
-        throw error;
+    if (!response.ok) {
+      let errorData: ApiErrorResponse;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {
+          message: getStatusMessage(response.status),
+          status: response.status,
+        };
       }
 
-      const result = await response.json();
-      return extractData ? result.data || result : result;
-    } catch (error) {
-      clearTimeout(timeoutId);
-
-      if (error instanceof Error) {
-        if (error.name === "AbortError") {
-          throw new Error("Request timeout. Please try again.");
-        }
-        if (!navigator.onLine) {
-          throw new Error("No internet connection. Please check your network.");
-        }
-      }
-
-      console.error(`API error [${endpoint}]:`, error);
+      const error = new Error(errorData.message) as Error & { status: number };
+      error.status = response.status;
       throw error;
     }
-  };
+
+    const result = await response.json();
+    return extractData ? result.data : result;
+  }
 
   return { callApi };
 };

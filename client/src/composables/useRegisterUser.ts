@@ -10,9 +10,9 @@ export const useUserRegister = () => {
   const { auth } = useRouteContext({ strict: false });
   const navigate = useNavigate();
 
-  return useMutation<RegisterResponse, Error, RegisterUserRequest>({
+  return useMutation({
     mutationFn: (payload: RegisterUserRequest) =>
-      callApi("auth/register", {
+      callApi<RegisterResponse>("auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -21,7 +21,7 @@ export const useUserRegister = () => {
         credentials: "include",
       }),
     onSuccess: (data) => {
-      auth?.login(data);
+      auth?.login({ data, message: "Registration successful" });
       toast.success("Successfully registered user.");
       navigate({ to: AppRoute.fullPath });
     },

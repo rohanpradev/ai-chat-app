@@ -33,10 +33,10 @@ function RegisterForm() {
   const confirmPasswordId = useId();
 
   const registerAction = async (_prevState: RegisterState, formData: FormData): Promise<RegisterState> => {
-    const name = String(formData.get("name") || "");
-    const email = String(formData.get("email") || "");
-    const password = String(formData.get("password") || "");
-    const confirmPassword = String(formData.get("confirmPassword") || "");
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
 
     if (!name?.trim()) {
       toast.error("Please enter your name");
@@ -217,7 +217,7 @@ function RegisterForm() {
       <div className="text-center">
         <p className="text-sm text-muted-foreground">
           Already have an account?&nbsp;
-          <Link to={LoginRoute.to} className="font-medium text-primary hover:text-primary/80 transition-colors">
+          <Link to={LoginRoute.to} search={{ redirect: undefined }} className="font-medium text-primary hover:text-primary/80 transition-colors">
             Sign in instead
           </Link>
         </p>

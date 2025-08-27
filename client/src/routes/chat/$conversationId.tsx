@@ -1,154 +1,92 @@
 import { useChat } from "@ai-sdk/react";
 import type { MyUIMessage } from "@chat-app/shared";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { DefaultChatTransport } from "ai";
 import type { ClipboardEvent } from "react";
-import { useCallback, useMemo, useReducer } from "react";
+import { useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
-import { ChatNotFound } from "@/components/errors/ChatNotFound";
-import { getChatQuery } from "@/queries/getChat";
+import { chatsQuery } from "@/lib/queries";
+import { Route as ChatIndexRoute } from "@/routes/chat/index";
 import { models } from "@/utils";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
-interface ChatState {
-  input: string;
-  model: string;
-  webSearch: boolean;
-  selectedTools: string[];
-  files: FileList | undefined;
-}
-
-type ChatAction =
-  | { type: "SET_INPUT"; payload: string }
-  | { type: "SET_MODEL"; payload: string }
-  | { type: "SET_WEB_SEARCH"; payload: boolean }
-  | { type: "SET_TOOLS"; payload: string[] }
-  | { type: "SET_FILES"; payload: FileList | undefined }
-  | { type: "RESET_INPUT" };
-
-const initialState: ChatState = {
-  input: "",
-  model: models[0].id,
-  webSearch: false,
-  selectedTools: [],
-  files: undefined,
-};
-
-function chatReducer(state: ChatState, action: ChatAction): ChatState {
-  switch (action.type) {
-    case "SET_INPUT":
-      return { ...state, input: action.payload };
-    case "SET_MODEL":
-      return { ...state, model: action.payload };
-    case "SET_WEB_SEARCH":
-      return { ...state, webSearch: action.payload };
-    case "SET_TOOLS":
-      return { ...state, selectedTools: action.payload };
-    case "SET_FILES":
-      return { ...state, files: action.payload };
-    case "RESET_INPUT":
-      return { ...state, input: "", files: undefined };
-    default:
-      return state;
-  }
-}
-
 export const Route = createFileRoute("/chat/$conversationId")({
   loader: async ({ context, params }) => {
-    const chatQuery = getChatQuery(params.conversationId);
+    // Conversations are already loaded by parent /chat route, so we can access from cache
+    const chats = context.queryClient.getQueryData(chatsQuery().queryKey);
+    const chat = chats?.find((c) => c.id === params.conversationId);
 
-    try {
-      const result = await context.queryClient.ensureQueryData(chatQuery);
-
-      if (!result.data) {
-        throw notFound();
-      }
-
-      const messages = result.data.messages || [];
-      const initialMessages: MyUIMessage[] = messages.map((msg) => ({
-        id: msg.id,
-        role: msg.role,
-        parts: msg.parts,
-      }));
-
-      return {
-        initialMessages,
-        chatId: params.conversationId,
-      };
-    } catch (error) {
-      console.error("Failed to load chat:", error);
-      throw notFound();
+    if (!chat) {
+      // Instead of throwing notFound, redirect to chat index where empty state is handled
+      throw redirect({ to: ChatIndexRoute.to, search: { redirect: undefined } });
     }
+
+    return {
+      initialMessages: (chat?.messages || []) as MyUIMessage[],
+    };
   },
-  component: ChatComponent,
-  errorComponent: ChatNotFound,
+  component: ConversationChat,
 });
 
-function ChatComponent() {
-  const { initialMessages, chatId } = Route.useLoaderData();
-  const [state, dispatch] = useReducer(chatReducer, initialState);
+function ConversationChat() {
+  const { conversationId } = Route.useParams();
+  const { initialMessages } = Route.useLoaderData();
+  const [input, setInput] = useState("");
+  const [model, setModel] = useState(models[0].id); // This will now be "gpt-4.1-mini"
+  const [webSearch, setWebSearch] = useState(false);
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
 
-  // Memoize transport to prevent recreation on every render
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: "/api/ai/text-stream",
-        body: { chatId },
-        credentials: "include",
-      }),
-    [chatId],
-  );
-
-  const { messages, sendMessage, status, error, regenerate } = useChat({
-    transport,
+  const { messages, sendMessage, status, error, clearError, regenerate } = useChat<MyUIMessage>({
+    id: conversationId,
     messages: initialMessages,
+    transport: new DefaultChatTransport({
+      api: "/api/ai/text-stream",
+      credentials: "include",
+    }),
   });
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (state.input.trim()) {
-        const fileParts = state.files && state.files.length > 0 ? await convertFilesToDataURLs(state.files) : [];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      const fileParts = files && files.length > 0 ? await convertFilesToDataURLs(files) : [];
 
-        sendMessage(
-          {
-            role: "user",
-            parts: [{ type: "text", text: state.input }, ...fileParts],
+      sendMessage(
+        {
+          role: "user",
+          parts: [{ type: "text", text: input }, ...fileParts],
+        },
+        {
+          body: {
+            model: model,
+            webSearch: webSearch,
+            tools: selectedTools,
+            chatId: conversationId,
           },
-          {
-            body: {
-              model: state.model,
-              webSearch: state.webSearch,
-              tools: state.selectedTools,
-            },
-          },
-        );
-        dispatch({ type: "RESET_INPUT" });
-      }
-    },
-    [state.input, state.files, state.model, state.webSearch, state.selectedTools, sendMessage],
-  );
+        },
+      );
+      setFiles(undefined);
+      setInput("");
+    }
+  };
 
-  const handlePaste = useCallback(
-    (e: ClipboardEvent<HTMLTextAreaElement>) => {
-      const clipboardFiles = e.clipboardData?.files;
-      if (clipboardFiles && clipboardFiles.length > 0) {
-        const newFiles = new DataTransfer();
-        if (state.files) {
-          Array.from(state.files).forEach((f) => {
-            newFiles.items.add(f);
-          });
-        }
-        Array.from(clipboardFiles).forEach((f) => {
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const clipboardFiles = e.clipboardData?.files;
+    if (clipboardFiles && clipboardFiles.length > 0) {
+      const newFiles = new DataTransfer();
+      if (files) {
+        Array.from(files).forEach((f) => {
           newFiles.items.add(f);
         });
-        dispatch({ type: "SET_FILES", payload: newFiles.files });
       }
-    },
-    [state.files],
-  );
+      Array.from(clipboardFiles).forEach((f) => {
+        newFiles.items.add(f);
+      });
+      setFiles(newFiles.files);
+    }
+  };
 
   return (
     <>
@@ -159,8 +97,7 @@ function ChatComponent() {
             status={status}
             error={error}
             onRetry={() => regenerate()}
-            onClearError={() => {}}
-            onRegenerate={() => regenerate()}
+            onClearError={clearError}
           />
         </ConversationContent>
         <ConversationScrollButton />
@@ -168,16 +105,16 @@ function ChatComponent() {
 
       <div className="border-t p-6">
         <ChatInput
-          input={state.input}
-          setInput={(value) => dispatch({ type: "SET_INPUT", payload: value })}
-          model={state.model}
-          setModel={(value) => dispatch({ type: "SET_MODEL", payload: value })}
-          webSearch={state.webSearch}
-          setWebSearch={(value) => dispatch({ type: "SET_WEB_SEARCH", payload: value })}
-          selectedTools={state.selectedTools}
-          setSelectedTools={(value) => dispatch({ type: "SET_TOOLS", payload: value })}
-          files={state.files}
-          setFiles={(value) => dispatch({ type: "SET_FILES", payload: value })}
+          input={input}
+          setInput={setInput}
+          model={model}
+          setModel={setModel}
+          webSearch={webSearch}
+          setWebSearch={setWebSearch}
+          selectedTools={selectedTools}
+          setSelectedTools={setSelectedTools}
+          files={files}
+          setFiles={setFiles}
           onSubmit={handleSubmit}
           onPaste={handlePaste}
           status={status}
