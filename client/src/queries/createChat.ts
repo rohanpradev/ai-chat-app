@@ -24,7 +24,6 @@ export const useCreateChat = () => {
 export const createChatQuery = (title: string = "New Chat") => {
   const { callApi } = useApi();
   return queryOptions({
-    // Unique key per execution to avoid returning a stale created record when navigating repeatedly
     queryKey: [...CHAT_QUERY_KEY.createChat, title, Date.now()],
     queryFn: () =>
       callApi<CreateConversationResponse>(
@@ -34,7 +33,7 @@ export const createChatQuery = (title: string = "New Chat") => {
           credentials: "include",
           body: JSON.stringify({ title }),
         },
-        false,
+        true,
       ),
     // We don't want this to stick around
     gcTime: 0,
