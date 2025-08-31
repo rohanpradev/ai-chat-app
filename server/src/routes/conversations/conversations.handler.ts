@@ -1,23 +1,23 @@
 import { and, eq } from "drizzle-orm";
+import * as HttpStatusCodes from "stoker/http-status-codes";
 import { db } from "@/db";
-import { aiConversations } from "@/db/schema";
+import { chats } from "@/db/schema";
 import type { AppRouteHandler } from "@/lib/types";
 import type {
-	createConversationRoute,
-	getConversationRoute,
-	getConversationsRoute,
-	updateConversationRoute
-} from "./conversations.route";
+	CreateConversationRoute,
+	GetConversationRoute,
+	GetConversationsRoute,
+	UpdateConversationRoute
+} from "@/routes/conversations/conversations.route";
 
-export const createConversation: AppRouteHandler<typeof createConversationRoute> = async (c) => {
+export const createConversation: AppRouteHandler<CreateConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const { title } = c.req.valid("json");
 
 	const [conversation] = await db
-		.insert(aiConversations)
+		.insert(chats)
 		.values({
-			messages: [],
-			title: title || "New Conversation",
+			title: title ?? "New Conversation",
 			userId: userJwt.id
 		})
 		.returning();
@@ -27,36 +27,28 @@ export const createConversation: AppRouteHandler<typeof createConversationRoute>
 			data: {
 				createdAt: conversation.createdAt?.toISOString() || new Date().toISOString(),
 				id: conversation.id,
-				messages: conversation.messages as any[],
+				messages: [],
 				title: conversation.title,
 				updatedAt: conversation.updatedAt?.toISOString() || null
 			},
 			message: "Conversation created successfully"
 		},
-		201
+		HttpStatusCodes.CREATED
 	);
 };
 
-export const getConversations: AppRouteHandler<typeof getConversationsRoute> = async (c) => {
+export const getConversations: AppRouteHandler<GetConversationsRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 
-	const conversations = await db
-		.select({
-			createdAt: aiConversations.createdAt,
-			id: aiConversations.id,
-			messages: aiConversations.messages,
-			title: aiConversations.title,
-			updatedAt: aiConversations.updatedAt
-		})
-		.from(aiConversations)
-		.where(eq(aiConversations.userId, userJwt.id))
-		.orderBy(aiConversations.updatedAt);
+	const conversations = await db.query.chats.findMany({
+		orderBy: (chats, { desc }) => [desc(chats.updatedAt)],
+		where: eq(chats.userId, userJwt.id)
+	});
 
 	return c.json({
 		data: conversations.map((conv) => ({
 			createdAt: conv.createdAt?.toISOString() || new Date().toISOString(),
 			id: conv.id,
-			messages: conv.messages as any[],
 			title: conv.title,
 			updatedAt: conv.updatedAt?.toISOString() || null
 		})),
@@ -64,47 +56,67 @@ export const getConversations: AppRouteHandler<typeof getConversationsRoute> = a
 	});
 };
 
-export const getConversation: AppRouteHandler<typeof getConversationRoute> = async (c) => {
+export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const { id } = c.req.valid("param");
 
-	const [conversation] = await db
-		.select()
-		.from(aiConversations)
-		.where(and(eq(aiConversations.id, id), eq(aiConversations.userId, userJwt.id)));
-
-	if (!conversation) {
-		return c.json({ error: "Conversation not found", message: "The requested conversation was not found" }, 404);
-	}
+	const chat = await db.query.chats.findFirst({
+		where: and(eq(chats.id, id), eq(chats.userId, userJwt.id)),
+		with: {
+			messages: {
+				columns: {
+					id: true,
+					parts: true,
+					role: true
+				},
+				orderBy: (message, { asc }) => [asc(message.order)]
+			}
+		}
+	});
 
 	return c.json({
-		data: {
-			createdAt: conversation.createdAt?.toISOString() || new Date().toISOString(),
-			id: conversation.id,
-			messages: conversation.messages as any[],
-			title: conversation.title,
-			updatedAt: conversation.updatedAt?.toISOString() || null
-		},
+		data: chat
+			? {
+					createdAt: chat.createdAt?.toISOString() || new Date().toISOString(),
+					id: chat.id,
+					messages: chat.messages || [],
+					title: chat.title,
+					updatedAt: chat.updatedAt?.toISOString() || null
+				}
+			: null,
 		message: "Conversation retrieved successfully"
 	});
 };
 
-export const updateConversation: AppRouteHandler<typeof updateConversationRoute> = async (c) => {
+export const updateConversation: AppRouteHandler<UpdateConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const { id } = c.req.valid("param");
-	const { messages, title } = c.req.valid("json");
+	const { title } = c.req.valid("json");
 
 	await db
-		.update(aiConversations)
+		.update(chats)
 		.set({
-			messages: messages as any,
 			title,
 			updatedAt: new Date()
 		})
-		.where(and(eq(aiConversations.id, id), eq(aiConversations.userId, userJwt.id)));
+		.where(and(eq(chats.id, id), eq(chats.userId, userJwt.id)));
 
-	return c.json({
-		message: "Conversation updated successfully",
-		success: true
-	});
+	const [updatedChat] = await db
+		.select()
+		.from(chats)
+		.where(and(eq(chats.id, id), eq(chats.userId, userJwt.id)))
+		.limit(1);
+
+	return c.json(
+		{
+			data: {
+				createdAt: updatedChat.createdAt?.toISOString() || new Date().toISOString(),
+				id: updatedChat.id,
+				title: updatedChat.title,
+				updatedAt: updatedChat.updatedAt?.toISOString() || null
+			},
+			message: "Conversation updated successfully"
+		},
+		HttpStatusCodes.OK
+	);
 };

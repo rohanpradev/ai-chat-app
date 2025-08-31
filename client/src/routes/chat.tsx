@@ -3,7 +3,7 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
-import { chatsQuery } from "@/lib/queries";
+import { conversationsQuery } from "@/lib/queries";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 
 export const Route = createFileRoute("/chat")({
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/chat")({
   },
   loader: async ({ context }) => {
     // Pre-load conversations for all chat routes
-    return await context.queryClient.ensureQueryData(chatsQuery());
+    return await context.queryClient.ensureQueryData(conversationsQuery());
   },
   component: ChatLayout,
 });

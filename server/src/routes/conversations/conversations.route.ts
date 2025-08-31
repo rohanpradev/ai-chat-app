@@ -32,6 +32,8 @@ export const createConversationRoute = createRoute({
 	tags
 });
 
+export type CreateConversationRoute = typeof createConversationRoute;
+
 export const getConversationsRoute = createRoute({
 	description: "Get all conversations for authenticated user",
 	method: "get",
@@ -44,6 +46,8 @@ export const getConversationsRoute = createRoute({
 	summary: "Get user conversations",
 	tags
 });
+
+export type GetConversationsRoute = typeof getConversationsRoute;
 
 export const getConversationRoute = createRoute({
 	description: "Get specific conversation by ID",
@@ -63,6 +67,7 @@ export const getConversationRoute = createRoute({
 	summary: "Get conversation by ID",
 	tags
 });
+export type GetConversationRoute = typeof getConversationRoute;
 
 export const updateConversationRoute = createRoute({
 	description: "Update conversation by ID",
@@ -84,3 +89,5 @@ export const updateConversationRoute = createRoute({
 	summary: "Update conversation",
 	tags
 });
+
+export type UpdateConversationRoute = typeof updateConversationRoute;

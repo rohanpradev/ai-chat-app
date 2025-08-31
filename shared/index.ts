@@ -3,14 +3,14 @@ export * from "./schemas";
 
 // Export specific types to avoid conflicts
 export type {
-  User,
-  RegisterUserRequest,
-  LoginUserRequest,
-  UserProfile,
-  BasicUserProfile,
-  ApiError,
-  AuthResponse,
-  AuthError
+	ApiError,
+	AuthError,
+	AuthResponse,
+	BasicUserProfile,
+	LoginUserRequest,
+	RegisterUserRequest,
+	User,
+	UserProfile,
 } from "./types";
 
 export * from "./types/api.types";
