@@ -1,5 +1,5 @@
-import type { ChatStatus } from "ai";
 import type { MyUIMessage } from "@chat-app/shared";
+import type { ChatStatus } from "ai";
 
 import { Loader } from "@/components/ai-elements/loader";
 import { Message, MessageContent } from "@/components/ai-elements/message";

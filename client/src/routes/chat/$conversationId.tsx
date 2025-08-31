@@ -1,5 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import type { MyUIMessage } from "@chat-app/shared";
+import type { GetConversationResponse } from "@chat-app/shared/types/conversation.types";
+import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { DefaultChatTransport } from "ai";
 import type { ClipboardEvent } from "react";
@@ -7,25 +9,82 @@ import { useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
-import { chatsQuery } from "@/lib/queries";
+import { useApi } from "@/composables/useApi";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
 import { models } from "@/utils";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
+import { CHAT_QUERY_KEY } from "@/utils/query-key";
+
+const getConversationQuery = (conversationId: string) => {
+  const { callApi } = useApi();
+  return queryOptions({
+    queryKey: [...CHAT_QUERY_KEY.chats, conversationId],
+    queryFn: () => callApi<GetConversationResponse>(`conversations/${conversationId}`),
+    staleTime: 10 * 1000, // Consider data fresh for 10 seconds
+    refetchOnWindowFocus: true, // Refetch when window gains focus to check for updates
+    retry: (failureCount, error) => {
+      // Don't retry on 404s (chat not found)
+      if ((error as Error & { status?: number })?.status === 404) return false;
+      return failureCount < 3;
+    },
+  });
+};
 
 export const Route = createFileRoute("/chat/$conversationId")({
   loader: async ({ context, params }) => {
-    // Conversations are already loaded by parent /chat route, so we can access from cache
-    const chats = context.queryClient.getQueryData(chatsQuery().queryKey);
-    const chat = chats?.find((c) => c.id === params.conversationId);
+    // Fetch the conversation with messages
+    const chatQuery = getConversationQuery(params.conversationId);
+    try {
+      const conversation = await context.queryClient.ensureQueryData(chatQuery);
 
-    if (!chat) {
-      // Instead of throwing notFound, redirect to chat index where empty state is handled
-      throw redirect({ to: ChatIndexRoute.to, search: { redirect: undefined } });
+      if (!conversation) {
+        // Redirect to chat index if conversation not found or not accessible
+        throw redirect({
+          to: ChatIndexRoute.to,
+          search: { redirect: undefined },
+        });
+      }
+
+      type MessageRole = "user" | "assistant" | "system";
+
+      interface StoredMessage {
+        id: string;
+        role: MessageRole;
+        parts: any[]; // Using any here since the stored parts can be of any structure
+        metadata?: Record<string, unknown>;
+      }
+
+      // Convert stored messages to UI messages
+      const messages =
+        conversation.messages?.map((msg: StoredMessage) => {
+          // Convert parts to match the UI message format
+          const uiParts = msg.parts.map((part) => {
+            if (typeof part === "string") {
+              return { type: "text" as const, text: part };
+            }
+            // Preserve the original structure for tool and file parts
+            return part;
+          });
+
+          return {
+            id: msg.id,
+            role: msg.role,
+            parts: uiParts,
+            metadata: msg.metadata || {},
+          };
+        }) || [];
+
+      return {
+        chat: conversation,
+        initialMessages: messages,
+      };
+    } catch (error) {
+      console.error("Failed to load chat:", error);
+      throw redirect({
+        to: ChatIndexRoute.to,
+        search: { redirect: undefined },
+      });
     }
-
-    return {
-      initialMessages: (chat?.messages || []) as MyUIMessage[],
-    };
   },
   component: ConversationChat,
 });

@@ -8,10 +8,11 @@ import type {
 	CommonErrorResponseSchema,
 	CommonNotFoundResponseSchema,
 	CommonUnauthorizedResponseSchema,
+	CreateConversationResponseSchema,
 	ErrorResponseSchema,
 	// Chat schemas
-	GetChatResponseSchema,
-	GetChatsResponseSchema,
+	GetConversationResponseSchema,
+	GetConversationsResponseSchema,
 	// Profile schemas
 	GetProfileResponseSchema,
 	// Auth schemas
@@ -21,8 +22,8 @@ import type {
 	ProfileErrorResponseSchema,
 	RegisterResponseSchema,
 	UnauthorizedResponseSchema,
+	UpdateConversationResponseSchema,
 	UpdateProfileResponseSchema,
-	UpsertChatResponseSchema,
 } from "../schemas";
 
 // Auth API Types
@@ -32,9 +33,10 @@ export type LogoutResponse = z.infer<typeof LogoutResponseSchema>;
 export type MeResponse = z.infer<typeof MeResponseSchema>;
 
 // Chat API Types
-export type GetChatResponse = z.infer<typeof GetChatResponseSchema>;
-export type GetChatsResponse = z.infer<typeof GetChatsResponseSchema>;
-export type UpsertChatResponse = z.infer<typeof UpsertChatResponseSchema>;
+export type GetConversationResponse = z.infer<typeof GetConversationResponseSchema>;
+export type GetConversationsResponse = z.infer<typeof GetConversationsResponseSchema>;
+export type CreateConversationResponse = z.infer<typeof CreateConversationResponseSchema>;
+export type UpdateConversationResponse = z.infer<typeof UpdateConversationResponseSchema>;
 
 // Profile API Types
 export type GetProfileResponse = z.infer<typeof GetProfileResponseSchema>;

@@ -31,7 +31,7 @@ export async function loadUser(queryClient: QueryClient, authContext: AuthContex
   try {
     const user = await queryClient.fetchQuery(getCurrentUserQuery());
     if (user) {
-      authContext.login({ data: user, message: 'User loaded' });
+      authContext.login({ data: user, message: "User loaded" });
       return user;
     }
   } catch (_error) {

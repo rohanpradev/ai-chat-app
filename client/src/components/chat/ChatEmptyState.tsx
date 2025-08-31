@@ -18,10 +18,10 @@ export function ChatEmptyState() {
     createChat(chatTitle, {
       onSuccess: (response) => {
         if (response?.data?.id) {
-          navigate({ 
-            to: ConversationRoute.to, 
+          navigate({
+            to: ConversationRoute.to,
             params: { conversationId: response.data.id },
-            search: { redirect: undefined }
+            search: { redirect: undefined },
           });
         }
       },

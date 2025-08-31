@@ -1,8 +1,8 @@
+import type { UpsertChatResponse } from "@chat-app/shared";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createChatQuery } from "@/queries/createChat";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
-import type { UpsertChatResponse } from "@chat-app/shared";
-import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/chat/new")({
   loader: async ({ context }) => {

@@ -1,28 +1,45 @@
 import type { UIMessage } from "ai";
+import { eq } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
+import * as HttpStatusCodes from "stoker/http-status-codes";
 import { db } from "@/db";
-import { aiConversations } from "@/db/schema";
+import { chats, messages } from "@/db/schema";
 
-export const saveConversation = async (chatId: string | undefined, messages: UIMessage[], userId: string) => {
+export const saveConversation = async (chatId: string | undefined, uiMessages: UIMessage[], userId: string) => {
 	if (!chatId) return;
 
-	const firstUserMessage = messages.find((m) => m.role === "user");
+	const firstUserMessage = uiMessages.find((m) => m.role === "user");
 	const textPart = firstUserMessage?.parts?.find((p) => p.type === "text");
 	const title = textPart?.text?.slice(0, 50) || "New Chat";
 
-	return db
-		.insert(aiConversations)
-		.values({
+	const existingChat = await db.query.chats.findFirst({
+		where: eq(chats.id, chatId)
+	});
+
+	if (existingChat) {
+		// If chat exists but belongs to a different user, throw error
+		if (existingChat.userId !== userId) {
+			throw new HTTPException(HttpStatusCodes.FORBIDDEN, { message: "Chat ID already exists under a different user" });
+		}
+		// Delete all existing messages
+		await db.delete(messages).where(eq(messages.chatId, chatId));
+	} else {
+		// Create new chat
+		await db.insert(chats).values({
 			id: chatId,
-			messages: messages as any,
 			title,
-			userId
-		})
-		.onConflictDoUpdate({
-			set: {
-				messages: messages as any,
-				title,
-				updatedAt: new Date()
-			},
-			target: aiConversations.id
+			userId: userId
 		});
+	}
+
+	// Insert all messages
+	await db.insert(messages).values(
+		uiMessages.map((message, index) => ({
+			chatId,
+			id: Bun.randomUUIDv7(),
+			order: index,
+			parts: message.parts,
+			role: message.role
+		}))
+	);
 };
