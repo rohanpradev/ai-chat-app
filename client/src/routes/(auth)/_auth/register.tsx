@@ -1,11 +1,12 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { useUserRegister } from "@/composables/useRegisterUser";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 import { Route as IndexRoute } from "@/routes/index";
@@ -27,6 +28,7 @@ interface RegisterState {
 
 function RegisterForm() {
   const { mutateAsync } = useUserRegister();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
@@ -68,12 +70,20 @@ function RegisterForm() {
     }
 
     try {
-      await mutateAsync({ name: name.trim(), email: email.trim(), password, confirmPassword });
+      await mutateAsync({ 
+        name: name.trim(), 
+        email: email.trim(), 
+        password, 
+        confirmPassword,
+        profileImage: profileImage || undefined
+      });
       toast.success("Account created successfully!");
       return { success: true };
-    } catch {
-      toast.error("Registration failed. Please try again.");
-      return { error: "Registration failed" };
+    } catch (error) {
+      console.error("Registration error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again.";
+      toast.error(errorMessage);
+      return { error: errorMessage };
     }
   };
 
@@ -113,6 +123,15 @@ function RegisterForm() {
 
         <CardContent>
           <form action={formAction} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Profile Picture (Optional)</Label>
+              <AvatarUpload
+                value={profileImage}
+                onChange={setProfileImage}
+                disabled={isPending}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor={nameId} className="text-sm font-medium">
                 Full Name

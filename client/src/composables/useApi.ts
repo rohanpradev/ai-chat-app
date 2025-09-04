@@ -11,7 +11,7 @@ interface ApiResponse<T> {
 
 export const useApi = () => {
   // Overload for extractData = true (default)
-  function callApi<T extends ApiResponse<any>>(
+  function callApi<T extends ApiResponse<unknown>>(
     endpoint: string,
     options?: RequestInit,
     extractData?: true,
@@ -21,7 +21,7 @@ export const useApi = () => {
   function callApi<T>(endpoint: string, options: RequestInit, extractData: false): Promise<T>;
 
   // Implementation
-  async function callApi<_T>(endpoint: string, options: RequestInit = {}, extractData = true): Promise<any> {
+  async function callApi<_T>(endpoint: string, options: RequestInit = {}, extractData = true): Promise<unknown> {
     const response = await fetch(`/api/${endpoint}`, {
       credentials: "include",
       headers: {

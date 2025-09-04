@@ -5,6 +5,7 @@ export const UserDataSchema = z
 		email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
 		id: z.uuid().describe("The unique identifier of the user").openapi({ format: "uuid", type: "string" }),
 		name: z.string().describe("The username of the user"),
+		profileImage: z.string().optional().describe("Base64 encoded profile image").openapi({ type: "string" }),
 	})
 	.openapi({
 		description: "User information",
@@ -17,6 +18,7 @@ export const RegisterUserRequestSchema = z
 		email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
 		name: z.string().min(3).max(30).describe("The username of the user"),
 		password: z.string().min(6).max(100).describe("The password for the user account"),
+		profileImage: z.string().optional().describe("Base64 encoded profile image").openapi({ type: "string" }),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
 		message: "Passwords do not match",
@@ -28,6 +30,7 @@ export const RegisterUserRequestSchema = z
 			email: "johndoe@example.com",
 			name: "XXXXXXX",
 			password: "XXXXXXXXXXX",
+			profileImage: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...",
 		},
 		title: "RegisterUserRequest",
 	});

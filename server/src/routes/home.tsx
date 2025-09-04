@@ -1,5 +1,5 @@
-import type { FC } from "hono/jsx";
 import env from "@/utils/env";
+import type { FC } from "hono/jsx";
 
 const HonoIcon = () => (
 	<svg
@@ -491,7 +491,7 @@ const HomePage: FC = () => {
 									<div class="tech-icon">
 										<TypeScriptIcon />
 									</div>
-									<div class="tech-name">Hono</div>
+									<div class="tech-name">TypeScript</div>
 								</div>
 								<div class="tech-item">
 									<div class="tech-icon">

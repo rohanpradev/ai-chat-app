@@ -1,7 +1,9 @@
-import { Link } from "@tanstack/react-router";
-import { Bot, LogOut, Sparkles, User as UserIcon } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Bot, LogOut, Plus, Sparkles, User as UserIcon } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
+import { useCreateChat } from "@/queries/createChat";
+import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 import { Route as UserRoute } from "@/routes/(user)/profile";
 
 interface User {
@@ -17,6 +19,23 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ user, onLogout }: ChatHeaderProps) {
+  const navigate = useNavigate();
+  const { mutate: createChat, status } = useCreateChat();
+
+  const handleNewChat = () => {
+    createChat("New Chat", {
+      onSuccess: (response) => {
+        if (response?.id) {
+          navigate({
+            to: ConversationRoute.to,
+            params: { conversationId: response.id },
+            search: { redirect: undefined },
+          });
+        }
+      },
+    });
+  };
+
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-card border-b border-border">
       <div className="flex items-center gap-3">
@@ -35,6 +54,15 @@ export function ChatHeader({ user, onLogout }: ChatHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleNewChat}
+          disabled={status === "pending"}
+          className="text-muted-foreground"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
         <ModeToggle />
         <Button variant="ghost" size="sm" asChild>
           <Link to={UserRoute.to}>

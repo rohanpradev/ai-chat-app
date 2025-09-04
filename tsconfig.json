@@ -3,13 +3,15 @@
 		"baseUrl": ".",
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
+		"jsx": "react-jsx",
 		"module": "ESNext",
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"paths": {
 			"@client/*": ["client/*"],
 			"@server/*": ["server/*"],
 			"@shared/*": ["shared/*"]
 		},
+		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"strict": true,
 		"target": "ESNext"

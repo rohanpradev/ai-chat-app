@@ -1,4 +1,4 @@
-import type { ConversationSummary } from "@chat-app/shared/types/conversation.types";
+import type { Chat } from "@chat-app/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { MessageSquare, Plus } from "lucide-react";
@@ -27,7 +27,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useCreateChat } from "@/queries/createChat";
-import { getConversationsQuery } from "@/queries/getChats";
+import { getChatsQuery } from "@/queries/getChats";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 
 export function ConversationSidebar() {
@@ -37,7 +37,7 @@ export function ConversationSidebar() {
   const [title, setTitle] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const currentConversationId = params.conversationId;
-  const { data: conversations = [] } = useSuspenseQuery(getConversationsQuery());
+  const { data: chats } = useSuspenseQuery(getChatsQuery());
   const { mutate: createChat, status } = useCreateChat();
 
   const handleCreateChat = async () => {
@@ -106,10 +106,14 @@ export function ConversationSidebar() {
           <SidebarGroupLabel>Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {conversations.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">No chats yet</div>
+              {chats.length === 0 ? (
+                <div className="p-4 text-center space-y-2">
+                  <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto" />
+                  <p className="text-sm text-muted-foreground">No chats yet</p>
+                  <p className="text-xs text-muted-foreground">Create your first chat to get started</p>
+                </div>
               ) : (
-                conversations.map((conversation: ConversationSummary) => (
+                chats.map((conversation: Chat) => (
                   <SidebarMenuItem key={conversation.id}>
                     <SidebarMenuButton
                       asChild

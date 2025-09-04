@@ -12,11 +12,18 @@ export const useCreateChat = () => {
       callApi<CreateConversationResponse>("conversations", {
         method: "POST",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ title }),
       }),
-    onSuccess: () => {
-      // Invalidate the conversations list query to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: CHAT_QUERY_KEY.chats });
+    onSuccess: async (data) => {
+      // Force refetch of conversations list
+      await queryClient.refetchQueries({ queryKey: CHAT_QUERY_KEY.chats });
+      // Also invalidate the specific chat query if it exists
+      if (data?.id) {
+        queryClient.invalidateQueries({ queryKey: CHAT_QUERY_KEY.conversation(data.id) });
+      }
     },
   });
 };
@@ -27,15 +34,11 @@ export const createChatQuery = (title: string = "New Chat") => {
     // Unique key per execution to avoid returning a stale created record when navigating repeatedly
     queryKey: [...CHAT_QUERY_KEY.createChat, title, Date.now()],
     queryFn: () =>
-      callApi<CreateConversationResponse>(
-        "conversations",
-        {
-          method: "POST",
-          credentials: "include",
-          body: JSON.stringify({ title }),
-        },
-        false,
-      ),
+      callApi<CreateConversationResponse>("conversations", {
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({ title }),
+      }),
     // We don't want this to stick around
     gcTime: 0,
     staleTime: 0,
