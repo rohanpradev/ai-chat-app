@@ -9,7 +9,7 @@ import env from "@/utils/env";
 import { Auth } from "@/utils/token";
 
 export const registerUser: AppRouteHandler<AuthRoute> = async (c) => {
-	const { name, email, password } = c.req.valid("json");
+	const { name, email, password, profileImage } = c.req.valid("json");
 
 	const existingUser = await db.query.users.findFirst({
 		where: (user, { eq }) => eq(user.email, email)
@@ -26,14 +26,16 @@ export const registerUser: AppRouteHandler<AuthRoute> = async (c) => {
 		.values({
 			email,
 			name,
-			password: Auth.hashPassword(password)
+			password: Auth.hashPassword(password),
+			profileImage
 		})
-		.returning({ email: users.email, id: users.id, name: users.name });
+		.returning({ email: users.email, id: users.id, name: users.name, profileImage: users.profileImage });
 
 	const userDetails = {
 		email: user.email,
 		id: user.id,
-		name: user.name
+		name: user.name,
+		profileImage: user.profileImage
 	};
 
 	const token = await Auth.generateToken({ sub: userDetails });
@@ -73,7 +75,8 @@ export const loginUser: AppRouteHandler<LoginRoute> = async (c) => {
 	const userDetails = {
 		email: existingUser.email,
 		id: existingUser.id,
-		name: existingUser.name
+		name: existingUser.name,
+		profileImage: existingUser.profileImage
 	};
 
 	const token = await Auth.generateToken({ sub: userDetails });
@@ -117,7 +120,8 @@ export const getMe: AppRouteHandler<CurrentUserRoute> = async (c) => {
 		columns: {
 			email: true,
 			id: true,
-			name: true
+			name: true,
+			profileImage: true
 		},
 		where: (users, { eq }) => eq(users.id, token.sub.id)
 	});

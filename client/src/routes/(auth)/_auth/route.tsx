@@ -1,9 +1,17 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { z } from "zod";
 import { Route as IndexRoute } from "@/routes/index";
+
+const searchSchema = z.object({
+  redirect: z.string().optional(),
+});
+
 export const Route = createFileRoute("/(auth)/_auth")({
-  beforeLoad: ({ context: { auth } }) => {
+  validateSearch: searchSchema,
+  beforeLoad: ({ context: { auth }, search }) => {
     if (auth.isAuthenticated) {
-      throw redirect({ to: IndexRoute.to });
+      const redirectTo = search.redirect || IndexRoute.to;
+      throw redirect({ to: redirectTo });
     }
   },
   component: AuthLayout,

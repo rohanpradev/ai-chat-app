@@ -16,15 +16,15 @@ export const BasicUserProfileDataSchema = z.object({
 export const UpdateProfileRequestSchema = z.object({
 	name: z.string().describe("The new name of the user"),
 	profileImage: z
-		.instanceof(File)
+		.string()
 		.optional()
-		.describe("Profile picture image file (JPEG, PNG, WebP)")
-		.openapi({ format: "binary", type: "string" }),
+		.describe("Profile picture as base64 string")
+		.openapi({ type: "string", format: "byte" })
 });
 
 export const GetProfileResponseSchema = z.object({
 	data: BasicUserProfileDataSchema,
-	message: z.string().describe("Register success message"),
+	message: z.string().describe("Profile retrieval success message"),
 });
 
 export const UpdateProfileResponseSchema = z.object({

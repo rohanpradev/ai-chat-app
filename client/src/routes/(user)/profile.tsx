@@ -1,8 +1,13 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Mail, Shield, User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowLeft, Mail, Shield, User, Edit } from "lucide-react";
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { profileQuery } from "@/lib/queries";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 import { Route as IndexRoute } from "@/routes/index";
@@ -24,6 +29,21 @@ export const Route = createFileRoute("/(user)/profile")({
 function ProfileComponent() {
   const { auth } = Route.useRouteContext();
   const profileData = auth.user;
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(profileData?.name || "");
+  const [profileImage, setProfileImage] = useState(profileData?.profileImage);
+
+  const handleSave = () => {
+    // TODO: Implement profile update API call
+    console.log("Saving profile:", { name, profileImage });
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setName(profileData?.name || "");
+    setProfileImage(profileData?.profileImage);
+    setIsEditing(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -50,17 +70,58 @@ function ProfileComponent() {
               <CardDescription>Your basic account details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <Avatar className="w-16 h-16">
-                  <AvatarFallback className="bg-blue-100 text-blue-700">
-                    <User className="w-8 h-8" />
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">{profileData?.name}</h3>
-                  <Badge variant="secondary" className="mt-1">
-                    Active User
-                  </Badge>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  {isEditing ? (
+                    <AvatarUpload
+                      value={profileImage}
+                      onChange={setProfileImage}
+                    />
+                  ) : (
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={profileImage} alt={profileData?.name} />
+                      <AvatarFallback className="bg-blue-100 text-blue-700">
+                        <User className="w-8 h-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div>
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                          id="name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-48"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="text-xl font-semibold text-gray-900">{profileData?.name}</h3>
+                        <Badge variant="secondary" className="mt-1">
+                          Active User
+                        </Badge>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  {isEditing ? (
+                    <>
+                      <Button onClick={handleSave} size="sm">
+                        Save
+                      </Button>
+                      <Button onClick={handleCancel} variant="outline" size="sm">
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </div>
 

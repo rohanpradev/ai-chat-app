@@ -1,5 +1,5 @@
 // Export all schemas
-export * from "./schemas";
+export * from "./schemas/index.js";
 
 // Export specific types to avoid conflicts
 export type {
@@ -7,11 +7,13 @@ export type {
 	AuthError,
 	AuthResponse,
 	BasicUserProfile,
+	GetProfileResponse,
+	LoginResponse,
 	LoginUserRequest,
+	RegisterResponse,
 	RegisterUserRequest,
 	User,
-	UserProfile,
 } from "./types";
 
-export * from "./types/api.types";
-export { type MyMetadata, type MyTools, type MyUIMessage, tools } from "./types/ui-message.types";
+export * from "./types/api.types.js";
+export { type MyMetadata, type MyTools, type MyUIMessage, tools } from "./types/ui-message.types.js";

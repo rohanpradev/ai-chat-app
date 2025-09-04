@@ -41,7 +41,7 @@ function App() {
     loadUser(queryClient, auth).finally(() => {
       setIsLoading(false);
     });
-  }, []);
+  }, [queryClient, auth]);
 
   if (isLoading) {
     return <LoadingSpinner />;
