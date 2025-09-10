@@ -3,7 +3,7 @@ import type { GetConversationResponse, MyUIMessage } from "@chat-app/shared";
 import { tools } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { DefaultChatTransport, validateUIMessages } from "ai";
+import { DefaultChatTransport, type Tool, validateUIMessages } from "ai";
 import type { ClipboardEvent } from "react";
 import { useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
@@ -70,10 +70,13 @@ export const Route = createFileRoute("/chat/$conversationId")({
         };
       });
 
-      const messages = rawMessages.length > 0 ? await validateUIMessages({
-        messages: rawMessages as MyUIMessage[],
-        tools: tools as Record<string, unknown>,
-      }) : [];
+      const messages =
+        rawMessages.length > 0
+          ? await validateUIMessages({
+              messages: rawMessages as MyUIMessage[],
+              tools: tools as Record<string, Tool<unknown, unknown>>,
+            })
+          : [];
 
       return {
         chat: conversation,
@@ -125,7 +128,7 @@ function ConversationChat() {
 
   const { messages, sendMessage, status, error, clearError, regenerate } = useChat<MyUIMessage>({
     id: conversationId,
-    messages: initialMessages,
+    messages: initialMessages as MyUIMessage[],
     transport: new DefaultChatTransport({
       api: "/api/ai/text-stream",
       credentials: "include",

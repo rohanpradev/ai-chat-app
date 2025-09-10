@@ -1,7 +1,7 @@
 // Export all schemas
 export * from "./schemas/index.js";
 
-// Export specific types to avoid conflicts
+// Export specific types to avoid conflicts with schemas
 export type {
 	ApiError,
 	AuthError,
@@ -15,5 +15,12 @@ export type {
 	User,
 } from "./types";
 
-export * from "./types/api.types.js";
+// Export conversation types specifically to avoid conflicts
+export type {
+	ConversationDetail,
+	ConversationSummary,
+	CreateConversationRequest,
+	Message,
+} from "./types/conversation.types.js";
+
 export { type MyMetadata, type MyTools, type MyUIMessage, tools } from "./types/ui-message.types.js";

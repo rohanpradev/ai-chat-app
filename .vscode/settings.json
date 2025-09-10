@@ -32,11 +32,18 @@
 	"editor.fontWeight": "600",
 	"editor.formatOnSave": false,
 	"eslint.enable": false,
+	"files.associations": {
+		".env*": "dotenv"
+	},
 	"files.readonlyInclude": {
 		"**/routeTree.gen.ts": true
 	},
 	"files.watcherExclude": {
 		"**/routeTree.gen.ts": true
+	},
+	"github.copilot.enable": {
+		"*": true,
+		"dotenv": false
 	},
 	"prettier.enable": false,
 	"search.exclude": {

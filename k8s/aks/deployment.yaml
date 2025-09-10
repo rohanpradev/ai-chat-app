@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-chat-app
+  namespace: ai-chat-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-chat-app
+  template:
+    metadata:
+      labels:
+        app: ai-chat-app
+    spec:
+      containers:
+      - name: ai-chat-app
+        image: your-acr.azurecr.io/ai-chat-app:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - configMapRef:
+            name: ai-chat-config
+        - secretRef:
+            name: ai-chat-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-chat-service
+  namespace: ai-chat-app
+spec:
+  selector:
+    app: ai-chat-app
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: ClusterIP

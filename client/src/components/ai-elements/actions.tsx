@@ -29,7 +29,7 @@ export const Action = ({
 }: ActionProps) => {
   const button = (
     <Button
-      className={cn("size-9 p-1.5 text-muted-foreground hover:text-foreground", className)}
+      className={cn("size-9 p-1.5 text-muted-foreground hover:text-foreground relative", className)}
       size={size}
       type="button"
       variant={variant}

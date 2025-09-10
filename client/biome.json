@@ -8,9 +8,16 @@
 		},
 		"enabled": true
 	},
+	"linter":{
+		"rules":{
+			"suspicious":{
+				"noUnknownAtRules":"off"
+			}
+		}
+	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": ["src/**", "!src/components/ui", "!src/routeTree.gen.ts"]
+		"includes": ["src/**", "!src/components/ui", "!src/components/ai-elements", "!src/routeTree.gen.ts"]
 	},
 	"formatter": {
 		"indentStyle": "space",

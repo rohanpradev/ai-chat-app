@@ -1,9 +1,9 @@
 "use client";
 
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
-import { type ComponentProps, useCallback, useEffect, useState } from "react";
+import { type ComponentProps, createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Carousel, CarouselContent, CarouselItem, useCarousel } from "@/components/ui/carousel";
+import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 
@@ -49,11 +49,26 @@ export const InlineCitationCardBody = ({ className, ...props }: InlineCitationCa
   <HoverCardContent className={cn("relative w-80 p-0", className)} {...props} />
 );
 
+const CarouselApiContext = createContext<CarouselApi | undefined>(undefined);
+
+const useCarouselApi = () => {
+  const context = useContext(CarouselApiContext);
+  return context;
+};
+
 export type InlineCitationCarouselProps = ComponentProps<typeof Carousel>;
 
-export const InlineCitationCarousel = ({ className, ...props }: InlineCitationCarouselProps) => (
-  <Carousel className={cn("w-full", className)} {...props} />
-);
+export const InlineCitationCarousel = ({ className, children, ...props }: InlineCitationCarouselProps) => {
+  const [api, setApi] = useState<CarouselApi>();
+
+  return (
+    <CarouselApiContext.Provider value={api}>
+      <Carousel className={cn("w-full", className)} setApi={setApi} {...props}>
+        {children}
+      </Carousel>
+    </CarouselApiContext.Provider>
+  );
+};
 
 export type InlineCitationCarouselContentProps = ComponentProps<"div">;
 
@@ -64,7 +79,7 @@ export const InlineCitationCarouselContent = (props: InlineCitationCarouselConte
 export type InlineCitationCarouselItemProps = ComponentProps<"div">;
 
 export const InlineCitationCarouselItem = ({ className, ...props }: InlineCitationCarouselItemProps) => (
-  <CarouselItem className={cn("w-full space-y-2 p-4", className)} {...props} />
+  <CarouselItem className={cn("w-full space-y-2 p-4 pl-8", className)} {...props} />
 );
 
 export type InlineCitationCarouselHeaderProps = ComponentProps<"div">;
@@ -76,7 +91,7 @@ export const InlineCitationCarouselHeader = ({ className, ...props }: InlineCita
 export type InlineCitationCarouselIndexProps = ComponentProps<"div">;
 
 export const InlineCitationCarouselIndex = ({ children, className, ...props }: InlineCitationCarouselIndexProps) => {
-  const { api } = useCarousel();
+  const api = useCarouselApi();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
 
@@ -106,7 +121,7 @@ export const InlineCitationCarouselIndex = ({ children, className, ...props }: I
 export type InlineCitationCarouselPrevProps = ComponentProps<"button">;
 
 export const InlineCitationCarouselPrev = ({ className, ...props }: InlineCitationCarouselPrevProps) => {
-  const { api } = useCarousel();
+  const api = useCarouselApi();
 
   const handleClick = useCallback(() => {
     if (api) {
@@ -124,7 +139,7 @@ export const InlineCitationCarouselPrev = ({ className, ...props }: InlineCitati
 export type InlineCitationCarouselNextProps = ComponentProps<"button">;
 
 export const InlineCitationCarouselNext = ({ className, ...props }: InlineCitationCarouselNextProps) => {
-  const { api } = useCarousel();
+  const api = useCarouselApi();
 
   const handleClick = useCallback(() => {
     if (api) {

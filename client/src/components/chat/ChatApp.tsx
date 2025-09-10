@@ -11,7 +11,6 @@ import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
-import { useLoadConversation } from "@/hooks/useLoadConversation";
 import { models } from "@/utils";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
@@ -34,37 +33,19 @@ const suggestions = [
 
 export function ChatApp({ user }: ChatAppProps) {
   const { mutate: logout } = useUserLogout();
-  const { mutate: loadConversationMutation } = useLoadConversation();
   const [input, setInput] = useState("");
   const [model, setModel] = useState(models[0].id);
   const [webSearch, setWebSearch] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [files, setFiles] = useState<FileList | undefined>(undefined);
-  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
+  const [currentConversationId] = useState<string | undefined>();
 
-  const { messages, sendMessage, status, setMessages, error, clearError, regenerate } = useChat<MyUIMessage>({
+  const { messages, sendMessage, status, error, clearError, regenerate } = useChat<MyUIMessage>({
     transport: new DefaultChatTransport({
       api: "/api/ai/text-stream",
       credentials: "include",
     }),
   });
-
-  const _loadConversation = (conversationId: string) => {
-    loadConversationMutation(conversationId, {
-      onSuccess(data) {
-        setMessages(data.messages);
-        setCurrentConversationId(conversationId);
-      },
-    });
-  };
-
-  const _handleNewConversation = () => {
-    setMessages([]);
-    setCurrentConversationId(undefined);
-    setInput("");
-    setFiles(undefined);
-    clearError();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,10 +88,6 @@ export function ChatApp({ user }: ChatAppProps) {
         },
       },
     );
-  };
-
-  const _handleClearChat = () => {
-    setMessages([]);
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {

@@ -67,7 +67,7 @@ describe("Auth Routes", () => {
 			const client = testClient(app);
 
 			const response = await client.auth.register.$post({
-				json: { confirmPassword: "", email: "", name: "", password: "" }
+				json: { confirmPassword: "", email: "", name: "", password: "", profileImage: null }
 			});
 
 			expect([422, 401].includes(response.status)).toBe(true);
@@ -78,7 +78,13 @@ describe("Auth Routes", () => {
 			const client = testClient(app);
 
 			const response = await client.auth.register.$post({
-				json: { confirmPassword: "password123", email: "invalid-email", name: "Test", password: "password123" }
+				json: {
+					confirmPassword: "password123",
+					email: "invalid-email",
+					name: "Test",
+					password: "password123",
+					profileImage: null
+				}
 			});
 
 			expect([422, 401].includes(response.status)).toBe(true);

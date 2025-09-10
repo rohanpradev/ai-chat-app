@@ -27,7 +27,11 @@ data:
   CORS_ORIGINS: http://localhost:5173,http://localhost:30080
   # Nginx proxy configuration
   SERVER_HOST: server.default.svc.cluster.local
-  SERVER_PORT: "3000"
+  # Langfuse configuration
+  LANGFUSE_URL: http://langfuse-service:3000
+  LANGFUSE_HOST: http://langfuse-service:3000
+  TELEMETRY_ENABLED: "true"
+  LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
 kind: ConfigMap
 metadata:
   labels:

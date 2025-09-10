@@ -1,5 +1,5 @@
-import env from "@/utils/env";
 import type { FC } from "hono/jsx";
+import env from "@/utils/env";
 
 const HonoIcon = () => (
 	<svg
@@ -553,6 +553,9 @@ const HomePage: FC = () => {
 							</a>
 							<a href={env.CLIENT_URL} class="btn btn-secondary">
 								<ReactIcon /> &nbsp; Frontend App
+							</a>
+							<a href="http://langfuse.localhost" class="btn btn-secondary">
+								📊 Langfuse Analytics
 							</a>
 						</div>
 

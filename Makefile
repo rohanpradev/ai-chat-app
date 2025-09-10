@@ -1,7 +1,12 @@
 # Chat App - Production Docker Compose
 # Modern chat application with Bun, Hono, React, and AI capabilities
 
-.PHONY: help validate start stop restart status logs clean build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-build k8s-deploy k8s-status k8s-logs k8s-cleanup k8s-stop _show-urls
+.PHONY: help validate start stop restart status logs clean build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-build k8s-deploy k8s-status k8s-logs k8s-cleanup k8s-stop aks-setup aks-deploy aks-status aks-logs aks-cleanup _show-urls
+
+# Variables
+ACR_NAME = aichatacr
+RESOURCE_GROUP = ai-chat-rg
+CLUSTER_NAME = ai-chat-aks
 
 # Default target
 help: ## Show this help message
@@ -67,6 +72,7 @@ _show-urls:
 	@echo "🎯 Main Application:    http://localhost"
 	@echo "📡 API Health Check:    http://localhost/health"
 	@echo "⚙️  Traefik Dashboard:  http://localhost:8080"
+	@echo "📊 Langfuse Dashboard:  http://localhost/langfuse"
 	@echo "================================"
 
 local: ## Start local development (uses cloud services from .env.local)
@@ -108,6 +114,12 @@ k8s-build: ## Build and load images for Kubernetes
 
 k8s-deploy: ## Deploy to Kubernetes
 	@echo "Deploying to Kubernetes..."
+	@echo "Installing Langfuse via Helm..."
+	@helm repo add langfuse https://langfuse.github.io/langfuse-k8s || echo "Repo already added"
+	@helm repo update
+	@kubectl create namespace langfuse --dry-run=client -o yaml | kubectl apply -f -
+	@helm upgrade --install langfuse langfuse/langfuse -n langfuse --wait
+	@echo "Deploying application components..."
 	@kubectl apply -f k8s/secrets.yaml
 	@kubectl apply -f k8s/env-configmap.yaml
 	@kubectl apply -f k8s/postgres-data-persistentvolumeclaim.yaml
@@ -145,8 +157,11 @@ k8s-status: ## Show Kubernetes deployment status and URLs
 	@echo "================"
 	@minikube service client --url
 	@minikube service server --url
+	@kubectl port-forward svc/langfuse-web -n langfuse 3001:3000 &
+	@echo "Langfuse: http://localhost:3001 (port-forward)"
 	@echo ""
 	@echo "Run 'minikube service client' to open the application"
+	@echo "Run 'minikube service langfuse-service' to open Langfuse dashboard"
 
 k8s-logs: ## Show Kubernetes logs
 	@echo "📋 Kubernetes Logs:"
@@ -186,4 +201,61 @@ k8s-cleanup: ## Clean up Kubernetes resources
 k8s-stop: ## Stop Minikube
 	@echo "🛑 Stopping Minikube..."
 	@minikube stop
+
+# AKS Deployment Commands
+aks-setup: ## Setup AKS cluster and ACR (infrastructure)
+	@echo "🚀 Setting up AKS infrastructure..."
+	@echo "📦 Creating resource group..."
+	@az group create --name $(RESOURCE_GROUP) --location eastus || echo "Resource group may already exist"
+	@echo "🐳 Creating Azure Container Registry..."
+	@az acr create --resource-group $(RESOURCE_GROUP) --name $(ACR_NAME) --sku Standard || echo "ACR may already exist"
+	@echo "☸️ Creating AKS cluster..."
+	@az aks create \
+		--resource-group $(RESOURCE_GROUP) \
+		--name $(CLUSTER_NAME) \
+		--node-count 2 \
+		--enable-addons monitoring \
+		--attach-acr $(ACR_NAME) \
+		--generate-ssh-keys \
+		--node-vm-size Standard_B2s || echo "AKS cluster may already exist"
+	@echo "🔑 Getting AKS credentials..."
+	@az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(CLUSTER_NAME)
+	@echo "🔒 Installing cert-manager..."
+	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml || echo "cert-manager may already exist"
+	@echo "⏳ Waiting for cert-manager..."
+	@kubectl wait --for=condition=ready pod -l app=cert-manager -n cert-manager --timeout=300s || echo "cert-manager setup timeout"
+	@echo "📋 Applying base Kubernetes manifests..."
+	@kubectl apply -f k8s/aks/namespace.yaml || echo "Namespace may already exist"
+	@kubectl apply -f k8s/aks/configmap.yaml || echo "ConfigMap may already exist"
+	@echo "⚠️  Please update k8s/aks/secrets.yaml with your actual secrets, then run: kubectl apply -f k8s/aks/secrets.yaml"
+	@echo "✅ AKS infrastructure setup completed!"
+
+aks-deploy: ## Deploy application to AKS
+	@echo "🚀 Deploying application to AKS..."
+	@echo "🐳 Building and pushing Docker image..."
+	@az acr login --name $(ACR_NAME)
+	@docker build -t $(ACR_NAME).azurecr.io/ai-chat-app:latest .
+	@docker push $(ACR_NAME).azurecr.io/ai-chat-app:latest
+	@echo "📋 Applying application manifests..."
+	@kubectl apply -f k8s/aks/deployment.yaml
+	@kubectl apply -f k8s/aks/hpa.yaml
+	@kubectl apply -f k8s/aks/ingress.yaml
+	@echo "⏳ Waiting for deployment rollout..."
+	@kubectl rollout status deployment/ai-chat-app -n ai-chat-app --timeout=300s
+	@echo "✅ Application deployment completed!"
+
+aks-status: ## Check AKS deployment status
+	@echo "📊 AKS Deployment Status:"
+	@kubectl get all -n ai-chat-app
+	@echo "\n🌐 Ingress Status:"
+	@kubectl get ingress -n ai-chat-app
+
+aks-logs: ## Show AKS logs
+	@echo "📋 AKS Application Logs:"
+	@kubectl logs -l app=ai-chat-app -n ai-chat-app --tail=100
+
+aks-cleanup: ## Clean up AKS resources
+	@echo "🧹 Cleaning up AKS resources..."
+	@kubectl delete namespace ai-chat-app --ignore-not-found=true
+	@az group delete --name $(RESOURCE_GROUP) --yes --no-wait
 

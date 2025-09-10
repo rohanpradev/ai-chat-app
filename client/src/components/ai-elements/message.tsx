@@ -27,11 +27,12 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
       "flex flex-col gap-2 overflow-hidden rounded-lg px-4 py-3 text-foreground text-sm",
       "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground",
       "group-[.is-assistant]:bg-secondary group-[.is-assistant]:text-foreground",
+      "is-user:dark",
       className,
     )}
     {...props}
   >
-    <div className="is-user:dark">{children}</div>
+    {children}
   </div>
 );
 
@@ -41,7 +42,7 @@ export type MessageAvatarProps = ComponentProps<typeof Avatar> & {
 };
 
 export const MessageAvatar = ({ src, name, className, ...props }: MessageAvatarProps) => (
-  <Avatar className={cn("size-8 ring ring-1 ring-border", className)} {...props}>
+  <Avatar className={cn("size-8 ring-1 ring-border", className)} {...props}>
     <AvatarImage alt="" className="mt-0 mb-0" src={src} />
     <AvatarFallback>{name?.slice(0, 2) || "ME"}</AvatarFallback>
   </Avatar>

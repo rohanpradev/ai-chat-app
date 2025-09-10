@@ -1,11 +1,20 @@
-import { tool } from "ai";
+import { dynamicTool } from "ai";
 import { z } from "zod";
 import env from "@/utils/env";
 
 export const tools = {
-	deepSearch: tool({
+	deepSearch: dynamicTool({
 		description: "Perform deep web search with advanced filtering and analysis",
-		execute: async ({ query, maxResults, timeRange }) => {
+		execute: async (input) => {
+			const inputSchema = z.object({
+				maxResults: z.number().optional().describe("Maximum number of results"),
+				query: z.string().describe("Search query"),
+				timeRange: z.string().optional().describe("Time range: day, week, month, year, all")
+			});
+
+			const validatedInput = inputSchema.parse(input);
+			const { query, maxResults, timeRange } = validatedInput;
+
 			return {
 				maxResults: maxResults || 10,
 				message: "Deep search functionality not yet implemented",
@@ -22,11 +31,22 @@ export const tools = {
 		})
 	}),
 
-	serper: tool({
+	serper: dynamicTool({
 		description: "Search the web using Serper API for real-time results",
-		execute: async ({ q }) => {
+		execute: async (input) => {
+			const inputSchema = z.object({
+				q: z.string().describe("Search query")
+			});
+
+			const validatedInput = inputSchema.parse(input);
+			const { q } = validatedInput;
+
 			try {
 				const apiKey = env.SERPER_API_KEY;
+				if (!apiKey) {
+					throw new Error("SERPER_API_KEY not configured");
+				}
+
 				const response = await fetch("https://google.serper.dev/search", {
 					body: JSON.stringify({ q }),
 					headers: {
@@ -62,7 +82,7 @@ export const tools = {
 			q: z.string().describe("Search query")
 		})
 	})
-};
+} as const;
 
 export function getAvailableTools(toolNames?: string[]) {
 	return (

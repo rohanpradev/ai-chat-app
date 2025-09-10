@@ -1,4 +1,4 @@
-import type { Chat } from "@chat-app/shared";
+import type { ConversationSummary } from "@chat-app/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { MessageSquare, Plus } from "lucide-react";
@@ -44,11 +44,9 @@ export function ConversationSidebar() {
     const chatTitle = title.trim() || "New Chat";
     createChat(chatTitle, {
       onSuccess: (response) => {
-        // Clear inputs and close dialog
         setDialogOpen(false);
         setTitle("");
 
-        // Immediately navigate to the new chat
         navigate({
           to: ConversationRoute.to,
           params: { conversationId: response.id },
@@ -113,7 +111,7 @@ export function ConversationSidebar() {
                   <p className="text-xs text-muted-foreground">Create your first chat to get started</p>
                 </div>
               ) : (
-                chats.map((conversation: Chat) => (
+                chats.map((conversation: ConversationSummary) => (
                   <SidebarMenuItem key={conversation.id}>
                     <SidebarMenuButton
                       asChild

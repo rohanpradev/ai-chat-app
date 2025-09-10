@@ -20,5 +20,5 @@ export default function configureOpenAPI(app: AppOpenAPI) {
 	});
 
 	// Simple Scalar configuration
-	app.get("/reference", Scalar({ url: "/doc" }));
+	app.get("/reference", Scalar({ theme: "kepler", url: "/doc" }));
 }

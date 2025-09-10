@@ -4,22 +4,27 @@ import type { ZodError } from "zod";
 import { z } from "zod";
 
 const EnvSchema = z.object({
-	AUTH_COOKIE_NAME: z.string().default("token"),
+	AUTH_COOKIE_NAME: z.string().trim().default("token"),
 	// Make Azure settings optional for local/minikube without Azure hookup
-	AZURE_API_KEY: z.string().optional(),
-	AZURE_RESOURCE_NAME: z.string().optional(),
-	BASE_API_SLUG: z.string().default("api"),
+	AZURE_API_KEY: z.string().trim().optional(),
+	AZURE_RESOURCE_NAME: z.string().trim().optional(),
+	BASE_API_SLUG: z.string().trim().default("api"),
 	CLIENT_URL: z.url(),
 	// Optional comma-separated list of allowed CORS origins
-	CORS_ORIGINS: z.string().optional(),
+	CORS_ORIGINS: z.string().trim().optional(),
 	DB_URL: z.url(),
-	JWT_SECRET: z.string().min(32),
+	JWT_SECRET: z.string().trim().min(32),
+	LANGFUSE_BASEURL: z.url().optional(),
+	LANGFUSE_PUBLIC_KEY: z.string().trim().optional(),
+	LANGFUSE_SECRET_KEY: z.string().trim().optional(),
+	// Langfuse observability configuration (optional)
+	LANGFUSE_URL: z.url().optional(),
 	LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
-	NODE_ENV: z.string().default("production"),
-	// OPENAI_API_KEY: z.string(),
-	// OPENAI_ORG_ID: z.string(),
+	NODE_ENV: z.string().trim().default("production"),
+	// OPENAI_API_KEY: z.string().trim(),
+	// OPENAI_ORG_ID: z.string().trim(),
 	REDIS_URL: z.url(),
-	// SERPER_API_KEY: z.string(),
+	SERPER_API_KEY: z.string().trim(),
 	SERVER_PORT: z.coerce.number().min(1).max(65535).default(3000)
 });
 
