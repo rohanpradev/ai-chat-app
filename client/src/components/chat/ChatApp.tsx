@@ -1,5 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import type { MyUIMessage } from "@chat-app/shared";
+import { models } from "@chat-app/shared";
 import { DefaultChatTransport } from "ai";
 import type { ClipboardEvent } from "react";
 import { useState } from "react";
@@ -11,7 +12,6 @@ import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
-import { models } from "@/utils";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
 interface User {
