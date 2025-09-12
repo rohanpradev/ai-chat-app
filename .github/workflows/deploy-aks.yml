@@ -65,7 +65,7 @@ jobs:
         bun run check || echo "Biome formatting issues found"
     
     - name: Run SonarQube Scanner
-      if: secrets.SONAR_TOKEN != ''
+      if: ${{ secrets.SONAR_TOKEN != '' }}
       uses: sonarsource/sonarqube-scan-action@v3.0.0
       continue-on-error: true
       env:
@@ -74,7 +74,7 @@ jobs:
         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
     
     - name: SonarQube Quality Gate
-      if: secrets.SONAR_TOKEN != ''
+      if: ${{ secrets.SONAR_TOKEN != '' }}
       uses: sonarsource/sonarqube-quality-gate-action@master
       continue-on-error: true
       timeout-minutes: 5
@@ -82,17 +82,25 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         
     - name: Initialize CodeQL
+      if: ${{ !inputs.skip_tests }}
       uses: github/codeql-action/init@v3
       continue-on-error: true
       with:
         languages: javascript-typescript
         queries: security-extended,security-and-quality
-    
+        
+    - name: Build CodeQL
+      if: ${{ !inputs.skip_tests }}
+      run: |
+        bun run build
+        
     - name: Perform CodeQL Analysis
+      if: ${{ !inputs.skip_tests }}
       uses: github/codeql-action/analyze@v3
       continue-on-error: true
       with:
         category: "/language:javascript-typescript"
+        wait-for-processing: true
 
   test:
     name: Run Tests
@@ -113,16 +121,23 @@ jobs:
     
     - name: Setup test services
       run: |
-        docker-compose -f compose.yml up -d db redis
+        docker compose -f compose.yml up -d db redis
         
-    - name: Wait for services
+    - name: Wait for PostgreSQL
       run: |
-        for i in {1..30}; do
-          if docker exec ai-chat-app-db pg_isready >/dev/null 2>&1; then
-            echo "PostgreSQL is ready"
-            break
-          fi
-          echo "Waiting for PostgreSQL to be ready..."
+        RETRIES=30
+        until docker compose -f compose.yml exec -T db pg_isready || [ $RETRIES -eq 0 ]; do
+          echo "Waiting for PostgreSQL to be ready... ($RETRIES retries left)"
+          RETRIES=$((RETRIES-1))
+          sleep 1
+        done
+        
+    - name: Wait for Redis
+      run: |
+        RETRIES=30
+        until docker compose -f compose.yml exec -T redis redis-cli ping || [ $RETRIES -eq 0 ]; do
+          echo "Waiting for Redis to be ready... ($RETRIES retries left)"
+          RETRIES=$((RETRIES-1))
           sleep 1
         done
 
