@@ -1,7 +1,6 @@
 // Export all schemas
 
-export type { ModelName } from "./common";
-export { models } from "./common";
+export * from "./common";
 export * from "./schemas";
 // Export specific types to avoid conflicts with schemas
 export type {
@@ -14,13 +13,14 @@ export type {
 	LoginUserRequest,
 	RegisterResponse,
 	RegisterUserRequest,
-	User,
+	User
 } from "./types";
 // Export conversation types specifically to avoid conflicts
 export type {
 	ConversationDetail,
 	ConversationSummary,
 	CreateConversationRequest,
-	Message,
+	Message
 } from "./types/conversation.types";
-export { type MyMetadata, type MyTools, type MyUIMessage, tools } from "./types/ui-message.types";
+export { tools, type MyMetadata, type MyTools, type MyUIMessage } from "./types/ui-message.types";
+
