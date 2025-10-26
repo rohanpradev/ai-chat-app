@@ -8,8 +8,6 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from '@tanstack/react-router'
-
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,12 +19,6 @@ import { Route as authAuthRouteRouteImport } from './routes/(auth)/_auth/route'
 import { Route as authAuthRegisterRouteImport } from './routes/(auth)/_auth/register'
 import { Route as authAuthLoginRouteImport } from './routes/(auth)/_auth/login'
 
-const authRouteImport = createFileRoute('/(auth)')()
-
-const authRoute = authRouteImport.update({
-  id: '/(auth)',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -58,8 +50,8 @@ const userProfileRoute = userProfileRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const authAuthRouteRoute = authAuthRouteRouteImport.update({
-  id: '/_auth',
-  getParentRoute: () => authRoute,
+  id: '/(auth)/_auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const authAuthRegisterRoute = authAuthRegisterRouteImport.update({
   id: '/register',
@@ -73,7 +65,7 @@ const authAuthLoginRoute = authAuthLoginRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof authAuthRouteRouteWithChildren
+  '/': typeof IndexRoute
   '/chat': typeof ChatRouteWithChildren
   '/profile': typeof userProfileRoute
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -83,7 +75,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof authAuthRegisterRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof authAuthRouteRouteWithChildren
+  '/': typeof IndexRoute
   '/profile': typeof userProfileRoute
   '/chat/$conversationId': typeof ChatConversationIdRoute
   '/chat/new': typeof ChatNewRoute
@@ -95,7 +87,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/chat': typeof ChatRouteWithChildren
-  '/(auth)': typeof authRouteWithChildren
   '/(auth)/_auth': typeof authAuthRouteRouteWithChildren
   '/(user)/profile': typeof userProfileRoute
   '/chat/$conversationId': typeof ChatConversationIdRoute
@@ -128,7 +119,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/chat'
-    | '/(auth)'
     | '/(auth)/_auth'
     | '/(user)/profile'
     | '/chat/$conversationId'
@@ -141,19 +131,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChatRoute: typeof ChatRouteWithChildren
-  authRoute: typeof authRouteWithChildren
+  authAuthRouteRoute: typeof authAuthRouteRouteWithChildren
   userProfileRoute: typeof userProfileRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/(auth)': {
-      id: '/(auth)'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof authRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/chat': {
       id: '/chat'
       path: '/chat'
@@ -198,10 +181,10 @@ declare module '@tanstack/react-router' {
     }
     '/(auth)/_auth': {
       id: '/(auth)/_auth'
-      path: '/'
-      fullPath: '/'
+      path: ''
+      fullPath: ''
       preLoaderRoute: typeof authAuthRouteRouteImport
-      parentRoute: typeof authRoute
+      parentRoute: typeof rootRouteImport
     }
     '/(auth)/_auth/register': {
       id: '/(auth)/_auth/register'
@@ -248,20 +231,10 @@ const authAuthRouteRouteWithChildren = authAuthRouteRoute._addFileChildren(
   authAuthRouteRouteChildren,
 )
 
-interface authRouteChildren {
-  authAuthRouteRoute: typeof authAuthRouteRouteWithChildren
-}
-
-const authRouteChildren: authRouteChildren = {
-  authAuthRouteRoute: authAuthRouteRouteWithChildren,
-}
-
-const authRouteWithChildren = authRoute._addFileChildren(authRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChatRoute: ChatRouteWithChildren,
-  authRoute: authRouteWithChildren,
+  authAuthRouteRoute: authAuthRouteRouteWithChildren,
   userProfileRoute: userProfileRoute,
 }
 export const routeTree = rootRouteImport

@@ -13,14 +13,13 @@ export type {
 	LoginUserRequest,
 	RegisterResponse,
 	RegisterUserRequest,
-	User
+	User,
 } from "./types";
 // Export conversation types specifically to avoid conflicts
 export type {
 	ConversationDetail,
 	ConversationSummary,
 	CreateConversationRequest,
-	Message
+	Message,
 } from "./types/conversation.types";
 export { tools, type MyMetadata, type MyTools, type MyUIMessage } from "./types/ui-message.types";
-
