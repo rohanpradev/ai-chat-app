@@ -2,9 +2,9 @@ import { useChat } from "@ai-sdk/react";
 import type { MyUIMessage } from "@chat-app/shared";
 import { models } from "@chat-app/shared";
 import { DefaultChatTransport } from "ai";
-import type { ClipboardEvent } from "react";
 import { useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -37,7 +37,6 @@ export function ChatApp({ user }: ChatAppProps) {
   const [model, setModel] = useState(models[0].id);
   const [webSearch, setWebSearch] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
   const [currentConversationId] = useState<string | undefined>();
 
   const { messages, sendMessage, status, error, clearError, regenerate } = useChat<MyUIMessage>({
@@ -47,29 +46,24 @@ export function ChatApp({ user }: ChatAppProps) {
     }),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      const fileParts = files && files.length > 0 ? await convertFilesToDataURLs(files) : [];
+  const handleMessageSend = async (message: PromptInputMessage) => {
+    const fileParts = message.files && message.files.length > 0 ? await convertFilesToDataURLs(message.files) : [];
 
-      sendMessage(
-        {
-          role: "user",
-          parts: [{ type: "text", text: input }, ...fileParts],
+    sendMessage(
+      {
+        role: "user",
+        parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
+      },
+      {
+        body: {
+          model: model,
+          webSearch: webSearch,
+          tools: selectedTools,
+          conversationId: currentConversationId,
+          title: message.text?.slice(0, 50) || "New conversation",
         },
-        {
-          body: {
-            model: model,
-            webSearch: webSearch,
-            tools: selectedTools,
-            conversationId: currentConversationId,
-            title: input.slice(0, 50),
-          },
-        },
-      );
-      setFiles(undefined);
-      setInput("");
-    }
+      },
+    );
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -88,22 +82,6 @@ export function ChatApp({ user }: ChatAppProps) {
         },
       },
     );
-  };
-
-  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
-    const clipboardFiles = e.clipboardData?.files;
-    if (clipboardFiles && clipboardFiles.length > 0) {
-      const newFiles = new DataTransfer();
-      if (files) {
-        Array.from(files).forEach((f) => {
-          newFiles.items.add(f);
-        });
-      }
-      Array.from(clipboardFiles).forEach((f) => {
-        newFiles.items.add(f);
-      });
-      setFiles(newFiles.files);
-    }
   };
 
   return (
@@ -144,10 +122,7 @@ export function ChatApp({ user }: ChatAppProps) {
               setWebSearch={setWebSearch}
               selectedTools={selectedTools}
               setSelectedTools={setSelectedTools}
-              files={files}
-              setFiles={setFiles}
-              onSubmit={handleSubmit}
-              onPaste={handlePaste}
+              onMessageSend={handleMessageSend}
               status={status}
             />
           </div>

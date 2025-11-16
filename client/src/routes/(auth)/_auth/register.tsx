@@ -1,7 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
-import { EMAIL_REGEX } from "@/chat-app/shared";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useUserRegister } from "@/composables/useRegisterUser";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 import { Route as IndexRoute } from "@/routes/index";
+import { EMAIL_REGEX } from "@/utils";
 
 export const Route = createFileRoute("/(auth)/_auth/register")({
   beforeLoad: ({ context }) => {
@@ -74,7 +74,7 @@ function RegisterForm() {
         email: email.trim(),
         password,
         confirmPassword,
-        profileImage: profileImage || null,
+        profileImage: profileImage || undefined,
       });
       toast.success("Account created successfully!");
       return { success: true };

@@ -554,9 +554,6 @@ const HomePage: FC = () => {
 							<a href={env.CLIENT_URL} class="btn btn-secondary">
 								<ReactIcon /> &nbsp; Frontend App
 							</a>
-							<a href="http://langfuse.localhost" class="btn btn-secondary">
-								📊 Langfuse Analytics
-							</a>
 						</div>
 
 						<div class="api-info">

@@ -33,7 +33,8 @@ export const Route = createFileRoute("/chat")({
   component: ChatLayout,
   pendingComponent: ChatLayoutPending,
   errorComponent: ChatLayoutError,
-  preload: true,
+  // Enable automatic prefetching for better performance
+  preload: "intent",
   preloadStaleTime: 10_000,
 });
 
@@ -45,14 +46,12 @@ function ChatLayoutPending() {
   );
 }
 
-function ChatLayoutError({ error }: { error: Error }) {
+function ChatLayoutError() {
   const router = useRouter();
 
   const handleRetry = () => {
     router.invalidate();
   };
-
-  console.error("Error loading chat layout:", error);
 
   return (
     <div className="h-screen flex items-center justify-center p-4">

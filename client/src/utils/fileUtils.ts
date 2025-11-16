@@ -1,4 +1,4 @@
-export async function convertFilesToDataURLs(files: FileList) {
+export async function convertFilesToDataURLs(files: File[] | FileList) {
   return Promise.all(
     Array.from(files).map(
       (file) =>

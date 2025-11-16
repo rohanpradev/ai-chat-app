@@ -1,17 +1,16 @@
 import { useChat } from "@ai-sdk/react";
 import type { GetConversationResponse, MyUIMessage } from "@chat-app/shared";
-import { tools } from "@chat-app/shared";
+import { models } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { DefaultChatTransport, type Tool, validateUIMessages } from "ai";
-import type { ClipboardEvent } from "react";
+import { DefaultChatTransport, validateUIMessages } from "ai";
 import { useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { useApi } from "@/composables/useApi";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
-import { models } from "@/utils";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
 
@@ -74,7 +73,6 @@ export const Route = createFileRoute("/chat/$conversationId")({
         rawMessages.length > 0
           ? await validateUIMessages({
               messages: rawMessages as MyUIMessage[],
-              tools: tools as Record<string, Tool<unknown, unknown>>,
             })
           : [];
 
@@ -121,10 +119,9 @@ function ConversationChat() {
   const { conversationId } = Route.useParams();
   const { initialMessages } = Route.useLoaderData();
   const [input, setInput] = useState("");
-  const [model, setModel] = useState(models[0].id); // This will now be "gpt-4.1-mini"
+  const [model, setModel] = useState(models[0].id);
   const [webSearch, setWebSearch] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
 
   const { messages, sendMessage, status, error, clearError, regenerate } = useChat<MyUIMessage>({
     id: conversationId,
@@ -135,44 +132,23 @@ function ConversationChat() {
     }),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      const fileParts = files && files.length > 0 ? await convertFilesToDataURLs(files) : [];
+  const handleMessageSend = async (message: PromptInputMessage) => {
+    const fileParts = message.files && message.files.length > 0 ? await convertFilesToDataURLs(message.files) : [];
 
-      sendMessage(
-        {
-          role: "user",
-          parts: [{ type: "text", text: input }, ...fileParts],
+    sendMessage(
+      {
+        role: "user",
+        parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
+      },
+      {
+        body: {
+          model: model,
+          webSearch: webSearch,
+          tools: selectedTools,
+          chatId: conversationId,
         },
-        {
-          body: {
-            model: model,
-            webSearch: webSearch,
-            tools: selectedTools,
-            chatId: conversationId,
-          },
-        },
-      );
-      setFiles(undefined);
-      setInput("");
-    }
-  };
-
-  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
-    const clipboardFiles = e.clipboardData?.files;
-    if (clipboardFiles && clipboardFiles.length > 0) {
-      const newFiles = new DataTransfer();
-      if (files) {
-        Array.from(files).forEach((f) => {
-          newFiles.items.add(f);
-        });
-      }
-      Array.from(clipboardFiles).forEach((f) => {
-        newFiles.items.add(f);
-      });
-      setFiles(newFiles.files);
-    }
+      },
+    );
   };
 
   return (
@@ -200,10 +176,7 @@ function ConversationChat() {
           setWebSearch={setWebSearch}
           selectedTools={selectedTools}
           setSelectedTools={setSelectedTools}
-          files={files}
-          setFiles={setFiles}
-          onSubmit={handleSubmit}
-          onPaste={handlePaste}
+          onMessageSend={handleMessageSend}
           status={status}
         />
       </div>

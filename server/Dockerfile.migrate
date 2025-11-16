@@ -6,8 +6,8 @@ WORKDIR /app
 COPY server/drizzle.config.ts ./
 COPY server/src/db ./src/db
 
-# Install drizzle packages with exact versions matching server
-RUN bun add drizzle-kit drizzle-orm postgres && \
+# Install drizzle packages and ai package (needed for schema.ts)
+RUN bun add drizzle-kit drizzle-orm postgres ai && \
     bun pm cache rm
 
 # Create entrypoint script that validates required environment variables

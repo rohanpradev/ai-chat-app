@@ -23,6 +23,7 @@ export function createApp() {
 
 	app.use(secureHeaders({ crossOriginEmbedderPolicy: false }));
 
+	// Allow comma-separated CORS origins via CORS_ORIGINS; fallback to CLIENT_URL
 	const allowedOrigins = (
 		Bun.env.CORS_ORIGINS
 			? Bun.env.CORS_ORIGINS.split(",")

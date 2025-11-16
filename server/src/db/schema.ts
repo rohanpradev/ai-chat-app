@@ -1,3 +1,4 @@
+import { generateId } from "ai";
 import { relations } from "drizzle-orm";
 import { index, integer, json, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
@@ -26,7 +27,9 @@ export const chats = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.$defaultFn(() => new Date())
 			.notNull(),
-		id: varchar("id").primaryKey().$defaultFn(Bun.randomUUIDv7),
+		id: varchar("id")
+			.primaryKey()
+			.$defaultFn(() => generateId()),
 		messages: json("messages").notNull().default([]),
 		title: varchar("title", { length: 200 }).notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -69,7 +72,10 @@ export const messages = pgTable(
 		})
 			.notNull()
 			.$defaultFn(() => new Date()),
-		id: varchar("id", { length: 255 }).notNull().primaryKey().$defaultFn(Bun.randomUUIDv7),
+		id: varchar("id", { length: 255 })
+			.notNull()
+			.primaryKey()
+			.$defaultFn(() => generateId()),
 		order: integer("order").notNull(),
 		parts: json("parts").notNull(),
 		role: varchar("role", { length: 20 }).notNull()

@@ -1,12 +1,12 @@
+import { useState, useRef } from "react";
+import { Camera, Upload, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Camera, Upload, UserCircle, X } from "lucide-react";
-import { useRef, useState } from "react";
 
 interface AvatarUploadProps {
-  value?: string | null;
-  onChange: (value: string | null) => void;
+  value?: string;
+  onChange: (value: string | undefined) => void;
   className?: string;
   disabled?: boolean;
 }
@@ -41,7 +41,7 @@ export function AvatarUpload({ value, onChange, className, disabled }: AvatarUpl
   };
 
   const handleRemove = () => {
-    onChange(null);
+    onChange(undefined);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -65,9 +65,9 @@ export function AvatarUpload({ value, onChange, className, disabled }: AvatarUpl
         onClick={handleClick}
       >
         <Avatar className="h-24 w-24">
-          <AvatarImage src={value || undefined} alt="Profile" />
-          <AvatarFallback className="text-lg bg-muted">
-            <UserCircle className="h-8 w-8 text-muted-foreground" />
+          <AvatarImage src={value} alt="Profile" />
+          <AvatarFallback className="text-lg">
+            <Camera className="h-8 w-8 text-muted-foreground" />
           </AvatarFallback>
         </Avatar>
         

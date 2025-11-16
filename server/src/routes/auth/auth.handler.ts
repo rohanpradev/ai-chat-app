@@ -29,18 +29,16 @@ export const registerUser: AppRouteHandler<AuthRoute> = async (c) => {
 			password: Auth.hashPassword(password),
 			profileImage
 		})
-		.returning({ email: users.email, id: users.id, name: users.name });
+		.returning({ email: users.email, id: users.id, name: users.name, profileImage: users.profileImage });
 
 	const userDetails = {
 		email: user.email,
 		id: user.id,
 		name: user.name,
-		profileImage: null
+		profileImage: user.profileImage
 	};
 
-	const token = await Auth.generateToken({
-		sub: userDetails
-	});
+	const token = await Auth.generateToken({ sub: userDetails });
 
 	Auth.setAuthCookie(c, token);
 
@@ -78,7 +76,7 @@ export const loginUser: AppRouteHandler<LoginRoute> = async (c) => {
 		email: existingUser.email,
 		id: existingUser.id,
 		name: existingUser.name,
-		profileImage: null
+		profileImage: existingUser.profileImage
 	};
 
 	const token = await Auth.generateToken({ sub: userDetails });
@@ -97,9 +95,9 @@ export const loginUser: AppRouteHandler<LoginRoute> = async (c) => {
 export const logoutUser: AppRouteHandler<LogoutRoute> = async (c) => {
 	deleteCookie(c, env.AUTH_COOKIE_NAME, {
 		httpOnly: true,
-		path: "/",
-		sameSite: "lax",
-		secure: false
+		sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
+		secure: env.NODE_ENV === "production",
+		...(env.NODE_ENV === "production" && { domain: new URL(env.CLIENT_URL).hostname })
 	});
 
 	return c.json(
@@ -136,10 +134,7 @@ export const getMe: AppRouteHandler<CurrentUserRoute> = async (c) => {
 
 	return c.json(
 		{
-			data: {
-				...user,
-				profileImage: user.profileImage ?? null
-			},
+			data: user,
 			message: "User authenticated successfully"
 		},
 		HttpStatusCodes.OK

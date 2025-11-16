@@ -74,32 +74,18 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 		}
 	});
 
-	if (!chat) {
-		return c.json(
-			{
-				message: "Conversation not found"
-			},
-			HttpStatusCodes.NOT_FOUND
-		);
-	}
-
-	return c.json(
-		{
-			data: {
-				createdAt: chat.createdAt?.toISOString() || new Date().toISOString(),
-				id: chat.id,
-				messages: (chat.messages || []).map((msg) => ({
-					id: msg.id,
-					parts: Array.isArray(msg.parts) ? msg.parts : [],
-					role: msg.role as "user" | "system" | "assistant"
-				})),
-				title: chat.title,
-				updatedAt: chat.updatedAt?.toISOString() || null
-			},
-			message: "Conversation retrieved successfully"
-		},
-		HttpStatusCodes.OK
-	);
+	return c.json({
+		data: chat
+			? {
+					createdAt: chat.createdAt?.toISOString() || new Date().toISOString(),
+					id: chat.id,
+					messages: chat.messages || [],
+					title: chat.title,
+					updatedAt: chat.updatedAt?.toISOString() || null
+				}
+			: null,
+		message: "Conversation retrieved successfully"
+	});
 };
 
 export const updateConversation: AppRouteHandler<UpdateConversationRoute> = async (c) => {

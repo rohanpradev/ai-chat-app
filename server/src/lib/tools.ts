@@ -1,20 +1,11 @@
-import { dynamicTool } from "ai";
-import { z } from "zod";
 import env from "@/utils/env";
+import { type ToolSet, tool } from "ai";
+import { z } from "zod";
 
 export const tools = {
-	deepSearch: dynamicTool({
+	deepSearch: tool({
 		description: "Perform deep web search with advanced filtering and analysis",
-		execute: async (input) => {
-			const inputSchema = z.object({
-				maxResults: z.number().optional().describe("Maximum number of results"),
-				query: z.string().describe("Search query"),
-				timeRange: z.string().optional().describe("Time range: day, week, month, year, all")
-			});
-
-			const validatedInput = inputSchema.parse(input);
-			const { query, maxResults, timeRange } = validatedInput;
-
+		execute: async ({ query, maxResults, timeRange }) => {
 			return {
 				maxResults: maxResults || 10,
 				message: "Deep search functionality not yet implemented",
@@ -31,20 +22,16 @@ export const tools = {
 		})
 	}),
 
-	serper: dynamicTool({
+	serper: tool({
 		description: "Search the web using Serper API for real-time results",
-		execute: async (input) => {
-			const inputSchema = z.object({
-				q: z.string().describe("Search query")
-			});
-
-			const validatedInput = inputSchema.parse(input);
-			const { q } = validatedInput;
-
+		execute: async ({ q }) => {
 			try {
 				const apiKey = env.SERPER_API_KEY;
 				if (!apiKey) {
-					throw new Error("SERPER_API_KEY not configured");
+					return {
+						error: "SERPER_API_KEY not configured",
+						query: q
+					};
 				}
 
 				const response = await fetch("https://google.serper.dev/search", {
@@ -82,18 +69,19 @@ export const tools = {
 			q: z.string().describe("Search query")
 		})
 	})
-} as const;
+} satisfies ToolSet;
 
-export function getAvailableTools(toolNames?: string[]) {
-	return (
-		toolNames?.reduce(
-			(selectedTools, toolName) => {
-				if (toolName in tools) {
-					selectedTools[toolName] = tools[toolName as keyof typeof tools];
-				}
-				return selectedTools;
-			},
-			{} as Record<string, (typeof tools)[keyof typeof tools]>
-		) ?? {}
-	);
+export type AvailableTools = Partial<typeof tools> & Record<string, (typeof tools)[keyof typeof tools]>;
+
+export function getAvailableTools(toolNames?: string[]): AvailableTools | undefined {
+	if (!toolNames || toolNames.length === 0) {
+		return undefined;
+	}
+
+	return toolNames.reduce((selectedTools, toolName) => {
+		if (toolName in tools) {
+			selectedTools[toolName] = tools[toolName as keyof typeof tools];
+		}
+		return selectedTools;
+	}, {} as AvailableTools);
 }

@@ -1,8 +1,8 @@
-import { EMAIL_REGEX } from "@chat-app/shared";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
 import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ interface LoginState {
   };
 }
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const MAX_LOGIN_ATTEMPTS = 5;
 
 function LoginComponent() {

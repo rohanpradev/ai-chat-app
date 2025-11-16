@@ -1,12 +1,7 @@
 # Chat App - Production Docker Compose
 # Modern chat application with Bun, Hono, React, and AI capabilities
 
-.PHONY: help validate start stop restart status logs clean build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-build k8s-deploy k8s-status k8s-logs k8s-cleanup k8s-stop aks-setup aks-deploy aks-status aks-logs aks-cleanup _show-urls
-
-# Variables
-ACR_NAME = aichatacr
-RESOURCE_GROUP = ai-chat-rg
-CLUSTER_NAME = ai-chat-aks
+.PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-build k8s-deploy k8s-status k8s-logs k8s-cleanup k8s-stop _show-urls langfuse-start langfuse-stop langfuse-logs
 
 # Default target
 help: ## Show this help message
@@ -14,19 +9,56 @@ help: ## Show this help message
 	@echo "================================"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-start: ## Start all services and show application URLs
+setup: ## Initial setup - Copy .env.example to .env and guide user
+	@echo "🚀 Setting up Chat App..."
+	@if [ ! -f .env ]; then \
+		cp .env.example .env; \
+		echo "✅ Created .env file from .env.example"; \
+		echo ""; \
+		echo "📝 Required: Update these 3 values in .env:"; \
+		echo "   1. AZURE_API_KEY         - Get from Azure Portal"; \
+		echo "   2. AZURE_RESOURCE_NAME   - Your Azure resource name"; \
+		echo "   3. JWT_SECRET            - Generate a random 32+ char string"; \
+		echo ""; \
+		echo "💡 Optional: For Langfuse AI observability:"; \
+		echo "   - Start with 'make start' to run self-hosted Langfuse"; \
+		echo "   - Login at https://langfuse.localhost"; \
+		echo "   - Create project and copy API keys to .env"; \
+		echo "   - Restart with 'make restart'"; \
+		echo ""; \
+		echo "🎯 Next steps:"; \
+		echo "   1. Edit .env file with your values"; \
+		echo "   2. Run 'make start' to start all services"; \
+		echo "   3. Open https://localhost in your browser"; \
+	else \
+		echo "⚠️  .env file already exists"; \
+		echo "💡 Run 'make validate' to check your configuration"; \
+	fi
+
+validate: ## Validate .env configuration
+	@echo "🔍 Validating configuration..."
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found. Run 'make setup' first."; \
+		exit 1; \
+	fi
+	@echo "Checking required variables..."
+	@grep -q "AZURE_API_KEY=.*[^_here]" .env || (echo "❌ AZURE_API_KEY not set" && exit 1)
+	@grep -q "AZURE_RESOURCE_NAME=.*[^_here]" .env || (echo "❌ AZURE_RESOURCE_NAME not set" && exit 1)
+	@grep -q "JWT_SECRET=.*[^_here]" .env || (echo "❌ JWT_SECRET not set" && exit 1)
+	@echo "✅ All required variables are set!"
+	@echo "💡 Optional: Check LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY for AI observability"
+
+start: validate ## Start all services and show application URLs
 	@echo "🚀 Starting Chat App..."
 	@docker compose up -d
 	@echo ""
 	@echo "⏳ Waiting for services to be ready..."
-	@sleep 3
+	@sleep 5
 	@echo ""
 	@make --no-print-directory _show-urls
-	@echo "📊 Prometheus:          http://prometheus.localhost"
-	@echo "📈 Grafana:             http://grafana.localhost"
 	@echo ""
 	@echo "✅ Chat App is ready!"
-	@echo "🔗 Open http://localhost in your browser to get started"
+	@echo "🔗 Open https://localhost in your browser to get started"
 
 stop: ## Stop all services
 	@echo "🛑 Stopping Chat App..."
@@ -50,7 +82,7 @@ logs: ## Show logs from all services
 
 health: ## Test application health
 	@echo "🔍 Testing API health..."
-	@curl -f http://localhost/health 2>/dev/null && echo "✅ API is healthy" || echo "❌ API is not responding"
+	@curl -f -k https://localhost/health 2>/dev/null && echo "✅ API is healthy" || echo "❌ API is not responding"
 
 build: ## Build all images
 	@echo "🔨 Building Docker images..."
@@ -69,10 +101,11 @@ dev: ## Start development environment
 _show-urls:
 	@echo "🌐 Application URLs:"
 	@echo "================================"
-	@echo "🎯 Main Application:    http://localhost"
-	@echo "📡 API Health Check:    http://localhost/health"
-	@echo "⚙️  Traefik Dashboard:  http://localhost:8080"
-	@echo "📊 Langfuse Dashboard:  http://localhost/langfuse"
+	@echo "🎯 Main Application:    https://localhost"
+	@echo "📡 API Health Check:    https://localhost/health"
+	@echo "🔍 Langfuse Dashboard:  https://langfuse.localhost"
+	@echo "⚙️  Traefik Dashboard:  http://localhost:8080/dashboard/"
+	@echo "🗄️  MinIO Console:       http://localhost:9091"
 	@echo "================================"
 
 local: ## Start local development (uses cloud services from .env.local)
@@ -95,13 +128,27 @@ docker: start ## Alias for Docker Compose start
 docker-stop: stop ## Stop Docker Compose services
 
 # Kubernetes Commands
-kubernetes: k8s-setup k8s-build k8s-deploy k8s-status ## Complete Kubernetes setup and deployment
+kubernetes: k8s-setup k8s-traefik k8s-build k8s-deploy k8s-status ## Complete Kubernetes setup and deployment
 kubernetes-stop: k8s-cleanup k8s-stop ## Stop and clean up Kubernetes
 
 k8s-setup: ## Create Kubernetes secrets from .env file
 	@echo "Creating Kubernetes secrets from .env file..."
 	@node -e "const fs=require('fs');const path='k8s/secrets.yaml';if(!fs.existsSync('.env')){console.error('Error: .env file not found');process.exit(1);}const env=Object.fromEntries(fs.readFileSync('.env','utf8').split('\n').filter(l=>l.includes('=')).map(l=>l.split('=',2)));let template=fs.readFileSync('k8s/secrets.yaml.template','utf8');template=template.replace(/\$\{([^}]+)\}/g,(m,k)=>{const[key,def]=k.split(':-');return env[key]||def||'';});fs.writeFileSync(path,template);"
 	@echo "Secrets created from .env file"
+
+k8s-traefik: ## Install Traefik v3.6 using Helm
+	@echo "🚀 Installing Traefik v3.6 with Helm..."
+	@helm repo add traefik https://traefik.github.io/charts || true
+	@helm repo update
+	@kubectl create namespace traefik --dry-run=client -o yaml | kubectl apply -f -
+	@echo "Creating self-signed TLS certificate..."
+	@openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*.docker.localhost" 2>nul || true
+	@kubectl create secret tls local-selfsigned-tls --cert=tls.crt --key=tls.key --namespace traefik --dry-run=client -o yaml | kubectl apply -f -
+	@del tls.key tls.crt 2>nul || true
+	@echo "Installing Traefik Helm chart..."
+	@helm upgrade --install traefik traefik/traefik --namespace traefik --values k8s/traefik-values.yaml --wait
+	@echo "✅ Traefik installed successfully"
+	@echo "🌐 Dashboard: https://dashboard.docker.localhost/"
 
 k8s-build: ## Build and load images for Kubernetes
 	@echo "Building images for Kubernetes..."
@@ -114,12 +161,7 @@ k8s-build: ## Build and load images for Kubernetes
 
 k8s-deploy: ## Deploy to Kubernetes
 	@echo "Deploying to Kubernetes..."
-	@echo "Installing Langfuse via Helm..."
-	@helm repo add langfuse https://langfuse.github.io/langfuse-k8s || echo "Repo already added"
-	@helm repo update
-	@kubectl create namespace langfuse --dry-run=client -o yaml | kubectl apply -f -
-	@helm upgrade --install langfuse langfuse/langfuse -n langfuse --wait
-	@echo "Deploying application components..."
+	@kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 	@kubectl apply -f k8s/secrets.yaml
 	@kubectl apply -f k8s/env-configmap.yaml
 	@kubectl apply -f k8s/postgres-data-persistentvolumeclaim.yaml
@@ -142,6 +184,9 @@ k8s-deploy: ## Deploy to Kubernetes
 	@kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=server --timeout=300s
 	@echo "Waiting for client to be ready..."
 	@kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=client --timeout=300s
+	@echo "Applying Gateway API routes..."
+	@kubectl apply -f k8s/client-httproute.yaml
+	@kubectl apply -f k8s/server-httproute.yaml
 	@echo "Applying horizontal scaling configuration..."
 	@kubectl apply -f k8s/server-hpa.yaml
 	@kubectl apply -f k8s/client-hpa.yaml
@@ -151,17 +196,18 @@ k8s-deploy: ## Deploy to Kubernetes
 k8s-status: ## Show Kubernetes deployment status and URLs
 	@echo "Kubernetes Status:"
 	@echo "=================="
-	@kubectl get pods
+	@kubectl get pods -n default
+	@echo ""
+	@echo "Traefik Status:"
+	@kubectl get pods -n traefik
+	@echo ""
+	@echo "Gateway API Routes:"
+	@kubectl get httproute -n default
 	@echo ""
 	@echo "Application URLs:"
 	@echo "================"
-	@minikube service client --url
-	@minikube service server --url
-	@kubectl port-forward svc/langfuse-web -n langfuse 3001:3000 &
-	@echo "Langfuse: http://localhost:3001 (port-forward)"
-	@echo ""
-	@echo "Run 'minikube service client' to open the application"
-	@echo "Run 'minikube service langfuse-service' to open Langfuse dashboard"
+	@echo "App: https://app.docker.localhost"
+	@echo "Dashboard: https://dashboard.docker.localhost"
 
 k8s-logs: ## Show Kubernetes logs
 	@echo "📋 Kubernetes Logs:"
@@ -202,60 +248,20 @@ k8s-stop: ## Stop Minikube
 	@echo "🛑 Stopping Minikube..."
 	@minikube stop
 
-# AKS Deployment Commands
-aks-setup: ## Setup AKS cluster and ACR (infrastructure)
-	@echo "🚀 Setting up AKS infrastructure..."
-	@echo "📦 Creating resource group..."
-	@az group create --name $(RESOURCE_GROUP) --location eastus || echo "Resource group may already exist"
-	@echo "🐳 Creating Azure Container Registry..."
-	@az acr create --resource-group $(RESOURCE_GROUP) --name $(ACR_NAME) --sku Standard || echo "ACR may already exist"
-	@echo "☸️ Creating AKS cluster..."
-	@az aks create \
-		--resource-group $(RESOURCE_GROUP) \
-		--name $(CLUSTER_NAME) \
-		--node-count 2 \
-		--enable-addons monitoring \
-		--attach-acr $(ACR_NAME) \
-		--generate-ssh-keys \
-		--node-vm-size Standard_B2s || echo "AKS cluster may already exist"
-	@echo "🔑 Getting AKS credentials..."
-	@az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(CLUSTER_NAME)
-	@echo "🔒 Installing cert-manager..."
-	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml || echo "cert-manager may already exist"
-	@echo "⏳ Waiting for cert-manager..."
-	@kubectl wait --for=condition=ready pod -l app=cert-manager -n cert-manager --timeout=300s || echo "cert-manager setup timeout"
-	@echo "📋 Applying base Kubernetes manifests..."
-	@kubectl apply -f k8s/aks/namespace.yaml || echo "Namespace may already exist"
-	@kubectl apply -f k8s/aks/configmap.yaml || echo "ConfigMap may already exist"
-	@echo "⚠️  Please update k8s/aks/secrets.yaml with your actual secrets, then run: kubectl apply -f k8s/aks/secrets.yaml"
-	@echo "✅ AKS infrastructure setup completed!"
+langfuse-start: ## Start Langfuse observability stack
+	@echo "🚀 Starting Langfuse standalone..."
+	@docker compose -f compose.langfuse.yml up -d
+	@echo ""
+	@echo "✅ Langfuse started successfully!"
+	@echo "🌐 Langfuse:            http://langfuse.localhost:8081"
+	@echo "📊 Traefik Dashboard:   http://localhost:8082/dashboard/"
+	@echo "👤 Login: admin@localhost / admin"
 
-aks-deploy: ## Deploy application to AKS
-	@echo "🚀 Deploying application to AKS..."
-	@echo "🐳 Building and pushing Docker image..."
-	@az acr login --name $(ACR_NAME)
-	@docker build -t $(ACR_NAME).azurecr.io/ai-chat-app:latest .
-	@docker push $(ACR_NAME).azurecr.io/ai-chat-app:latest
-	@echo "📋 Applying application manifests..."
-	@kubectl apply -f k8s/aks/deployment.yaml
-	@kubectl apply -f k8s/aks/hpa.yaml
-	@kubectl apply -f k8s/aks/ingress.yaml
-	@echo "⏳ Waiting for deployment rollout..."
-	@kubectl rollout status deployment/ai-chat-app -n ai-chat-app --timeout=300s
-	@echo "✅ Application deployment completed!"
+langfuse-stop: ## Stop Langfuse services
+	@echo "🛑 Stopping Langfuse..."
+	@docker compose -f compose.langfuse.yml down
 
-aks-status: ## Check AKS deployment status
-	@echo "📊 AKS Deployment Status:"
-	@kubectl get all -n ai-chat-app
-	@echo "\n🌐 Ingress Status:"
-	@kubectl get ingress -n ai-chat-app
-
-aks-logs: ## Show AKS logs
-	@echo "📋 AKS Application Logs:"
-	@kubectl logs -l app=ai-chat-app -n ai-chat-app --tail=100
-
-aks-cleanup: ## Clean up AKS resources
-	@echo "🧹 Cleaning up AKS resources..."
-	@kubectl delete namespace ai-chat-app --ignore-not-found=true
-	@az group delete --name $(RESOURCE_GROUP) --yes --no-wait
+langfuse-logs: ## Show Langfuse logs
+	@echo "📋 Langfuse Logs:"
+	@docker compose -f compose.langfuse.yml logs -f
 

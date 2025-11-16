@@ -1,10 +1,9 @@
-import { createIdGenerator, smoothStream, streamText, validateUIMessages } from "ai";
 import { getAvailableTools } from "@/lib/tools";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AIStreamRoute } from "@/routes/ai/ai.route";
 import { saveConversation } from "@/services/conversation.service";
 import { MODELS, transformPrompt } from "@/utils/index";
-import { createTelemetryConfig, extractTraceContext } from "@/utils/langfuse-helpers";
+import { createIdGenerator, smoothStream, streamText, validateUIMessages } from "ai";
 
 export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const requestBody = c.req.valid("json");
@@ -12,37 +11,32 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const { messages: uiMessages, model = "gpt-5-mini", tools: toolNames = [] } = requestBody;
 
 	const selectedTools = getAvailableTools(toolNames);
+
 	const validatedMessages = await validateUIMessages({
-		messages: uiMessages,
-		tools: selectedTools
+		messages: uiMessages as any,
+		tools: selectedTools as any
 	});
 
 	const messages = transformPrompt(validatedMessages);
-
 	const userJwt = c.get("jwtPayload").sub;
 
-	// Extract trace context for Langfuse
-	const traceContext = extractTraceContext(c);
-	const telemetryConfig = createTelemetryConfig({
-		...traceContext,
-		functionId: "ai-stream-chat",
-		metadata: {
-			conversationId: coalescedChatId,
-			messageCount: messages.length,
-			model,
-			toolCount: toolNames.length
-		},
-		sessionId: coalescedChatId || undefined,
-		tags: ["chat", "stream", model],
-		userId: userJwt.id
-	});
-
 	const result = streamText({
-		experimental_telemetry: telemetryConfig,
+		experimental_telemetry: {
+			isEnabled: true,
+			functionId: "ai-stream-chat",
+			metadata: {
+				userId: userJwt.id,
+				...(coalescedChatId && { sessionId: coalescedChatId }),
+				model,
+				tags: ["chat", "stream", model],
+				toolCount: toolNames.length,
+				...(toolNames.length > 0 && { tools: toolNames.join(",") })
+			}
+		},
 		experimental_transform: smoothStream(),
 		messages,
 		model: MODELS.azureOpenAI(model),
-		tools: selectedTools
+		tools: selectedTools as any
 	});
 
 	return result.toUIMessageStreamResponse({

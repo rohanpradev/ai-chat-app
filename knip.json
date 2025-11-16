@@ -1,0 +1,61 @@
+{
+	"$schema": "https://unpkg.com/knip@5/schema.json",
+	"rules": {
+		"binaries": "error",
+		"classMembers": "warn",
+		"dependencies": "error",
+		"devDependencies": "warn",
+		"duplicates": "warn",
+		"enumMembers": "off",
+		"exports": "warn",
+		"files": "error",
+		"types": "warn",
+		"unlisted": "error",
+		"unresolved": "error"
+	},
+	"workspaces": {
+		".": {
+			"ignoreBinaries": ["kubectl"],
+			"ignoreDependencies": ["@biomejs/biome"]
+		},
+		"client": {
+			"ignore": [
+				"src/routeTree.gen.ts",
+				"src/components/ui/**",
+				"src/components/ai-elements/**",
+				"src/reportWebVitals.ts",
+				"src/test/setup.ts",
+				"src/hooks/useLoadConversation.ts",
+				"src/queries/getProfile.ts",
+				"src/components/errors/ChatNotFound.tsx",
+				"src/components/chat/ChatApp.tsx",
+				"src/components/chat/ToolCallDisplay.tsx"
+			],
+			"ignoreDependencies": [
+				"@testing-library/dom",
+				"@testing-library/react",
+				"web-vitals",
+				"@radix-ui/react-hover-card",
+				"@radix-ui/react-progress",
+				"@radix-ui/react-scroll-area",
+				"@radix-ui/react-use-controllable-state",
+				"@tailwindcss/oxide",
+				"@xyflow/react",
+				"cmdk",
+				"embla-carousel-react",
+				"motion",
+				"nanoid",
+				"react-syntax-highlighter",
+				"tokenlens",
+				"@types/react-syntax-highlighter"
+			]
+		},
+		"server": {
+			"ignore": ["drizzle.config.ts", "src/utils/db-utils.ts"],
+			"ignoreDependencies": ["dotenv", "drizzle-zod"]
+		},
+		"shared": {
+			"ignore": ["types/api.types.ts", "types/conversation.types.ts"]
+		}
+	}
+}
