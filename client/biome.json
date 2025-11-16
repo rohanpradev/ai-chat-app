@@ -8,9 +8,14 @@
 		},
 		"enabled": true
 	},
+	"css":{
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": ["src/**", "!src/components/ui", "!src/routeTree.gen.ts"]
+		"includes": ["src/**", "!src/components/ui", "!src/components/ai-elements", "!src/routeTree.gen.ts"]
 	},
 	"formatter": {
 		"indentStyle": "space",

@@ -1,5 +1,5 @@
 import type { MyUIMessage } from "@chat-app/shared";
-import { Response } from "@/components/ai-elements/response";
+import { MessageResponse } from "@/components/ai-elements/message";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { SerperResults } from "@/components/chat/SerperResults";
 
@@ -12,7 +12,7 @@ interface MessagePartProps {
 export function MessagePart({ part, messageId, index }: MessagePartProps) {
   switch (part.type) {
     case "text":
-      return <Response key={`${messageId}-${index}`}>{part.text}</Response>;
+      return <MessageResponse key={`${messageId}-${index}`}>{part.text}</MessageResponse>;
     case "file":
       if (part.mediaType?.startsWith("image/")) {
         return <img key={`${messageId}-${index}`} src={part.url} alt="attachment" className="max-w-sm rounded" />;

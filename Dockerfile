@@ -12,8 +12,8 @@ COPY client/package.json ./client/
 COPY server/package.json ./server/
 COPY shared/package.json ./shared/
 
-# Install production dependencies only
-RUN bun install --frozen-lockfile --production
+# Install all dependencies (needed for monorepo workspace resolution)
+RUN bun install --frozen-lockfile
 
 # Stage 2: Build dependencies (includes dev deps)
 FROM oven/bun:1-alpine AS build-deps
@@ -82,6 +82,8 @@ RUN addgroup -g 1001 -S appuser && \
 
 # Copy production dependencies
 COPY --from=prod-deps --chown=appuser:appuser /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=appuser:appuser /app/server/node_modules ./server/node_modules
+COPY --from=prod-deps --chown=appuser:appuser /app/shared/node_modules ./shared/node_modules
 COPY --from=prod-deps --chown=appuser:appuser /app/package.json ./
 
 # Copy shared package (runtime dependency)

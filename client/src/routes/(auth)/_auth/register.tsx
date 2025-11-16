@@ -1,12 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
-
+import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { useUserRegister } from "@/composables/useRegisterUser";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 import { Route as IndexRoute } from "@/routes/index";
@@ -70,12 +69,12 @@ function RegisterForm() {
     }
 
     try {
-      await mutateAsync({ 
-        name: name.trim(), 
-        email: email.trim(), 
-        password, 
+      await mutateAsync({
+        name: name.trim(),
+        email: email.trim(),
+        password,
         confirmPassword,
-        profileImage: profileImage || undefined
+        profileImage: profileImage || undefined,
       });
       toast.success("Account created successfully!");
       return { success: true };
@@ -125,11 +124,7 @@ function RegisterForm() {
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Profile Picture (Optional)</Label>
-              <AvatarUpload
-                value={profileImage}
-                onChange={setProfileImage}
-                disabled={isPending}
-              />
+              <AvatarUpload value={profileImage} onChange={setProfileImage} disabled={isPending} />
             </div>
 
             <div className="space-y-2">

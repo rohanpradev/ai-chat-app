@@ -3,8 +3,8 @@ import { Bot, LogOut, Plus, Sparkles, User as UserIcon } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { useCreateChat } from "@/queries/createChat";
-import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 import { Route as UserRoute } from "@/routes/(user)/profile";
+import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 
 interface User {
   id: string;
@@ -54,9 +54,9 @@ export function ChatHeader({ user, onLogout }: ChatHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1">
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleNewChat}
           disabled={status === "pending"}
           className="text-muted-foreground"

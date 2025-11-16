@@ -36,7 +36,7 @@ A full-stack AI-powered chat application built with modern technologies for opti
 
 ### Infrastructure
 - **Docker** - Containerization
-- **Traefik** - Reverse proxy and load balancer
+- **Traefik v3.6** - Modern reverse proxy and load balancer with Gateway API support
 - **Nginx** - Static file serving
 
 ## 📦 Project Structure
@@ -53,100 +53,66 @@ A full-stack AI-powered chat application built with modern technologies for opti
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Bun** >= 1.0
-- **Docker** & **Docker Compose**
-- **Make** (for cross-platform commands)
-- **PostgreSQL** (or use Docker)
-- **Redis** (or use Docker)
+- **Bun** >= 1.2 ([Install here](https://bun.sh))
+- **Docker** & **Docker Compose** ([Install here](https://docker.com))
+- **Azure AI Account** ([Get free trial](https://azure.microsoft.com/free))
 
-#### Additional for Kubernetes
-- **Minikube** or **Kubernetes cluster**
-- **kubectl** CLI tool
+### Setup in 3 Steps
 
-### 1. Clone the Repository
+#### 1. Clone and Setup
 ```bash
 git clone https://github.com/rohanpradev/ai-chat-app.git
-cd chat-app
+cd ai-chat-app
+make setup
 ```
 
-### 2. Environment Setup
+#### 2. Configure (Edit `.env` file)
 ```bash
-# Copy environment files
-cp .env.example .env
-cp client/.env.example client/.env
-cp server/.env.example server/.env.local
-
-# Edit .env files with your configuration
+# Required: Update these 3 values
+AZURE_API_KEY=your_azure_api_key_here          # From Azure Portal
+AZURE_RESOURCE_NAME=your_azure_resource_name   # e.g., myresource (without .openai.azure.com)
+JWT_SECRET=your_secure_jwt_secret              # Run: openssl rand -base64 32
 ```
 
-### 3. Install Dependencies
+#### 3. Start
 ```bash
-# Install all dependencies
-bun install
-```
-
-### 4. Database Setup
-```bash
-# Start database services
-docker compose up -d db redis
-
-# Run migrations
-cd server && bun run db:migrate
-```
-
-### 5. Choose Your Development Method
-
-#### Option A: Local Development (Recommended for development)
-```bash
-# Fast local development with hot reload
-make local
-```
-- Client: http://localhost:5173
-- Server: http://localhost:3000
-- Database/Redis in Docker
-
-#### Option B: Docker Compose (Production-like)
-```bash
-# Full Docker environment
-make docker
-# or
 make start
 ```
-- Application: http://localhost
 
-#### Option C: Kubernetes (Production)
-```bash
-# Complete Kubernetes deployment
-make kubernetes
-```
-- Uses Minikube for local Kubernetes
-- Production-ready configuration
+That's it! 🎉 Open https://localhost in your browser.
+
+### Optional: Enable AI Observability (Langfuse)
+
+After first start:
+1. Visit https://langfuse.localhost
+2. Create account and project
+3. Copy API keys to `.env`:
+   ```bash
+   LANGFUSE_SECRET_KEY=sk-lf-...
+   LANGFUSE_PUBLIC_KEY=pk-lf-...
+   ```
+4. Restart: `make restart`
 
 ## 🔧 Available Commands
 
-### Quick Start Commands
+### Quick Start
 ```bash
-make help            # Show all available commands
-make local           # Local development (fastest)
-make docker          # Docker Compose deployment
-make kubernetes      # Kubernetes deployment
+make setup           # Initial setup (creates .env)
+make validate        # Check configuration
+make start           # Start all services
+make stop            # Stop all services
+make restart         # Restart services
+make status          # Show service status
+make logs            # View logs
 ```
 
 ### Development
 ```bash
-bun run dev          # Start development servers
-bun run build        # Build all packages
-bun run test         # Run tests
+make local           # Local dev (fastest, with hot reload)
+make dev             # Alternative dev command
+make build           # Build Docker images
+make clean           # Clean up containers and volumes
 ```
-
-### Makefile Commands
-```bash
-# Development
-make local           # Start local development (client + server with bun dev)
-make dev             # Start development environment
-
-# Docker Deployment
-make docker          # Start Docker Compose services
 make start           # Start all services
 make stop            # Stop all services
 make restart         # Restart all services
@@ -159,8 +125,9 @@ make health          # Test application health
 # Kubernetes Deployment
 make kubernetes      # Complete Kubernetes setup and deployment
 make k8s-setup       # Create Kubernetes secrets from .env file
+make k8s-traefik     # Install Traefik v3.6 using Helm
 make k8s-build       # Build and load images for Kubernetes
-make k8s-deploy      # Deploy to Kubernetes
+make k8s-deploy      # Deploy to Kubernetes with Gateway API
 make k8s-status      # Show Kubernetes deployment status and URLs
 make k8s-logs        # Show Kubernetes logs
 make k8s-cleanup     # Clean up Kubernetes resources

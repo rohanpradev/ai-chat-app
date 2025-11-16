@@ -1,5 +1,5 @@
-import env from "@/utils/env";
 import type { FC } from "hono/jsx";
+import env from "@/utils/env";
 
 const HonoIcon = () => (
 	<svg

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Mail, Shield, User, Edit } from "lucide-react";
+import { ArrowLeft, Edit, Mail, Shield, User } from "lucide-react";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
@@ -73,10 +73,7 @@ function ProfileComponent() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   {isEditing ? (
-                    <AvatarUpload
-                      value={profileImage}
-                      onChange={setProfileImage}
-                    />
+                    <AvatarUpload value={profileImage} onChange={setProfileImage} />
                   ) : (
                     <Avatar className="w-16 h-16">
                       <AvatarImage src={profileImage} alt={profileData?.name} />
@@ -89,12 +86,7 @@ function ProfileComponent() {
                     {isEditing ? (
                       <div className="space-y-2">
                         <Label htmlFor="name">Name</Label>
-                        <Input
-                          id="name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-48"
-                        />
+                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="w-48" />
                       </div>
                     ) : (
                       <>

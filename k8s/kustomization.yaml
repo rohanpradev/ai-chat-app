@@ -42,6 +42,15 @@ resources:
   # Traefik
   - traefik-deployment.yaml
   - traefik-service.yaml
+  - traefik-gateway.yaml
+  
+  # Middlewares
+  - middlewares.yaml
+  
+  # HTTPRoutes
+  - client-httproute.yaml
+  - server-httproute.yaml
+  - server-traefik-service.yaml
 
 namespace: default
 

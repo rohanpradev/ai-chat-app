@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { MessageSquare, Plus, Sparkles, Code, BookOpen, Lightbulb } from "lucide-react";
+import { BookOpen, Code, Lightbulb, MessageSquare, Plus, Sparkles } from "lucide-react";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,29 +10,33 @@ import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 
 const CONVERSATION_STARTERS = [
   {
+    id: "code-helper",
     icon: Code,
     title: "Code Helper",
     description: "Get help with programming and debugging",
-    prompt: "Help me with coding"
+    prompt: "Help me with coding",
   },
   {
+    id: "learning-assistant",
     icon: BookOpen,
     title: "Learning Assistant",
     description: "Explain concepts and answer questions",
-    prompt: "Explain a concept to me"
+    prompt: "Explain a concept to me",
   },
   {
+    id: "creative-ideas",
     icon: Lightbulb,
     title: "Creative Ideas",
     description: "Brainstorm and generate creative solutions",
-    prompt: "Help me brainstorm ideas"
+    prompt: "Help me brainstorm ideas",
   },
   {
+    id: "general-chat",
     icon: Sparkles,
     title: "General Chat",
     description: "Have a conversation about anything",
-    prompt: "Let's have a conversation"
-  }
+    prompt: "Let's have a conversation",
+  },
 ];
 
 export function ChatEmptyState() {
@@ -69,7 +73,8 @@ export function ChatEmptyState() {
           </div>
           <h1 className="text-4xl font-bold tracking-tight">Welcome to AI Chat</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your intelligent conversation partner. Get help with coding, learning, creative projects, or just have a friendly chat.
+            Your intelligent conversation partner. Get help with coding, learning, creative projects, or just have a
+            friendly chat.
           </p>
         </div>
 
@@ -77,11 +82,11 @@ export function ChatEmptyState() {
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold text-center">How can I help you today?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {CONVERSATION_STARTERS.map((starter, index) => {
+            {CONVERSATION_STARTERS.map((starter) => {
               const Icon = starter.icon;
               return (
-                <Card 
-                  key={index} 
+                <Card
+                  key={starter.id}
                   className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
                   onClick={() => handleCreateChat(starter.prompt)}
                 >
@@ -106,9 +111,7 @@ export function ChatEmptyState() {
         <Card className="max-w-md mx-auto">
           <CardHeader className="text-center">
             <CardTitle className="text-lg">Or start a custom chat</CardTitle>
-            <CardDescription>
-              Create a chat with your own title
-            </CardDescription>
+            <CardDescription>Create a chat with your own title</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

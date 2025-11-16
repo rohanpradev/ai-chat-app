@@ -46,3 +46,19 @@ export const CommonNotFoundResponseSchema = z
 		description: "Standard not found response",
 		title: "CommonNotFoundResponse",
 	});
+
+export const ModelSchema = z
+	.object({
+		id: z.string().describe("Model ID"),
+		name: z.string().describe("Display name of the model"),
+		provider: z.string().optional().describe("AI provider (e.g., openai, anthropic, google)"),
+	})
+	.openapi({
+		description: "AI Model information",
+		title: "Model",
+	});
+
+export const ModelsArraySchema = z.array(ModelSchema).openapi({
+	description: "Array of AI models",
+	title: "ModelsArray",
+});

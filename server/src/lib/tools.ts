@@ -1,6 +1,6 @@
-import { tool } from "ai";
-import { z } from "zod";
 import env from "@/utils/env";
+import { type ToolSet, tool } from "ai";
+import { z } from "zod";
 
 export const tools = {
 	deepSearch: tool({
@@ -27,6 +27,13 @@ export const tools = {
 		execute: async ({ q }) => {
 			try {
 				const apiKey = env.SERPER_API_KEY;
+				if (!apiKey) {
+					return {
+						error: "SERPER_API_KEY not configured",
+						query: q
+					};
+				}
+
 				const response = await fetch("https://google.serper.dev/search", {
 					body: JSON.stringify({ q }),
 					headers: {
@@ -62,18 +69,19 @@ export const tools = {
 			q: z.string().describe("Search query")
 		})
 	})
-};
+} satisfies ToolSet;
 
-export function getAvailableTools(toolNames?: string[]) {
-	return (
-		toolNames?.reduce(
-			(selectedTools, toolName) => {
-				if (toolName in tools) {
-					selectedTools[toolName] = tools[toolName as keyof typeof tools];
-				}
-				return selectedTools;
-			},
-			{} as Record<string, (typeof tools)[keyof typeof tools]>
-		) ?? {}
-	);
+export type AvailableTools = Partial<typeof tools> & Record<string, (typeof tools)[keyof typeof tools]>;
+
+export function getAvailableTools(toolNames?: string[]): AvailableTools | undefined {
+	if (!toolNames || toolNames.length === 0) {
+		return undefined;
+	}
+
+	return toolNames.reduce((selectedTools, toolName) => {
+		if (toolName in tools) {
+			selectedTools[toolName] = tools[toolName as keyof typeof tools];
+		}
+		return selectedTools;
+	}, {} as AvailableTools);
 }

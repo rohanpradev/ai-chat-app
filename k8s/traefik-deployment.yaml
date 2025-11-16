@@ -4,17 +4,12 @@ metadata:
   annotations:
     kompose.cmd: kompose convert
     kompose.version: 1.37.0 (fb0539e64)
-    traefik.enable: "true"
-    traefik.http.middlewares.auth.basicauth.users: admin:your_hashed_password_here
-    traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
-    traefik.http.routers.dashboard.middlewares: auth
-    traefik.http.routers.dashboard.rule: Host(`traefik.localhost`)
-    traefik.http.routers.dashboard.service: dashboard@internal
-    traefik.http.routers.redirect-https.entrypoints: web
-    traefik.http.routers.redirect-https.middlewares: redirect-to-https
-    traefik.http.routers.redirect-https.rule: hostregexp(`{host:.+}`)
   labels:
     io.kompose.service: traefik
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: chat-app
+    app.kubernetes.io/version: "3.6"
   name: traefik
 spec:
   replicas: 1
@@ -25,42 +20,63 @@ spec:
     type: Recreate
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert
-        kompose.version: 1.37.0 (fb0539e64)
-        traefik.enable: "true"
-        traefik.http.middlewares.auth.basicauth.users: admin:your_hashed_password_here
-        traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
-        traefik.http.routers.dashboard.middlewares: auth
-        traefik.http.routers.dashboard.rule: Host(`traefik.localhost`)
-        traefik.http.routers.dashboard.service: dashboard@internal
-        traefik.http.routers.redirect-https.entrypoints: web
-        traefik.http.routers.redirect-https.middlewares: redirect-to-https
-        traefik.http.routers.redirect-https.rule: hostregexp(`{host:.+}`)
       labels:
         io.kompose.service: traefik
+        app.kubernetes.io/name: traefik
+        app.kubernetes.io/component: ingress
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
       containers:
         - args:
-            - --providers.docker=true
-            - --providers.docker.exposedbydefault=false
-            - --providers.docker.network=chat-app-network
+            # Kubernetes Provider
+            - --providers.kubernetesingress=false
+            - --providers.kubernetesgateway=true
+            
+            # Entrypoints
             - --entrypoints.web.address=:80
             - --entrypoints.websecure.address=:443
+            - --entrypoints.websecure.http.tls=true
+            
+            # HTTP to HTTPS redirect
+            - --entrypoints.web.http.redirections.entryPoint.to=websecure
+            - --entrypoints.web.http.redirections.entryPoint.scheme=https
+            
+            # API and Dashboard
             - --api.dashboard=true
-            - --api.insecure=true
+            - --api.insecure=false
+            
+            # Let's Encrypt
             - --certificatesresolvers.letsencrypt.acme.email=your_email@example.com
-            - --certificatesresolvers.letsencrypt.acme.storage=/acme.json
+            - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
             - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+            
+            # Logging
             - --log.level=INFO
             - --accesslog=true
+            
+            # Metrics
             - --metrics.prometheus=true
             - --metrics.prometheus.addentrypointslabels=true
             - --metrics.prometheus.addserviceslabels=true
+            - --metrics.prometheus.addrouterslabels=true
+            
+            # Ping
+            - --ping=true
           envFrom:
             - configMapRef:
                 name: env
-          image: traefik:v3.5
+          image: traefik:v3.6
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+            readOnlyRootFilesystem: true
           livenessProbe:
             exec:
               command:
@@ -81,16 +97,29 @@ spec:
           ports:
             - containerPort: 80
               protocol: TCP
+              name: web
             - containerPort: 443
               protocol: TCP
+              name: websecure
             - containerPort: 8080
               protocol: TCP
+              name: traefik
           volumeMounts:
-            - mountPath: /acme.json
+            - mountPath: /letsencrypt
               name: traefik-acme
             - mountPath: /var/log/traefik
               name: traefik-logs
+            - mountPath: /tmp
+              name: tmp
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 500m
+            requests:
+              memory: 256Mi
+              cpu: 100m
       restartPolicy: Always
+      serviceAccountName: traefik
       volumes:
         - name: traefik-acme
           persistentVolumeClaim:
@@ -98,3 +127,60 @@ spec:
         - name: traefik-logs
           persistentVolumeClaim:
             claimName: traefik-logs
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traefik
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: traefik
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+      - httproutes
+      - referencegrants
+      - tcproutes
+      - tlsroutes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways/status
+      - httproutes/status
+      - tcproutes/status
+      - tlsroutes/status
+    verbs:
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: traefik
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traefik
+subjects:
+  - kind: ServiceAccount
+    name: traefik
+    namespace: default

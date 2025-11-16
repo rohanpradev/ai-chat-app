@@ -1,19 +1,21 @@
-// Export all schemas
+// Export all schemas (includes both Zod schemas and inferred types)
 export * from "./schemas/index.js";
 
-// Export specific types to avoid conflicts
+// Export specific types from types.ts
 export type {
 	ApiError,
 	AuthError,
 	AuthResponse,
 	BasicUserProfile,
-	GetProfileResponse,
-	LoginResponse,
 	LoginUserRequest,
-	RegisterResponse,
+	Model,
+	ModelsArray,
 	RegisterUserRequest,
 	User,
 } from "./types";
 
-export * from "./types/api.types.js";
+// Export models constant
+export { models } from "./types";
+
+// Export UI message types and tools
 export { type MyMetadata, type MyTools, type MyUIMessage, tools } from "./types/ui-message.types.js";

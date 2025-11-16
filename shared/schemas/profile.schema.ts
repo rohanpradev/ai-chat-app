@@ -19,7 +19,7 @@ export const UpdateProfileRequestSchema = z.object({
 		.string()
 		.optional()
 		.describe("Profile picture as base64 string")
-		.openapi({ type: "string", format: "byte" })
+		.openapi({ format: "byte", type: "string" }),
 });
 
 export const GetProfileResponseSchema = z.object({

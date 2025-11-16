@@ -1,22 +1,28 @@
+import { models } from "@chat-app/shared";
 import type { ChatStatus } from "ai";
 import { GlobeIcon } from "lucide-react";
-import type { ClipboardEvent } from "react";
 import {
   PromptInput,
+  PromptInputActionAddAttachments,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuTrigger,
+  PromptInputAttachment,
+  PromptInputAttachments,
+  PromptInputBody,
   PromptInputButton,
-  PromptInputModelSelect,
-  PromptInputModelSelectContent,
-  PromptInputModelSelectItem,
-  PromptInputModelSelectTrigger,
-  PromptInputModelSelectValue,
+  PromptInputFooter,
+  type PromptInputMessage,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
-  PromptInputToolbar,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { FileUpload } from "@/components/chat/FileUpload";
 import { ToolSelector } from "@/components/chat/ToolSelector";
-import { models } from "@/utils";
 
 interface ChatInputProps {
   input: string;
@@ -27,10 +33,7 @@ interface ChatInputProps {
   setWebSearch: (value: boolean) => void;
   selectedTools: string[];
   setSelectedTools: (tools: string[]) => void;
-  files: FileList | undefined;
-  setFiles: (files: FileList | undefined) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onPaste: (e: ClipboardEvent<HTMLTextAreaElement>) => void;
+  onMessageSend: (message: PromptInputMessage) => void;
   status: ChatStatus;
 }
 
@@ -43,38 +46,70 @@ export function ChatInput({
   setWebSearch,
   selectedTools,
   setSelectedTools,
-  files,
-  setFiles,
-  onSubmit,
-  onPaste,
+  onMessageSend,
   status,
 }: ChatInputProps) {
+  const handleSubmit = (message: PromptInputMessage) => {
+    const hasText = Boolean(message.text);
+    const hasAttachments = Boolean(message.files?.length);
+
+    if (!(hasText || hasAttachments)) {
+      return;
+    }
+
+    onMessageSend(message);
+    setInput("");
+  };
+
   return (
-    <PromptInput onSubmit={onSubmit} className="mt-4">
-      <FileUpload files={files} onFilesChange={setFiles} />
-      <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} onPaste={onPaste} />
-      <PromptInputToolbar>
+    <PromptInput
+      onSubmit={handleSubmit}
+      className="mt-4"
+      multiple
+      accept="image/*,application/pdf,.txt,.md,.json,.js,.ts,.tsx,.jsx,.py,.java,.cpp,.c,.html,.css,.xml,.csv"
+      maxFiles={10}
+      maxFileSize={10 * 1024 * 1024} // 10MB
+      onError={(err) => {
+        const errorMessage = typeof err === "object" && "message" in err ? err.message : "File upload error";
+        console.error("File upload error:", errorMessage);
+        // You could add a toast notification here
+      }}
+    >
+      <PromptInputAttachments>
+        {/* biome-ignore lint/suspicious/noExplicitAny: React 19 type issue with render prop */}
+        {((attachment: File & { id: string }) => <PromptInputAttachment data={attachment} />) as any}
+      </PromptInputAttachments>
+      <PromptInputBody>
+        <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
+      </PromptInputBody>
+      <PromptInputFooter>
         <PromptInputTools>
+          <PromptInputActionMenu>
+            <PromptInputActionMenuTrigger />
+            <PromptInputActionMenuContent>
+              <PromptInputActionAddAttachments />
+            </PromptInputActionMenuContent>
+          </PromptInputActionMenu>
           <PromptInputButton variant={webSearch ? "default" : "ghost"} onClick={() => setWebSearch(!webSearch)}>
             <GlobeIcon size={16} />
             <span>Search</span>
           </PromptInputButton>
           <ToolSelector selectedTools={selectedTools} onToolsChange={setSelectedTools} />
-          <PromptInputModelSelect onValueChange={setModel} value={model}>
-            <PromptInputModelSelectTrigger>
-              <PromptInputModelSelectValue />
-            </PromptInputModelSelectTrigger>
-            <PromptInputModelSelectContent>
+          <PromptInputSelect onValueChange={setModel} value={model}>
+            <PromptInputSelectTrigger>
+              <PromptInputSelectValue />
+            </PromptInputSelectTrigger>
+            <PromptInputSelectContent>
               {models.map((model) => (
-                <PromptInputModelSelectItem key={model.id} value={model.id}>
+                <PromptInputSelectItem key={model.id} value={model.id}>
                   {model.name}
-                </PromptInputModelSelectItem>
+                </PromptInputSelectItem>
               ))}
-            </PromptInputModelSelectContent>
-          </PromptInputModelSelect>
+            </PromptInputSelectContent>
+          </PromptInputSelect>
         </PromptInputTools>
-        <PromptInputSubmit disabled={!input} status={status} />
-      </PromptInputToolbar>
+        <PromptInputSubmit disabled={!input && status !== "streaming"} status={status} />
+      </PromptInputFooter>
     </PromptInput>
   );
 }

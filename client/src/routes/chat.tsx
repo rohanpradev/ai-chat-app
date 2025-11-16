@@ -46,7 +46,7 @@ function ChatLayoutPending() {
   );
 }
 
-function ChatLayoutError({ error }: { error: Error }) {
+function ChatLayoutError() {
   const router = useRouter();
 
   const handleRetry = () => {
