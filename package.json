@@ -3,14 +3,14 @@
 		"name": "Rohan Pradev"
 	},
 	"dependencies": {
-		"ai": "^5.0.93",
-		"zod": "^4.1.12"
+		"ai": "^6.0.14",
+		"zod": "^4.3.5"
 	},
 	"description": "A chat application built with Bun, React, and Zod.",
 	"devDependencies": {
-		"@biomejs/biome": "2.3.5",
-		"knip": "^5.69.1",
-		"rimraf": "^6.1.0"
+		"@biomejs/biome": "2.3.11",
+		"knip": "^5.80.0",
+		"rimraf": "^6.1.2"
 	},
 	"name": "chat-app",
 	"private": true,
