@@ -1,6 +1,6 @@
 import {
-	ConversationBadRequestResponseSchema,
-	ConversationErrorResponseSchema,
+	ChatBadRequestResponseSchema,
+	ChatErrorResponseSchema,
 	CreateConversationRequestSchema,
 	CreateConversationResponseSchema,
 	GetConversationResponseSchema,
@@ -25,8 +25,8 @@ export const createConversationRoute = createRoute({
 	},
 	responses: {
 		[HttpStatusCodes.CREATED]: jsonContent(CreateConversationResponseSchema, "Conversation created"),
-		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ConversationErrorResponseSchema, "Unauthorized"),
-		[HttpStatusCodes.BAD_REQUEST]: jsonContent(ConversationBadRequestResponseSchema, "Invalid input")
+		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized"),
+		[HttpStatusCodes.BAD_REQUEST]: jsonContent(ChatBadRequestResponseSchema, "Invalid input")
 	},
 	summary: "Create new conversation",
 	tags
@@ -41,7 +41,7 @@ export const getConversationsRoute = createRoute({
 	path: "/conversations",
 	responses: {
 		[HttpStatusCodes.OK]: jsonContent(GetConversationsResponseSchema, "List of conversations"),
-		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ConversationErrorResponseSchema, "Unauthorized")
+		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized")
 	},
 	summary: "Get user conversations",
 	tags
@@ -61,8 +61,8 @@ export const getConversationRoute = createRoute({
 	},
 	responses: {
 		[HttpStatusCodes.OK]: jsonContent(GetConversationResponseSchema, "Conversation details"),
-		[HttpStatusCodes.NOT_FOUND]: jsonContent(ConversationErrorResponseSchema, "Conversation not found"),
-		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ConversationErrorResponseSchema, "Unauthorized")
+		[HttpStatusCodes.NOT_FOUND]: jsonContent(ChatErrorResponseSchema, "Conversation not found"),
+		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized")
 	},
 	summary: "Get conversation by ID",
 	tags
@@ -82,9 +82,9 @@ export const updateConversationRoute = createRoute({
 	},
 	responses: {
 		[HttpStatusCodes.OK]: jsonContent(UpdateConversationResponseSchema, "Conversation updated"),
-		[HttpStatusCodes.NOT_FOUND]: jsonContent(ConversationErrorResponseSchema, "Conversation not found"),
-		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ConversationErrorResponseSchema, "Unauthorized"),
-		[HttpStatusCodes.BAD_REQUEST]: jsonContent(ConversationBadRequestResponseSchema, "Invalid input")
+		[HttpStatusCodes.NOT_FOUND]: jsonContent(ChatErrorResponseSchema, "Conversation not found"),
+		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized"),
+		[HttpStatusCodes.BAD_REQUEST]: jsonContent(ChatBadRequestResponseSchema, "Invalid input")
 	},
 	summary: "Update conversation",
 	tags

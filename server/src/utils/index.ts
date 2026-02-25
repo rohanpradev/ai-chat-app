@@ -9,7 +9,7 @@ export const MODELS = {
 	openAI: (model = "gpt-4o-mini") => openai(model)
 } satisfies Record<string, ModelType | ((...args: any[]) => ModelType)>;
 
-export const transformPrompt = (message: UIMessage[]): ModelMessage[] =>
+export const transformPrompt = async (message: UIMessage[]): Promise<ModelMessage[]> =>
 	convertToModelMessages([
 		{
 			parts: [

@@ -1,0 +1,424 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: chat-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-app
+      app.kubernetes.io/component: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chat-app
+        app.kubernetes.io/component: database
+        app.kubernetes.io/part-of: chat-app
+    spec:
+      containers:
+        - name: chat-app-db
+          image: {{ .Values.images.db }}
+          imagePullPolicy: {{ .Values.imagePullPolicy.infra }}
+          args:
+            - postgres
+            - -c
+            - shared_buffers=256MB
+            - -c
+            - effective_cache_size=512MB
+            - -c
+            - maintenance_work_mem=128MB
+            - -c
+            - checkpoint_completion_target=0.7
+            - -c
+            - wal_buffers=16MB
+            - -c
+            - default_statistics_target=100
+            - -c
+            - random_page_cost=1.1
+            - -c
+            - effective_io_concurrency=200
+            - -c
+            - work_mem=8MB
+            - -c
+            - max_connections=100
+          env:
+            - name: POSTGRES_DB
+              value: chatapp
+            - name: POSTGRES_INITDB_ARGS
+              value: --data-checksums --wal-segsize=64
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_USER
+              value: username
+          envFrom:
+            - configMapRef:
+                name: env
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            failureThreshold: 5
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      restartPolicy: Always
+      volumes:
+        - name: postgres-data
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/part-of: chat-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-app
+      app.kubernetes.io/component: cache
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chat-app
+        app.kubernetes.io/component: cache
+        app.kubernetes.io/part-of: chat-app
+    spec:
+      containers:
+        - name: chat-app-redis
+          image: {{ .Values.images.redis }}
+          imagePullPolicy: {{ .Values.imagePullPolicy.infra }}
+          args:
+            - redis-server
+            - --appendonly
+            - "yes"
+            - --appendfsync
+            - everysec
+            - --auto-aof-rewrite-percentage
+            - "100"
+            - --auto-aof-rewrite-min-size
+            - 64mb
+            - --maxmemory
+            - 512mb
+            - --maxmemory-policy
+            - allkeys-lru
+            - --tcp-keepalive
+            - "300"
+            - --timeout
+            - "0"
+            - --save
+            - "900"
+            - "1"
+            - "300"
+            - "10"
+            - "60"
+            - "10000"
+          envFrom:
+            - configMapRef:
+                name: env
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      restartPolicy: Always
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: chat-app
+spec:
+  replicas: {{ .Values.server.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-app
+      app.kubernetes.io/component: server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chat-app
+        app.kubernetes.io/component: server
+        app.kubernetes.io/part-of: chat-app
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: chat-app-server
+          image: {{ .Values.images.server }}
+          imagePullPolicy: {{ .Values.imagePullPolicy.app }}
+          envFrom:
+            - configMapRef:
+                name: env
+            - secretRef:
+                name: app-secrets
+            - secretRef:
+                name: azure-secrets
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: server-logs
+              mountPath: /app/logs
+            - name: server-uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: server-logs
+          emptyDir: {}
+        - name: server-uploads
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: client
+    app.kubernetes.io/part-of: chat-app
+spec:
+  replicas: {{ .Values.client.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-app
+      app.kubernetes.io/component: client
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chat-app
+        app.kubernetes.io/component: client
+        app.kubernetes.io/part-of: chat-app
+    spec:
+      containers:
+        - name: chat-app-client
+          image: {{ .Values.images.client }}
+          imagePullPolicy: {{ .Values.imagePullPolicy.app }}
+          env:
+            - name: BASE_API_SLUG
+              value: "api"
+            - name: SERVER_HOST
+              value: "server"
+            - name: SERVER_PORT
+              value: "3000"
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            failureThreshold: 3
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traefik
+  namespace: {{ .Values.namespace | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    io.kompose.service: traefik
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: chat-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: traefik
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: traefik
+        app.kubernetes.io/name: traefik
+        app.kubernetes.io/component: ingress
+    spec:
+      serviceAccountName: traefik
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: chat-app-traefik
+          image: {{ .Values.images.traefik }}
+          imagePullPolicy: {{ .Values.imagePullPolicy.infra }}
+          args:
+            - --providers.kubernetesingress=false
+            - --providers.kubernetesgateway=true
+            - --entrypoints.web.address=:80
+            - --entrypoints.websecure.address=:443
+            - --entrypoints.websecure.http.tls=true
+            - --entrypoints.web.http.redirections.entryPoint.to=websecure
+            - --entrypoints.web.http.redirections.entryPoint.scheme=https
+            - --api.dashboard=true
+            - --api.insecure=false
+            - --certificatesresolvers.letsencrypt.acme.email={{ .Values.env.ACME_EMAIL }}
+            - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+            - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+            - --log.level=INFO
+            - --accesslog=true
+            - --metrics.prometheus=true
+            - --metrics.prometheus.addentrypointslabels=true
+            - --metrics.prometheus.addserviceslabels=true
+            - --metrics.prometheus.addrouterslabels=true
+            - --ping=true
+          envFrom:
+            - configMapRef:
+                name: env
+          ports:
+            - name: web
+              containerPort: 80
+              protocol: TCP
+            - name: websecure
+              containerPort: 443
+              protocol: TCP
+            - name: traefik
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command: ["traefik", "healthcheck"]
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["NET_BIND_SERVICE"]
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 500m
+            requests:
+              memory: 256Mi
+              cpu: 100m
+          volumeMounts:
+            - name: traefik-acme
+              mountPath: /letsencrypt
+            - name: traefik-logs
+              mountPath: /var/log/traefik
+            - name: tmp
+              mountPath: /tmp
+      restartPolicy: Always
+      volumes:
+        - name: traefik-acme
+          persistentVolumeClaim:
+            claimName: traefik-acme
+        - name: traefik-logs
+          persistentVolumeClaim:
+            claimName: traefik-logs
+        - name: tmp
+          emptyDir: {}

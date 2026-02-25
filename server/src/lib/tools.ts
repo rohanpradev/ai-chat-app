@@ -1,6 +1,6 @@
-import env from "@/utils/env";
 import { type ToolSet, tool } from "ai";
 import { z } from "zod";
+import env from "@/utils/env";
 
 export const tools = {
 	deepSearch: tool({

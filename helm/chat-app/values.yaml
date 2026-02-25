@@ -1,0 +1,67 @@
+namespace: default
+
+images:
+  client: chat-app-client:latest
+  server: chat-app-server:latest
+  migrate: chat-app-migrate:latest
+  db: postgres:17.5-alpine
+  redis: redis:8.2-alpine
+  traefik: traefik:v3.6
+
+imagePullPolicy:
+  app: Never
+  infra: IfNotPresent
+
+server:
+  replicaCount: 1
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+
+client:
+  replicaCount: 1
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+
+env:
+  ACME_EMAIL: your_email@example.com
+  BASE_API_SLUG: api
+  CLIENT_URL: http://client
+  DB_HOST: db
+  DB_NAME: chatapp
+  DB_PORT: "5432"
+  DB_USER: username
+  DOMAIN: localhost
+  LOG_LEVEL: info
+  NODE_ENV: development
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_URL: redis://redis:6379
+  SERVER_PORT: "3000"
+  SERVER_HOST: server.default.svc.cluster.local
+  TRAEFIK_LOG_LEVEL: INFO
+  VITE_API_URL: /api
+  VITE_APP_NAME: Chat App
+  VITE_APP_VERSION: 1.0.0
+  VITE_DEV_MODE: "true"
+  CORS_ORIGINS: http://localhost:5173,http://localhost:30080
+
+secrets:
+  app:
+    POSTGRES_PASSWORD: password
+    DB_PASSWORD: password
+    JWT_SECRET: your-jwt-secret-here
+    DB_URL: postgres://username:password@db:5432/chatapp
+  azure:
+    AZURE_API_KEY: your-azure-api-key
+    AZURE_OPENAI_API_ENDPOINT: https://your-endpoint.openai.azure.com/
+    AZURE_DEPLOYMENT_NAME: gpt-4
+    AZURE_RESOURCE_NAME: your-resource-name
+    SERPER_API_KEY: your-serper-api-key
+
+features:
+  gatewayApi: true
+  traefikCRDs: true

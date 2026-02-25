@@ -1,7 +1,7 @@
 export interface Message {
 	id: string;
-	role: "user" | "assistant" | "system";
-	parts: string[];
+	role: string;
+	parts: unknown[];
 }
 
 export interface ConversationSummary {

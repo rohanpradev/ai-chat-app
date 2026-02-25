@@ -5,7 +5,7 @@ export const UserDataSchema = z
 		email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
 		id: z.uuid().describe("The unique identifier of the user").openapi({ format: "uuid", type: "string" }),
 		name: z.string().describe("The username of the user"),
-		profileImage: z.string().optional().describe("Base64 encoded profile image").openapi({ type: "string" }),
+		profileImage: z.string().nullable().optional().describe("Base64 encoded profile image").openapi({ type: "string" }),
 	})
 	.openapi({
 		description: "User information",

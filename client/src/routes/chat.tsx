@@ -33,8 +33,7 @@ export const Route = createFileRoute("/chat")({
   component: ChatLayout,
   pendingComponent: ChatLayoutPending,
   errorComponent: ChatLayoutError,
-  // Enable automatic prefetching for better performance
-  preload: "intent",
+  preload: true,
   preloadStaleTime: 10_000,
 });
 

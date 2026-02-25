@@ -3,26 +3,27 @@
 		"name": "Rohan Pradev"
 	},
 	"dependencies": {
-		"ai": "^6.0.14",
-		"zod": "^4.3.5"
+		"ai": "^6.0.99",
+		"zod": "^4.3.6"
 	},
 	"description": "A chat application built with Bun, React, and Zod.",
 	"devDependencies": {
-		"@biomejs/biome": "2.3.11",
-		"knip": "^5.80.0",
-		"rimraf": "^6.1.2"
+		"@biomejs/biome": "2.4.4",
+		"knip": "^5.85.0",
+		"rimraf": "^6.1.3"
 	},
 	"name": "chat-app",
 	"private": true,
 	"scripts": {
-		"app:health": "bash scripts/health-check.sh",
-		"app:start": "bash scripts/start-app.sh",
+		"app:health": "make health",
+		"app:start": "make start",
 		"check": "bunx --bun biome check --write --unsafe",
 		"clean": "rimraf node_modules bun.lock",
 		"format": "bunx --bun biome format --write",
-		"k8s:deploy": "kubectl apply -k k8s/overlays/development",
-		"k8s:status": "kubectl get all -n chat-app",
-		"k8s:validate": "kubectl apply --dry-run=client --validate=false -k k8s/base",
+		"k8s:deploy": "bash scripts/deploy-k8s.sh",
+		"k8s:prepare": "bash scripts/ensure-k8s-secrets.sh",
+		"k8s:status": "kubectl get all -n default",
+		"k8s:validate": "bun run k8s:prepare && helm lint helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml && helm template chat-app helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml > /dev/null",
 		"knip": "knip",
 		"knip:production": "knip --production",
 		"lint": "bunx --bun biome lint",

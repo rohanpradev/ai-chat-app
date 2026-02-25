@@ -5,12 +5,17 @@
  * @see https://langfuse.com/docs/integrations/vercel-ai-sdk
  */
 
-import env from "@/utils/env";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { LangfuseExporter } from "langfuse-vercel";
+import pino from "pino";
+import env from "@/utils/env";
 
 let sdk: NodeSDK | null = null;
+const logger = pino({
+	level: env.LOG_LEVEL,
+	name: "telemetry"
+});
 
 /**
  * Initialize OpenTelemetry with Langfuse exporter
@@ -26,11 +31,11 @@ export function initializeTelemetry(): NodeSDK | null {
 	const isLangfuseConfigured = env.LANGFUSE_SECRET_KEY && env.LANGFUSE_PUBLIC_KEY;
 
 	if (!isLangfuseConfigured) {
-		console.log("[Langfuse] Skipping initialization - credentials not configured");
+		logger.info("Skipping initialization: Langfuse credentials not configured");
 		return null;
 	}
 
-	console.log("[Langfuse] Initializing telemetry...");
+	logger.info("Initializing telemetry");
 
 	try {
 		const langfuseExporter = new LangfuseExporter({
@@ -46,20 +51,20 @@ export function initializeTelemetry(): NodeSDK | null {
 
 		sdk.start();
 
-		console.log("[Langfuse] Telemetry initialized successfully");
+		logger.info("Telemetry initialized successfully");
 
 		process.on("SIGTERM", async () => {
 			try {
 				await sdk?.shutdown();
-				console.log("[Langfuse] SDK shut down successfully");
+				logger.info("SDK shut down successfully");
 			} catch (error) {
-				console.error("[Langfuse] Error shutting down SDK:", error);
+				logger.error({ error }, "Error shutting down SDK");
 			}
 		});
 
 		return sdk;
 	} catch (error) {
-		console.error("[Langfuse] Failed to initialize telemetry:", error);
+		logger.error({ error }, "Failed to initialize telemetry");
 		return null;
 	}
 }

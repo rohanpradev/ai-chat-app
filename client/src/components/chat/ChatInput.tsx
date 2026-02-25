@@ -2,13 +2,18 @@ import { models } from "@chat-app/shared";
 import type { ChatStatus } from "ai";
 import { GlobeIcon } from "lucide-react";
 import {
+  Attachment,
+  AttachmentInfo,
+  AttachmentPreview,
+  AttachmentRemove,
+  Attachments,
+} from "@/components/ai-elements/attachments";
+import {
   PromptInput,
   PromptInputActionAddAttachments,
   PromptInputActionMenu,
   PromptInputActionMenuContent,
   PromptInputActionMenuTrigger,
-  PromptInputAttachment,
-  PromptInputAttachments,
   PromptInputBody,
   PromptInputButton,
   PromptInputFooter,
@@ -21,6 +26,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
+  usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { ToolSelector } from "@/components/chat/ToolSelector";
 
@@ -35,6 +41,34 @@ interface ChatInputProps {
   setSelectedTools: (tools: string[]) => void;
   onMessageSend: (message: PromptInputMessage) => void;
   status: ChatStatus;
+}
+
+function PromptInputAttachmentsDisplay() {
+  const attachments = usePromptInputAttachments();
+
+  if (attachments.files.length === 0) {
+    return null;
+  }
+
+  return (
+    <Attachments variant="inline">
+      {attachments.files.map((attachment) => (
+        <Attachment data={attachment} key={attachment.id} onRemove={() => attachments.remove(attachment.id)}>
+          <AttachmentPreview />
+          <AttachmentInfo />
+          <AttachmentRemove />
+        </Attachment>
+      ))}
+    </Attachments>
+  );
+}
+
+function PromptSubmit({ input, status }: { input: string; status: ChatStatus }) {
+  const attachments = usePromptInputAttachments();
+  const hasAttachments = attachments.files.length > 0;
+  const isStreaming = status === "streaming";
+
+  return <PromptInputSubmit disabled={!input && !hasAttachments && !isStreaming} status={status} />;
 }
 
 export function ChatInput({
@@ -75,10 +109,7 @@ export function ChatInput({
         // You could add a toast notification here
       }}
     >
-      <PromptInputAttachments>
-        {/* biome-ignore lint/suspicious/noExplicitAny: React 19 type issue with render prop */}
-        {((attachment: File & { id: string }) => <PromptInputAttachment data={attachment} />) as any}
-      </PromptInputAttachments>
+      <PromptInputAttachmentsDisplay />
       <PromptInputBody>
         <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
       </PromptInputBody>
@@ -108,7 +139,7 @@ export function ChatInput({
             </PromptInputSelectContent>
           </PromptInputSelect>
         </PromptInputTools>
-        <PromptInputSubmit disabled={!input && status !== "streaming"} status={status} />
+        <PromptSubmit input={input} status={status} />
       </PromptInputFooter>
     </PromptInput>
   );

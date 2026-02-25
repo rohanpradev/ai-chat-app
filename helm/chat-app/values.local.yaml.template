@@ -1,0 +1,14 @@
+# Copy to values.local.yaml and edit before deploying.
+
+secrets:
+  app:
+    POSTGRES_PASSWORD: change-me
+    DB_PASSWORD: change-me
+    JWT_SECRET: change-me-minimum-32-characters
+    DB_URL: postgres://username:change-me@db:5432/chatapp
+  azure:
+    AZURE_API_KEY: change-me
+    AZURE_OPENAI_API_ENDPOINT: https://your-endpoint.openai.azure.com/
+    AZURE_DEPLOYMENT_NAME: gpt-4
+    AZURE_RESOURCE_NAME: change-me
+    SERPER_API_KEY: change-me

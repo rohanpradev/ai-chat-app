@@ -5,17 +5,13 @@ import { useApi } from "@/composables/useApi";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 
 export const useUserLogout = () => {
-  const { callApi } = useApi();
+  const api = useApi();
   const { auth } = useRouteContext({ strict: false });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () =>
-      callApi("auth/logout", {
-        method: "POST",
-        credentials: "include",
-      }),
+    mutationFn: () => api.auth.logout(),
     onSuccess: () => {
       auth?.logout();
       queryClient.clear();

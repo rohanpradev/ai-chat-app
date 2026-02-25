@@ -1,9 +1,9 @@
+import { createIdGenerator, smoothStream, streamText, validateUIMessages } from "ai";
 import { getAvailableTools } from "@/lib/tools";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AIStreamRoute } from "@/routes/ai/ai.route";
 import { saveConversation } from "@/services/conversation.service";
 import { MODELS, transformPrompt } from "@/utils/index";
-import { createIdGenerator, smoothStream, streamText, validateUIMessages } from "ai";
 
 export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const requestBody = c.req.valid("json");
@@ -17,13 +17,13 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 		tools: selectedTools as any
 	});
 
-	const messages = transformPrompt(validatedMessages);
+	const messages = await transformPrompt(validatedMessages);
 	const userJwt = c.get("jwtPayload").sub;
 
 	const result = streamText({
 		experimental_telemetry: {
-			isEnabled: true,
 			functionId: "ai-stream-chat",
+			isEnabled: true,
 			metadata: {
 				userId: userJwt.id,
 				...(coalescedChatId && { sessionId: coalescedChatId }),

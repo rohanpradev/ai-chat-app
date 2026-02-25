@@ -1,15 +1,11 @@
-import type { GetProfileResponse } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { useApi } from "@/composables/useApi";
 import { PROFILE_QUERY_KEY } from "@/utils/query-key";
 
 export const getProfileQuery = () => {
-  const { callApi } = useApi();
+  const api = useApi();
   return queryOptions({
     queryKey: PROFILE_QUERY_KEY.userProfile,
-    queryFn: () =>
-      callApi<GetProfileResponse>("profile", {
-        method: "GET",
-      }),
+    queryFn: () => api.profile.get(),
   });
 };

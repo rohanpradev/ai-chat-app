@@ -1,57 +1,71 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUN_VERSION: 1.3.10
 
 jobs:
   lint-and-test:
     name: Lint & Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: latest
-          
+          bun-version: ${{ env.BUN_VERSION }}
+
       - name: Install dependencies
-        run: bun install
-        
+        run: bun install --frozen-lockfile
+
       - name: Lint code
-        run: bun check
-        
+        run: bun run lint
+
       - name: Type check
         run: |
-          cd client && bunx tsc --noEmit
-          cd ../server && bunx tsc --noEmit
-          
+          set -euo pipefail
+          (cd client && bunx tsc --noEmit)
+          (cd server && bunx tsc --noEmit)
+
       - name: Run tests
-        run: bun test
-        continue-on-error: true
+        run: |
+          set -euo pipefail
+          (cd client && bun test)
+          (cd server && bun run test)
 
   build-client:
     name: Build Client
     runs-on: ubuntu-latest
     needs: lint-and-test
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: latest
-          
+          bun-version: ${{ env.BUN_VERSION }}
+
       - name: Install dependencies
-        run: bun install
-        
+        run: bun install --frozen-lockfile
+
       - name: Build client
         run: cd client && bun run build
 
@@ -59,19 +73,19 @@ jobs:
     name: Build Server
     runs-on: ubuntu-latest
     needs: lint-and-test
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: latest
-          
+          bun-version: ${{ env.BUN_VERSION }}
+
       - name: Install dependencies
-        run: bun install
-        
+        run: bun install --frozen-lockfile
+
       - name: Build check (no explicit build for Bun)
         run: cd server && bunx tsc --noEmit
 
@@ -79,26 +93,69 @@ jobs:
     name: Docker Build & Test
     runs-on: ubuntu-latest
     needs: [build-client, build-server]
-    if: github.ref == 'refs/heads/main'
-    
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
-      - name: Build server image
+
+      - name: Detect DHI credentials
+        id: dhi
+        run: |
+          set -euo pipefail
+          if [ -n "${DOCKER_USERNAME:-}" ] && [ -n "${DOCKER_PASSWORD:-}" ]; then
+            echo "::add-mask::${DOCKER_USERNAME}"
+            echo "::add-mask::${DOCKER_PASSWORD}"
+            {
+              echo "enabled=true"
+              echo "username=${DOCKER_USERNAME}"
+              echo "password=${DOCKER_PASSWORD}"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to DHI registry
+        if: steps.dhi.outputs.enabled == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: dhi.io
+          username: ${{ steps.dhi.outputs.username }}
+          password: ${{ steps.dhi.outputs.password }}
+
+      - name: Build server image (DHI)
+        if: steps.dhi.outputs.enabled == 'true'
         run: docker build -t ai-chat-app-server:latest --target server-prod .
-        
-      - name: Build client image
+
+      - name: Build client image (DHI)
+        if: steps.dhi.outputs.enabled == 'true'
         run: docker build -t ai-chat-app-client:latest --target client-prod .
-        
-      - name: Build migrate image
+
+      - name: Build migrate image (DHI)
+        if: steps.dhi.outputs.enabled == 'true'
         run: docker build -t ai-chat-app-migrate:latest -f server/Dockerfile.migrate .
-        
+
+      - name: Build server image (fallback)
+        if: steps.dhi.outputs.enabled != 'true'
+        run: docker build -t ai-chat-app-server:latest --target server-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg BUN_RUNTIME_IMAGE=oven/bun:1-alpine .
+
+      - name: Build client image (fallback)
+        if: steps.dhi.outputs.enabled != 'true'
+        run: docker build -t ai-chat-app-client:latest --target client-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg NGINX_IMAGE=nginx:1.29-alpine .
+
+      - name: Build migrate image (fallback)
+        if: steps.dhi.outputs.enabled != 'true'
+        run: docker build -t ai-chat-app-migrate:latest -f server/Dockerfile.migrate --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine .
+
       - name: Test Docker Compose
         run: |
+          set -euo pipefail
           # Create minimal .env for testing
           cat > .env << EOF
           AZURE_API_KEY=test_key

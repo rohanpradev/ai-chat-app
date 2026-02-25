@@ -112,22 +112,14 @@ make local           # Local dev (fastest, with hot reload)
 make dev             # Alternative dev command
 make build           # Build Docker images
 make clean           # Clean up containers and volumes
-```
-make start           # Start all services
-make stop            # Stop all services
-make restart         # Restart all services
-make status          # Show service status
-make logs            # Show logs
-make clean           # Clean up containers and volumes
-make build           # Build all images
 make health          # Test application health
 
 # Kubernetes Deployment
 make kubernetes      # Complete Kubernetes setup and deployment
-make k8s-setup       # Create Kubernetes secrets from .env file
-make k8s-traefik     # Install Traefik v3.6 using Helm
+make k8s-setup       # Create helm/chat-app/values.local.yaml from template
+make k8s-traefik     # Install Gateway API CRDs (optional)
 make k8s-build       # Build and load images for Kubernetes
-make k8s-deploy      # Deploy to Kubernetes with Gateway API
+make k8s-deploy      # Deploy via Helm chart (helm/chat-app)
 make k8s-status      # Show Kubernetes deployment status and URLs
 make k8s-logs        # Show Kubernetes logs
 make k8s-cleanup     # Clean up Kubernetes resources

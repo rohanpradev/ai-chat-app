@@ -1,0 +1,202 @@
+{{- $gatewayAPIAvailable := .Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1" -}}
+{{- $middlewareCRDAvailable := .Capabilities.APIVersions.Has "traefik.io/v1alpha1/Middleware" -}}
+{{- $traefikSvcCRDAvailable := .Capabilities.APIVersions.Has "traefik.io/v1alpha1/TraefikService" -}}
+
+{{- if and .Values.features.gatewayApi $gatewayAPIAvailable }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: traefik-gateway
+  namespace: traefik
+  labels:
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/component: gateway
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: web
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: websecure
+      port: 443
+      protocol: HTTPS
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: local-selfsigned-tls
+            namespace: traefik
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: client
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: client
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - "app.docker.localhost"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      {{- if and .Values.features.traefikCRDs $middlewareCRDAvailable }}
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: security-headers
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: compress
+      {{- end }}
+      backendRefs:
+        - name: client
+          port: 80
+          weight: 1
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: server
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: server
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - "app.docker.localhost"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      {{- if and .Values.features.traefikCRDs $middlewareCRDAvailable }}
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: security-headers
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: api-cors
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: api-ratelimit
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: compress
+      {{- end }}
+      backendRefs:
+        {{- if and .Values.features.traefikCRDs $traefikSvcCRDAvailable }}
+        - group: traefik.io
+          kind: TraefikService
+          name: server-sticky
+        {{- else }}
+        - name: server
+          port: 3000
+        {{- end }}
+{{- end }}
+
+{{- if and .Values.features.traefikCRDs $middlewareCRDAvailable }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  headers:
+    frameDeny: true
+    sslRedirect: true
+    browserXssFilter: true
+    contentTypeNosniff: true
+    stsIncludeSubdomains: true
+    stsPreload: true
+    stsSeconds: 31536000
+    referrerPolicy: strict-origin-when-cross-origin
+    permissionsPolicy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: compress
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  compress: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-cors
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  headers:
+    accessControlAllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    accessControlAllowHeaders: ["*"]
+    accessControlAllowOriginList: ["https://app.docker.localhost"]
+    accessControlMaxAge: 86400
+    accessControlAllowCredentials: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-ratelimit
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  rateLimit:
+    average: 100
+    burst: 200
+    period: 1m
+{{- end }}
+
+{{- if and .Values.features.traefikCRDs $traefikSvcCRDAvailable }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: TraefikService
+metadata:
+  name: server-sticky
+  namespace: {{ .Values.namespace | quote }}
+  labels:
+    app.kubernetes.io/name: chat-app
+    app.kubernetes.io/component: server
+spec:
+  weighted:
+    services:
+      - name: server
+        port: 3000
+        weight: 1
+    sticky:
+      cookie:
+        name: server_sticky
+        secure: true
+        httpOnly: true
+        sameSite: lax
+{{- end }}

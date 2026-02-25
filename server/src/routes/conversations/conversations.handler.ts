@@ -45,15 +45,18 @@ export const getConversations: AppRouteHandler<GetConversationsRoute> = async (c
 		where: eq(chats.userId, userJwt.id)
 	});
 
-	return c.json({
-		data: conversations.map((conv) => ({
-			createdAt: conv.createdAt?.toISOString() || new Date().toISOString(),
-			id: conv.id,
-			title: conv.title,
-			updatedAt: conv.updatedAt?.toISOString() || null
-		})),
-		message: "Conversations retrieved successfully"
-	});
+	return c.json(
+		{
+			data: conversations.map((conv) => ({
+				createdAt: conv.createdAt?.toISOString() || new Date().toISOString(),
+				id: conv.id,
+				title: conv.title,
+				updatedAt: conv.updatedAt?.toISOString() || null
+			})),
+			message: "Conversations retrieved successfully"
+		},
+		HttpStatusCodes.OK
+	);
 };
 
 export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) => {
@@ -74,18 +77,34 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 		}
 	});
 
-	return c.json({
-		data: chat
-			? {
-					createdAt: chat.createdAt?.toISOString() || new Date().toISOString(),
-					id: chat.id,
-					messages: chat.messages || [],
-					title: chat.title,
-					updatedAt: chat.updatedAt?.toISOString() || null
-				}
-			: null,
-		message: "Conversation retrieved successfully"
-	});
+	if (!chat) {
+		return c.json(
+			{
+				message: "Conversation not found"
+			},
+			HttpStatusCodes.NOT_FOUND
+		);
+	}
+
+	const normalizedMessages = (chat.messages || []).map((message) => ({
+		id: message.id,
+		parts: (Array.isArray(message.parts) ? message.parts : []) as unknown[],
+		role: message.role
+	}));
+
+	return c.json(
+		{
+			data: {
+				createdAt: chat.createdAt?.toISOString() || new Date().toISOString(),
+				id: chat.id,
+				messages: normalizedMessages,
+				title: chat.title,
+				updatedAt: chat.updatedAt?.toISOString() || null
+			},
+			message: "Conversation retrieved successfully"
+		},
+		HttpStatusCodes.OK
+	);
 };
 
 export const updateConversation: AppRouteHandler<UpdateConversationRoute> = async (c) => {

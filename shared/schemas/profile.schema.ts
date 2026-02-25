@@ -11,15 +11,16 @@ export const BasicUserProfileDataSchema = z.object({
 	email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
 	id: z.uuid().describe("The unique identifier of the user").openapi({ format: "uuid", type: "string" }),
 	name: z.string().describe("The username of the user"),
+	profileImage: z.string().nullable().optional().describe("URL to the profile picture"),
 });
 
 export const UpdateProfileRequestSchema = z.object({
 	name: z.string().describe("The new name of the user"),
 	profileImage: z
-		.string()
+		.instanceof(File)
 		.optional()
-		.describe("Profile picture as base64 string")
-		.openapi({ format: "byte", type: "string" }),
+		.describe("Profile picture file")
+		.openapi({ format: "binary", type: "string" }),
 });
 
 export const GetProfileResponseSchema = z.object({
@@ -49,3 +50,5 @@ export const BadRequestResponseSchema = z
 		description: "Bad request response",
 		title: "BadRequestResponse",
 	});
+
+export type GetProfileResponse = z.infer<typeof GetProfileResponseSchema>;

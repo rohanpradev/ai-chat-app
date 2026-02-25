@@ -27,7 +27,7 @@ interface RegisterState {
 
 function RegisterForm() {
   const { mutateAsync } = useUserRegister();
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
@@ -74,7 +74,7 @@ function RegisterForm() {
         email: email.trim(),
         password,
         confirmPassword,
-        profileImage: profileImage || undefined,
+        profileImage,
       });
       toast.success("Account created successfully!");
       return { success: true };

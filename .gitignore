@@ -117,6 +117,7 @@ web_modules/
 # Kubernetes secrets (contains sensitive data)
 k8s/secrets.yaml
 k8s/*-secrets.yaml
+helm/chat-app/values.local.yaml
 
 # Keep template files
 !k8s/secrets.yaml.template

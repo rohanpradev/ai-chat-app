@@ -16,8 +16,8 @@ export const ConversationSummarySchema = z
 const MessageSchema = z
 	.object({
 		id: z.string(),
-		parts: z.array(z.string()),
-		role: z.enum(["user", "assistant", "system"]),
+		parts: z.array(z.unknown()),
+		role: z.string(),
 	})
 	.openapi({
 		description: "Chat message",
@@ -91,8 +91,6 @@ export const UpdateConversationResponseSchema = z
 
 export const ChatErrorResponseSchema = CommonErrorResponseSchema;
 export const ChatBadRequestResponseSchema = CommonBadRequestResponseSchema;
-export const ConversationErrorResponseSchema = ChatErrorResponseSchema;
-export const ConversationBadRequestResponseSchema = ChatBadRequestResponseSchema;
 
 export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
 export type ConversationDetail = z.infer<typeof ConversationDetailSchema>;

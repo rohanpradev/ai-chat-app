@@ -21,7 +21,11 @@ export function ToolCallDisplay({ toolCall, toolResult }: ToolCallDisplayProps) 
   if (!toolCall && !toolResult) return null;
 
   const isComplete = !!toolResult;
-  const hasError = toolResult?.result?.error;
+  const resultObject =
+    typeof toolResult?.result === "object" && toolResult.result !== null
+      ? (toolResult.result as Record<string, unknown>)
+      : undefined;
+  const hasError = !!resultObject && "error" in resultObject;
 
   return (
     <div className="border rounded-lg p-3 bg-muted/50 my-2">

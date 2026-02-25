@@ -89,7 +89,7 @@ server/*.test.*
 # Keep README for documentation
 !README.md
 
-# --- CI/CD & Kubernetes ---
+# --- CI/CD ---
 **/secrets.dev.yaml
 **/values.dev.yaml
 **/*.tgz

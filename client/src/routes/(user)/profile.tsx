@@ -29,9 +29,10 @@ export const Route = createFileRoute("/(user)/profile")({
 function ProfileComponent() {
   const { auth } = Route.useRouteContext();
   const profileData = auth.user;
+  const initialProfileImage = profileData?.profileImage ?? undefined;
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(profileData?.name || "");
-  const [profileImage, setProfileImage] = useState(profileData?.profileImage);
+  const [profileImage, setProfileImage] = useState<string | undefined>(initialProfileImage);
 
   const handleSave = () => {
     // TODO: Implement profile update API call
@@ -41,7 +42,7 @@ function ProfileComponent() {
 
   const handleCancel = () => {
     setName(profileData?.name || "");
-    setProfileImage(profileData?.profileImage);
+    setProfileImage(initialProfileImage);
     setIsEditing(false);
   };
 

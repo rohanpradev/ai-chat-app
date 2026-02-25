@@ -1,5 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import type { GetConversationResponse, MyUIMessage } from "@chat-app/shared";
+import type { MyUIMessage } from "@chat-app/shared";
 import { models } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
@@ -15,10 +15,10 @@ import { convertFilesToDataURLs } from "@/utils/fileUtils";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
 
 const getConversationQuery = (conversationId: string) => {
-  const { callApi } = useApi();
+  const api = useApi();
   return queryOptions({
     queryKey: CHAT_QUERY_KEY.conversation(conversationId),
-    queryFn: () => callApi<GetConversationResponse>(`conversations/${conversationId}`),
+    queryFn: () => api.conversations.get(conversationId),
     staleTime: 30 * 1000, // Consider data fresh for 30 seconds
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     refetchOnWindowFocus: true,
@@ -48,10 +48,15 @@ export const Route = createFileRoute("/chat/$conversationId")({
       type MessageRole = "user" | "assistant" | "system";
       interface StoredMessage {
         id: string;
-        role: MessageRole;
+        role: string;
         parts: unknown[];
         metadata?: Record<string, unknown>;
       }
+
+      const normalizeRole = (role: string): MessageRole => {
+        if (role === "assistant" || role === "system") return role;
+        return "user";
+      };
 
       const rawMessages = (conversation.messages || []).map((msg: StoredMessage) => {
         const uiParts = msg.parts.map((part) => {
@@ -63,7 +68,7 @@ export const Route = createFileRoute("/chat/$conversationId")({
 
         return {
           id: msg.id,
-          role: msg.role,
+          role: normalizeRole(msg.role),
           parts: uiParts,
           metadata: msg.metadata || {},
         };

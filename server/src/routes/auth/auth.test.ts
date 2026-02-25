@@ -28,7 +28,11 @@ mock.module("@/middlewares/auth-middleware", () => ({
 	authMiddleware: mock(async (c, next) => {
 		// Set JWT payload for cache key generation
 		c.set("jwtPayload", { sub: { id: "test-user" } });
-		c.set("user", { email: "test@test.com", id: "test-user", name: "Test User" });
+		c.set("user", {
+			email: "test@test.com",
+			id: "test-user",
+			name: "Test User"
+		});
 		await next();
 	})
 }));
@@ -37,7 +41,12 @@ mock.module("@/middlewares/auth-middleware", () => ({
 mock.module("@/middlewares/pino-logger", () => ({
 	pinoLogger: mock(() =>
 		mock(async (c, next) => {
-			c.set("logger", { debug: () => {}, error: () => {}, info: () => {}, warn: () => {} });
+			c.set("logger", {
+				debug: () => {},
+				error: () => {},
+				info: () => {},
+				warn: () => {}
+			});
 			await next();
 		})
 	)
@@ -78,7 +87,12 @@ describe("Auth Routes", () => {
 			const client = testClient(app);
 
 			const response = await client.auth.register.$post({
-				json: { confirmPassword: "password123", email: "invalid-email", name: "Test", password: "password123" }
+				json: {
+					confirmPassword: "password123",
+					email: "invalid-email",
+					name: "Test",
+					password: "password123"
+				}
 			});
 
 			expect([422, 401].includes(response.status)).toBe(true);
@@ -122,10 +136,12 @@ describe("Auth Routes", () => {
 	});
 
 	describe("GET /auth/me", () => {
-		it.skip("should handle me endpoint without timeout (Redis cache fixed but test env issue)", async () => {
-			// The /auth/me endpoint now works correctly with Redis caching
-			// Middleware order fixed: auth -> cache -> handler
-			// Test skipped due to Redis connection timeout in test environment
+		it("should return current user profile", async () => {
+			const app = createApp().route("/", router);
+			const client = testClient(app);
+
+			const response = await client.auth.me.$get();
+			expect([200, 401].includes(response.status)).toBe(true);
 		});
 	});
 });

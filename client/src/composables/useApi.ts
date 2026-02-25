@@ -1,57 +1,108 @@
+import type {
+  AuthResponse,
+  CreateConversationResponse,
+  GetConversationResponse,
+  GetConversationsResponse,
+  GetProfileResponse,
+  LoginResponse,
+  RegisterResponse,
+} from "@chat-app/shared";
+import { hc, type InferRequestType } from "hono/client";
+import type { ApiContract } from "@/lib/hono-contract";
+
 interface ApiErrorResponse {
+  details?: unknown;
   message: string;
   status?: number;
-  details?: unknown;
 }
 
-interface ApiResponse<T> {
-  data: T;
-  message: string;
+const apiClient = hc<ApiContract>("/api", {
+  init: {
+    credentials: "include",
+  },
+});
+
+async function parseResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    let errorData: ApiErrorResponse;
+    try {
+      const parsed = (await response.json()) as Partial<ApiErrorResponse>;
+      errorData = {
+        details: parsed.details,
+        message: parsed.message || getStatusMessage(response.status),
+        status: response.status,
+      };
+    } catch {
+      errorData = {
+        message: getStatusMessage(response.status),
+        status: response.status,
+      };
+    }
+
+    const error = new Error(errorData.message) as Error & { status: number };
+    error.status = response.status;
+    throw error;
+  }
+
+  return response.json() as Promise<T>;
 }
 
 export const useApi = () => {
-  // Overload for extractData = true (default)
-  function callApi<T extends ApiResponse<unknown>>(
-    endpoint: string,
-    options?: RequestInit,
-    extractData?: true,
-  ): Promise<T["data"]>;
-
-  // Overload for extractData = false
-  function callApi<T>(endpoint: string, options: RequestInit, extractData: false): Promise<T>;
-
-  // Implementation
-  async function callApi<_T>(endpoint: string, options: RequestInit = {}, extractData = true): Promise<unknown> {
-    const response = await fetch(`/api/${endpoint}`, {
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
+  return {
+    auth: {
+      login: async (
+        payload: InferRequestType<typeof apiClient.auth.login.$post>["json"],
+      ): Promise<LoginResponse["data"]> => {
+        const response = await apiClient.auth.login.$post({ json: payload });
+        const result = await parseResponse<LoginResponse>(response);
+        return result.data;
       },
-      ...options,
-    });
-
-    if (!response.ok) {
-      let errorData: ApiErrorResponse;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = {
-          message: getStatusMessage(response.status),
-          status: response.status,
-        };
-      }
-
-      const error = new Error(errorData.message) as Error & { status: number };
-      error.status = response.status;
-      throw error;
-    }
-
-    const result = await response.json();
-    return extractData ? result.data : result;
-  }
-
-  return { callApi };
+      logout: async (): Promise<void> => {
+        const response = await apiClient.auth.logout.$post();
+        await parseResponse<{ message: string }>(response);
+      },
+      me: async (): Promise<AuthResponse["data"]> => {
+        const response = await apiClient.auth.me.$get();
+        const result = await parseResponse<AuthResponse>(response);
+        return result.data;
+      },
+      register: async (
+        payload: InferRequestType<typeof apiClient.auth.register.$post>["json"],
+      ): Promise<RegisterResponse["data"]> => {
+        const response = await apiClient.auth.register.$post({ json: payload });
+        const result = await parseResponse<RegisterResponse>(response);
+        return result.data;
+      },
+    },
+    conversations: {
+      create: async (
+        payload: InferRequestType<typeof apiClient.conversations.$post>["json"],
+      ): Promise<CreateConversationResponse["data"]> => {
+        const response = await apiClient.conversations.$post({ json: payload });
+        const result = await parseResponse<CreateConversationResponse>(response);
+        return result.data;
+      },
+      get: async (id: string): Promise<GetConversationResponse["data"]> => {
+        const response = await apiClient.conversations[":id"].$get({
+          param: { id },
+        });
+        const result = await parseResponse<GetConversationResponse>(response);
+        return result.data;
+      },
+      list: async (): Promise<GetConversationsResponse["data"]> => {
+        const response = await apiClient.conversations.$get();
+        const result = await parseResponse<GetConversationsResponse>(response);
+        return result.data;
+      },
+    },
+    profile: {
+      get: async (): Promise<GetProfileResponse["data"]> => {
+        const response = await apiClient.profile.$get();
+        const result = await parseResponse<GetProfileResponse>(response);
+        return result.data;
+      },
+    },
+  };
 };
 
 function getStatusMessage(status: number): string {

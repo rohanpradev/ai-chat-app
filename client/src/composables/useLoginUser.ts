@@ -1,4 +1,4 @@
-import type { LoginResponse, LoginUserRequest } from "@chat-app/shared";
+import type { LoginUserRequest } from "@chat-app/shared";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -6,20 +6,12 @@ import { useApi } from "@/composables/useApi";
 import { Route as IndexRoute } from "@/routes/index";
 
 export const useUserLogin = (redirectTo?: string) => {
-  const { callApi } = useApi();
+  const api = useApi();
   const { auth } = useRouteContext({ strict: false });
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: (payload: LoginUserRequest) =>
-      callApi<LoginResponse>("auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        credentials: "include",
-      }),
+    mutationFn: (payload: LoginUserRequest) => api.auth.login(payload),
     onSuccess: (data) => {
       auth?.login({ data, message: "Login successful" });
       // Navigate to the intended destination or default to index

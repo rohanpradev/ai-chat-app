@@ -16,8 +16,12 @@ EOSQL
 
 if [ -n "$POSTGRES_MULTIPLE_DATABASES" ]; then
 	echo "Multiple database creation requested: $POSTGRES_MULTIPLE_DATABASES"
-	for db in $(echo $POSTGRES_MULTIPLE_DATABASES | tr ',' ' '); do
-		create_database $db
+	IFS=',' read -r -a db_array <<< "$POSTGRES_MULTIPLE_DATABASES"
+	for db in "${db_array[@]}"; do
+		db="$(echo "$db" | xargs)"
+		if [ -n "$db" ]; then
+			create_database "$db"
+		fi
 	done
 	echo "Multiple databases created"
 fi

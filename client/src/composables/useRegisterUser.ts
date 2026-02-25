@@ -1,4 +1,4 @@
-import type { RegisterResponse, RegisterUserRequest } from "@chat-app/shared";
+import type { RegisterUserRequest } from "@chat-app/shared";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -6,20 +6,12 @@ import { useApi } from "@/composables/useApi";
 import { Route as AppRoute } from "@/routes/index";
 
 export const useUserRegister = () => {
-  const { callApi } = useApi();
+  const api = useApi();
   const { auth } = useRouteContext({ strict: false });
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: (payload: RegisterUserRequest) =>
-      callApi<RegisterResponse>("auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        credentials: "include",
-      }),
+    mutationFn: (payload: RegisterUserRequest) => api.auth.register(payload),
     onSuccess: (data) => {
       auth?.login({ data, message: "Registration successful" });
       toast.success("Successfully registered user.");
