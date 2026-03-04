@@ -233,26 +233,12 @@ export const invalidateCache = {
 	}
 };
 
-export const cacheWithKey = (key: string, options: Omit<RedisCacheOptions, "key"> = {}) => {
-	return redisCache({ ...options, key });
-};
-
 export const userCache = (keyPattern: string, options: Omit<RedisCacheOptions, "key"> = {}) => {
 	return redisCache({
 		...options,
 		key: (c) => {
 			const userId = c.get("user")?.id || "anonymous";
 			return `user:${userId}:${keyPattern}`;
-		}
-	});
-};
-
-export const apiCache = (resource: string, options: Omit<RedisCacheOptions, "key"> = {}) => {
-	return redisCache({
-		...options,
-		key: (c) => {
-			const { pathname, search } = new URL(c.req.url);
-			return `api:${resource}:${c.req.method}:${pathname}${search}`;
 		}
 	});
 };

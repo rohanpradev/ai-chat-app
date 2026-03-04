@@ -46,6 +46,33 @@ mock.module("@/utils/index", () => ({
 				})
 			})
 	},
+	resolveModel: () =>
+		new MockLanguageModelV3({
+			doStream: async () => ({
+				stream: simulateReadableStream({
+					chunks: [
+						{ id: "text-1", type: "text-start" },
+						{ delta: "Hello", id: "text-1", type: "text-delta" },
+						{ delta: " from test", id: "text-1", type: "text-delta" },
+						{ id: "text-1", type: "text-end" },
+						{
+							finishReason: { raw: undefined, unified: "stop" },
+							logprobs: undefined,
+							type: "finish",
+							usage: {
+								inputTokens: {
+									cacheRead: undefined,
+									cacheWrite: undefined,
+									noCache: 2,
+									total: 2
+								},
+								outputTokens: { reasoning: undefined, text: 3, total: 3 }
+							}
+						}
+					]
+				})
+			})
+		}),
 	transformPrompt: async () => [{ content: "test", role: "user" }]
 }));
 

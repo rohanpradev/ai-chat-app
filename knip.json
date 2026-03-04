@@ -15,7 +15,7 @@
 	},
 	"workspaces": {
 		".": {
-			"ignoreBinaries": ["kubectl"],
+			"ignoreBinaries": ["kubectl", "make", "helm"],
 			"ignoreDependencies": ["@biomejs/biome"]
 		},
 		"client": {

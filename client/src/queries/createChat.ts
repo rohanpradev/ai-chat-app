@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/composables/useApi";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
 
@@ -18,17 +18,5 @@ export const useCreateChat = () => {
         });
       }
     },
-  });
-};
-
-export const createChatQuery = (title: string = "New Chat") => {
-  const api = useApi();
-  return queryOptions({
-    // Unique key per execution to avoid returning a stale created record when navigating repeatedly
-    queryKey: [...CHAT_QUERY_KEY.createChat, title, Date.now()],
-    queryFn: () => api.conversations.create({ title }),
-    // We don't want this to stick around
-    gcTime: 0,
-    staleTime: 0,
   });
 };

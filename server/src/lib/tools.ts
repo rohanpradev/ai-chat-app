@@ -71,7 +71,7 @@ export const tools = {
 	})
 } satisfies ToolSet;
 
-export type AvailableTools = Partial<typeof tools> & Record<string, (typeof tools)[keyof typeof tools]>;
+export type AvailableTools = ToolSet;
 
 export function getAvailableTools(toolNames?: string[]): AvailableTools | undefined {
 	if (!toolNames || toolNames.length === 0) {
@@ -83,5 +83,5 @@ export function getAvailableTools(toolNames?: string[]): AvailableTools | undefi
 			selectedTools[toolName] = tools[toolName as keyof typeof tools];
 		}
 		return selectedTools;
-	}, {} as AvailableTools);
+	}, {} as ToolSet);
 }

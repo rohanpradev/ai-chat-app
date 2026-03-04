@@ -1,4 +1,9 @@
-import { AIStreamResponseHeaders, ChatRequestSchema, CommonUnauthorizedResponseSchema } from "@chat-app/shared";
+import {
+	AIStreamResponseHeaders,
+	ChatRequestSchema,
+	CommonBadRequestResponseSchema,
+	CommonUnauthorizedResponseSchema
+} from "@chat-app/shared";
 import { createRoute } from "@hono/zod-openapi";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { jsonContent } from "stoker/openapi/helpers";
@@ -8,7 +13,7 @@ import { authMiddleware } from "@/middlewares/auth-middleware";
 const tags = ["AI"];
 
 export const aiStream = createRoute({
-	description: "AI text stream API",
+	description: "AI UI message stream API",
 	method: "post",
 	middleware: [authMiddleware],
 	path: "/ai/text-stream",
@@ -16,26 +21,27 @@ export const aiStream = createRoute({
 		body: jsonContent(ChatRequestSchema, "Schema for ai chat request with model and webSearch")
 	},
 	responses: {
+		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
 		[HttpStatusCodes.NO_CONTENT]: { description: "No information provided" },
 		[HttpStatusCodes.NOT_FOUND]: jsonContent(notFoundSchema, "AI not found"),
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(CommonUnauthorizedResponseSchema, "Unauthorized"),
 		[HttpStatusCodes.OK]: {
 			content: {
-				"text/plain": {
+				"text/event-stream": {
 					schema: {
-						description: "Server-Sent Events stream with data: prefixed lines containing JSON objects with text chunks",
+						description: "Server-Sent Events stream using Vercel AI SDK UI message stream protocol",
 						example:
-							'data: {"type":"text-delta","textDelta":"Hello"}\\n\\ndata: {"type":"text-delta","textDelta":" world"}\\n\\ndata: {"type":"finish","finishReason":"stop"}\\n\\n',
+							'data: {"type":"start","messageId":"msg_123"}\\n\\ndata: {"type":"text-start","id":"text-1"}\\n\\ndata: {"type":"text-delta","id":"text-1","delta":"Hello"}\\n\\ndata: {"type":"text-end","id":"text-1"}\\n\\ndata: {"type":"finish"}\\n\\ndata: [DONE]\\n\\n',
 						type: "string"
 					}
 				}
 			},
-			description: "A stream of text chunks",
+			description: "A stream of UI message events",
 			headers: AIStreamResponseHeaders
 		}
 	},
 	security: [{ CookieAuth: [] }],
-	summary: "This endpoint streams plain text data based on a given prompt.",
+	summary: "Streams AI responses as UI message events.",
 	tags
 });
 

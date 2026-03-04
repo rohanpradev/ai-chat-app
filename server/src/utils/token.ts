@@ -4,7 +4,7 @@ import { sign } from "hono/jwt";
 import type { JWTPayload } from "hono/utils/jwt/types";
 import env from "@/utils/env";
 
-export const TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
+const TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <Allow auth to be static>
 export class Auth {
@@ -26,7 +26,9 @@ export class Auth {
 			maxAge: TOKEN_EXPIRY_SECONDS,
 			sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
 			secure: env.NODE_ENV === "production",
-			...(env.NODE_ENV === "production" && { domain: new URL(env.CLIENT_URL).hostname })
+			...(env.NODE_ENV === "production" && {
+				domain: new URL(env.CLIENT_URL).hostname
+			})
 		});
 	}
 }
