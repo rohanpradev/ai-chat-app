@@ -49,13 +49,10 @@ FROM ${NGINX_IMAGE} AS client-prod
 USER 0
 WORKDIR /app
 
-# Clean up default nginx files
-RUN rm -rf /usr/share/nginx/html/* && \
-    rm -f /etc/nginx/conf.d/default.conf
-
-# Copy built assets and config
-COPY --from=client-build --chown=65532:65532 /app/client/dist /usr/share/nginx/html
-COPY --from=client-build --chown=65532:65532 /app/client/nginx.conf /etc/nginx/templates/default.conf.template
+# Shell-less nginx images (e.g. distroless) cannot execute RUN instructions.
+# Copy build output directly instead of cleaning defaults via /bin/sh.
+COPY --from=client-build --chown=65532:65532 --chmod=0555 /app/client/dist/ /app/static/
+COPY --from=client-build --chown=65532:65532 --chmod=0444 /app/client/nginx.conf /etc/nginx/templates/default.conf.template
 
 USER 65532
 EXPOSE 80
