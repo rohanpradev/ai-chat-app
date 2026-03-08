@@ -46,7 +46,7 @@ RUN bun run build
 
 # Stage 4: Client production
 FROM ${NGINX_IMAGE} AS client-prod
-USER root
+USER 0
 WORKDIR /app
 
 # Clean up default nginx files

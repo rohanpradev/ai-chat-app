@@ -7,13 +7,13 @@ import type { AppMiddleware } from "@/lib/types";
 import env from "@/utils/env";
 
 export function pinoLogger(): AppMiddleware {
-  return asAppMiddleware(
-    logger({
-      http: { reqId: () => Bun.randomUUIDv7() },
-      pino: pino(
-        { level: env.LOG_LEVEL, redact: ["password", "email", "token"] },
-        env.NODE_ENV === "production" ? undefined : pretty(),
-      ),
-    }),
-  );
+	return asAppMiddleware(
+		logger({
+			http: { reqId: () => Bun.randomUUIDv7() },
+			pino: pino(
+				{ level: env.LOG_LEVEL, redact: ["password", "email", "token"] },
+				env.NODE_ENV === "production" ? undefined : pretty()
+			)
+		})
+	);
 }
