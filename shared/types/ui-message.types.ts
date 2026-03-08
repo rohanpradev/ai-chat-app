@@ -1,4 +1,4 @@
-import { type InferUITools, type ToolSet, tool, type UIMessage } from "ai";
+import { type InferUITools, safeValidateUIMessages, type ToolSet, tool, type UIMessage, validateUIMessages } from "ai";
 import { z } from "zod";
 
 // Tool definitions
@@ -22,13 +22,29 @@ export const tools = {
 } satisfies ToolSet;
 
 // Metadata schema
-const metadataSchema = z.object({
-	conversationId: z.string().optional(),
-	createdAt: z.iso.datetime().optional(),
-	totalTokens: z.number().optional(),
-});
+const metadataSchema = z
+	.object({
+		conversationId: z.string().optional(),
+		createdAt: z.iso.datetime().optional(),
+		totalTokens: z.number().optional(),
+	})
+	.optional();
 
 export type MyMetadata = z.infer<typeof metadataSchema>;
 export type MyTools = InferUITools<typeof tools>;
 
 export type MyUIMessage = UIMessage<MyMetadata, never, MyTools>;
+
+export const validateMyUIMessages = (messages: unknown) =>
+	validateUIMessages<MyUIMessage>({
+		messages,
+		metadataSchema,
+		tools,
+	});
+
+export const safeValidateMyUIMessages = (messages: unknown) =>
+	safeValidateUIMessages<MyUIMessage>({
+		messages,
+		metadataSchema,
+		tools,
+	});

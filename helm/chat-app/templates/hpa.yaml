@@ -2,17 +2,15 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: server-hpa
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}
   labels:
-    app.kubernetes.io/name: chat-app
+    {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: server
-    app.kubernetes.io/part-of: chat-app
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: server
+    name: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}
   minReplicas: {{ .Values.server.hpa.minReplicas }}
   maxReplicas: {{ .Values.server.hpa.maxReplicas }}
   metrics:
@@ -21,13 +19,13 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 70
+          averageUtilization: {{ .Values.server.hpa.cpuUtilization }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 80
+          averageUtilization: {{ .Values.server.hpa.memoryUtilization }}
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 60
@@ -47,17 +45,15 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: client-hpa
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.componentName" (dict "root" . "component" "client") }}
   labels:
-    app.kubernetes.io/name: chat-app
+    {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: client
-    app.kubernetes.io/part-of: chat-app
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: client
+    name: {{ include "chat-app.componentName" (dict "root" . "component" "client") }}
   minReplicas: {{ .Values.client.hpa.minReplicas }}
   maxReplicas: {{ .Values.client.hpa.maxReplicas }}
   metrics:
@@ -66,13 +62,13 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 70
+          averageUtilization: {{ .Values.client.hpa.cpuUtilization }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 80
+          averageUtilization: {{ .Values.client.hpa.memoryUtilization }}
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 60

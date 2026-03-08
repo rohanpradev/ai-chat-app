@@ -1,18 +1,17 @@
-{{- $gatewayAPIAvailable := .Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1" -}}
+{{- $gatewayEnabled := and .Values.exposure.gateway.enabled (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") -}}
 {{- $middlewareCRDAvailable := .Capabilities.APIVersions.Has "traefik.io/v1alpha1/Middleware" -}}
-{{- $traefikSvcCRDAvailable := .Capabilities.APIVersions.Has "traefik.io/v1alpha1/TraefikService" -}}
-
-{{- if and .Values.features.gatewayApi $gatewayAPIAvailable }}
+{{- if $gatewayEnabled }}
+{{- if .Values.exposure.gateway.create }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: traefik-gateway
-  namespace: traefik
+  name: {{ .Values.exposure.gateway.name }}
+  namespace: {{ .Values.exposure.gateway.namespace }}
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/component: gateway
 spec:
-  gatewayClassName: traefik
+  gatewayClassName: {{ .Values.exposure.gateway.className }}
   listeners:
     - name: web
       port: 80
@@ -26,112 +25,110 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+      {{- if .Values.exposure.gateway.tls.enabled }}
       tls:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: local-selfsigned-tls
-            namespace: traefik
+            name: {{ .Values.exposure.gateway.tls.secretName }}
+            namespace: {{ .Values.exposure.gateway.namespace }}
+      {{- end }}
 ---
+{{- end }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: client
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.componentName" (dict "root" . "component" "client") }}
   labels:
-    app.kubernetes.io/name: chat-app
+    {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: client
 spec:
   parentRefs:
-    - name: traefik-gateway
-      namespace: traefik
+    - name: {{ .Values.exposure.gateway.name }}
+      namespace: {{ .Values.exposure.gateway.namespace }}
       sectionName: websecure
   hostnames:
-    - "app.docker.localhost"
+    {{- range .Values.exposure.gateway.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
   rules:
     - matches:
         - path:
             type: PathPrefix
             value: /
-      {{- if and .Values.features.traefikCRDs $middlewareCRDAvailable }}
+      {{- if and .Values.exposure.gateway.createMiddlewares $middlewareCRDAvailable }}
       filters:
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
             kind: Middleware
-            name: security-headers
+            name: {{ include "chat-app.fullname" . }}-security-headers
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
             kind: Middleware
-            name: compress
+            name: {{ include "chat-app.fullname" . }}-compress
       {{- end }}
       backendRefs:
-        - name: client
-          port: 80
-          weight: 1
+        - name: {{ include "chat-app.componentName" (dict "root" . "component" "client") }}
+          port: {{ .Values.client.service.port }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: server
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}
   labels:
-    app.kubernetes.io/name: chat-app
+    {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: server
 spec:
   parentRefs:
-    - name: traefik-gateway
-      namespace: traefik
+    - name: {{ .Values.exposure.gateway.name }}
+      namespace: {{ .Values.exposure.gateway.namespace }}
       sectionName: websecure
   hostnames:
-    - "app.docker.localhost"
+    {{- range .Values.exposure.gateway.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
   rules:
     - matches:
         - path:
             type: PathPrefix
             value: /api
-      {{- if and .Values.features.traefikCRDs $middlewareCRDAvailable }}
+      {{- if and .Values.exposure.gateway.createMiddlewares $middlewareCRDAvailable }}
       filters:
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
             kind: Middleware
-            name: security-headers
+            name: {{ include "chat-app.fullname" . }}-security-headers
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
             kind: Middleware
-            name: api-cors
+            name: {{ include "chat-app.fullname" . }}-api-cors
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
             kind: Middleware
-            name: api-ratelimit
+            name: {{ include "chat-app.fullname" . }}-api-ratelimit
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
             kind: Middleware
-            name: compress
+            name: {{ include "chat-app.fullname" . }}-compress
       {{- end }}
       backendRefs:
-        {{- if and .Values.features.traefikCRDs $traefikSvcCRDAvailable }}
-        - group: traefik.io
-          kind: TraefikService
-          name: server-sticky
-        {{- else }}
-        - name: server
-          port: 3000
-        {{- end }}
+        - name: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}
+          port: {{ .Values.server.service.port }}
 {{- end }}
-
-{{- if and .Values.features.traefikCRDs $middlewareCRDAvailable }}
+{{- if and $gatewayEnabled .Values.exposure.gateway.createMiddlewares $middlewareCRDAvailable }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: security-headers
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.fullname" . }}-security-headers
+  labels:
+    {{- include "chat-app.labels" . | nindent 4 }}
 spec:
   headers:
     frameDeny: true
@@ -147,56 +144,38 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: compress
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.fullname" . }}-compress
+  labels:
+    {{- include "chat-app.labels" . | nindent 4 }}
 spec:
   compress: {}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: api-cors
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.fullname" . }}-api-cors
+  labels:
+    {{- include "chat-app.labels" . | nindent 4 }}
 spec:
   headers:
     accessControlAllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     accessControlAllowHeaders: ["*"]
-    accessControlAllowOriginList: ["https://app.docker.localhost"]
-    accessControlMaxAge: 86400
+    accessControlAllowOriginList:
+      {{- range .Values.exposure.gateway.cors.allowOrigins }}
+      - {{ . | quote }}
+      {{- end }}
     accessControlAllowCredentials: true
+    accessControlMaxAge: 86400
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: api-ratelimit
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.fullname" . }}-api-ratelimit
+  labels:
+    {{- include "chat-app.labels" . | nindent 4 }}
 spec:
   rateLimit:
-    average: 100
-    burst: 200
-    period: 1m
-{{- end }}
-
-{{- if and .Values.features.traefikCRDs $traefikSvcCRDAvailable }}
----
-apiVersion: traefik.io/v1alpha1
-kind: TraefikService
-metadata:
-  name: server-sticky
-  namespace: {{ .Values.namespace | quote }}
-  labels:
-    app.kubernetes.io/name: chat-app
-    app.kubernetes.io/component: server
-spec:
-  weighted:
-    services:
-      - name: server
-        port: 3000
-        weight: 1
-    sticky:
-      cookie:
-        name: server_sticky
-        secure: true
-        httpOnly: true
-        sameSite: lax
+    average: {{ .Values.exposure.gateway.rateLimit.average }}
+    burst: {{ .Values.exposure.gateway.rateLimit.burst }}
+    period: {{ .Values.exposure.gateway.rateLimit.period }}
 {{- end }}

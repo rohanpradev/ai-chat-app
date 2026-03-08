@@ -1,7 +1,18 @@
 # Chat App - Production Docker Compose
 # Modern chat application with Bun, Hono, React, and AI capabilities
 
-.PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-build k8s-deploy k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable _show-urls langfuse-start langfuse-stop langfuse-logs
+K8S_NAMESPACE ?= default
+K8S_RELEASE ?= chat-app
+K8S_SERVER_IMAGE ?= chat-app-server:latest
+K8S_CLIENT_IMAGE ?= chat-app-client:latest
+K8S_MIGRATE_IMAGE ?= chat-app-migrate:latest
+K8S_MIGRATE_JOB ?= $(K8S_RELEASE)-migration
+K8S_CLIENT_URL ?= http://localhost:30080
+K8S_API_URL ?= http://localhost:30001
+K8S_API_HEALTH_URL ?= $(K8S_API_URL)/health
+K8S_BUILD_ARGS ?=
+
+.PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls langfuse-start langfuse-stop langfuse-logs
 
 # Default target
 help: ## Show this help message
@@ -16,9 +27,9 @@ setup: ## Initial setup - Copy .env.example to .env and guide user
 		echo "✅ Created .env file from .env.example"; \
 		echo ""; \
 		echo "📝 Required: Update these 3 values in .env:"; \
-		echo "   1. AZURE_API_KEY         - Get from Azure Portal"; \
-		echo "   2. AZURE_RESOURCE_NAME   - Your Azure resource name"; \
-		echo "   3. JWT_SECRET            - Generate a random 32+ char string"; \
+		echo "   1. OPENAI_API_KEY        - Get from platform.openai.com"; \
+		echo "   2. JWT_SECRET            - Generate a random 32+ char string"; \
+		echo "   3. DB_PASSWORD           - Change from the default for non-local use"; \
 		echo ""; \
 		echo "💡 Optional: For Langfuse AI observability:"; \
 		echo "   - Start with 'make start' to run self-hosted Langfuse"; \
@@ -42,9 +53,9 @@ validate: ## Validate .env configuration
 		exit 1; \
 	fi
 	@echo "Checking required variables..."
-	@grep -q "AZURE_API_KEY=.*[^_here]" .env || (echo "❌ AZURE_API_KEY not set" && exit 1)
-	@grep -q "AZURE_RESOURCE_NAME=.*[^_here]" .env || (echo "❌ AZURE_RESOURCE_NAME not set" && exit 1)
+	@grep -q "OPENAI_API_KEY=.*[^_here]" .env || (echo "❌ OPENAI_API_KEY not set" && exit 1)
 	@grep -q "JWT_SECRET=.*[^_here]" .env || (echo "❌ JWT_SECRET not set" && exit 1)
+	@grep -q "DB_PASSWORD=.*[^_here]" .env || (echo "❌ DB_PASSWORD not set" && exit 1)
 	@echo "✅ All required variables are set!"
 	@echo "💡 Optional: Check LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY for AI observability"
 
@@ -128,7 +139,7 @@ docker: start ## Alias for Docker Compose start
 docker-stop: stop ## Stop Docker Compose services
 
 # Kubernetes Commands
-kubernetes: k8s-setup k8s-build k8s-deploy k8s-status ## Complete Kubernetes setup and deployment
+kubernetes: k8s-setup k8s-build k8s-deploy k8s-migrate k8s-test k8s-status ## Complete Kubernetes setup and deployment
 kubernetes-stop: k8s-cleanup k8s-stop ## Stop and clean up Kubernetes
 
 k8s-setup: ## Create Helm local values override from template
@@ -141,60 +152,75 @@ k8s-traefik: ## Install optional Gateway API CRDs (chart auto-skips CRD resource
 
 k8s-build: ## Build and load images for Kubernetes
 	@echo "Building images for Kubernetes..."
-	@docker build -t chat-app-server:latest --target server-prod .
-	@docker build -t chat-app-client:latest --target client-prod .
-	@docker build -t chat-app-migrate:latest -f server/Dockerfile.migrate .
-	@if command -v minikube >/dev/null 2>&1; then \
-		minikube image load chat-app-server:latest; \
-		minikube image load chat-app-client:latest; \
-		minikube image load chat-app-migrate:latest; \
+	@docker build $(K8S_BUILD_ARGS) -t $(K8S_SERVER_IMAGE) --target server-prod .
+	@docker build $(K8S_BUILD_ARGS) -t $(K8S_CLIENT_IMAGE) --target client-prod .
+	@docker build $(K8S_BUILD_ARGS) -t $(K8S_MIGRATE_IMAGE) -f server/Dockerfile.migrate .
+	@if command -v minikube >/dev/null 2>&1 && [ "$$(kubectl config current-context 2>/dev/null || true)" = "minikube" ]; then \
+		minikube image load $(K8S_SERVER_IMAGE); \
+		minikube image load $(K8S_CLIENT_IMAGE); \
+		minikube image load $(K8S_MIGRATE_IMAGE); \
 	else \
-		echo "Minikube not found. Skipping image load."; \
+		echo "Skipping explicit image load; current cluster is expected to see local images directly."; \
 	fi
 
 k8s-deploy: ## Deploy to Kubernetes with Helm chart
 	@echo "Deploying with Helm..."
-	@bash scripts/deploy-k8s.sh
+	@NAMESPACE=$(K8S_NAMESPACE) RELEASE_NAME=$(K8S_RELEASE) bash scripts/deploy-k8s.sh
+
+k8s-migrate: ## Run database migrations against the deployed Kubernetes database
+	@echo "Running Kubernetes database migration..."
+	@NAMESPACE=$(K8S_NAMESPACE) RELEASE_NAME=$(K8S_RELEASE) JOB_NAME=$(K8S_MIGRATE_JOB) MIGRATE_IMAGE=$(K8S_MIGRATE_IMAGE) bash scripts/run-k8s-migration.sh
+
+k8s-test: ## Run a basic Kubernetes smoke test against the deployed app
+	@echo "Running Kubernetes smoke test..."
+	@kubectl rollout status deployment/$(K8S_RELEASE)-server -n $(K8S_NAMESPACE) --timeout=300s
+	@kubectl rollout status deployment/$(K8S_RELEASE)-client -n $(K8S_NAMESPACE) --timeout=300s
+	@if curl -fsS $(K8S_API_HEALTH_URL) >/dev/null 2>&1; then \
+		echo "✅ API health check passed via NodePort"; \
+	else \
+		echo "⚠️  NodePort health check did not succeed from localhost"; \
+		echo "   Check the URLs from 'make k8s-status' for your current cluster runtime."; \
+	fi
 
 k8s-status: ## Show Kubernetes deployment status and URLs
 	@echo "Kubernetes Status:"
 	@echo "=================="
-	@kubectl get pods,svc,hpa,pdb,job -n default
+	@kubectl get deploy,pods,svc,hpa,pdb,pvc -n $(K8S_NAMESPACE) -l app.kubernetes.io/instance=$(K8S_RELEASE)
+	@echo ""
+	@echo "Routes and Policies:"
+	@kubectl get httproute,networkpolicy -n $(K8S_NAMESPACE) 2>/dev/null || true
 	@echo ""
 	@echo "Helm Releases:"
-	@helm list -n default
+	@helm list -n $(K8S_NAMESPACE)
 	@echo ""
-	@echo "Application URLs:"
-	@echo "================"
-	@echo "Client NodePort: http://localhost:30080"
-	@echo "Server NodePort: http://localhost:30001"
+	@make --no-print-directory _show-k8s-urls
 
 k8s-logs: ## Show Kubernetes logs
 	@echo "📋 Kubernetes Logs:"
-	@kubectl logs -l app.kubernetes.io/name=chat-app --tail=50 -n default
+	@kubectl logs -l app.kubernetes.io/instance=$(K8S_RELEASE) --tail=50 -n $(K8S_NAMESPACE) --all-containers=true
 
 k8s-scale-status: ## Show horizontal scaling status
 	@echo "📊 Horizontal Pod Autoscaler Status:"
 	@echo "===================================="
-	@kubectl get hpa -n default
+	@kubectl get hpa -n $(K8S_NAMESPACE)
 	@echo ""
 	@echo "📋 Pod Status:"
-	@kubectl get pods -l app.kubernetes.io/name=chat-app -n default
+	@kubectl get pods -l app.kubernetes.io/instance=$(K8S_RELEASE) -n $(K8S_NAMESPACE)
 	@echo ""
 	@echo "🛡️  Pod Disruption Budgets:"
-	@kubectl get pdb -n default
+	@kubectl get pdb -n $(K8S_NAMESPACE)
 
 k8s-scale-disable: ## Disable horizontal scaling (set to 1 replica)
 	@echo "🔒 Disabling horizontal scaling..."
-	@helm upgrade --install chat-app helm/chat-app -n default --create-namespace -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml --set server.hpa.enabled=false --set client.hpa.enabled=false --set server.replicaCount=1 --set client.replicaCount=1
+	@helm upgrade --install $(K8S_RELEASE) helm/chat-app -n $(K8S_NAMESPACE) --create-namespace --wait -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml --set server.hpa.enabled=false --set client.hpa.enabled=false --set server.replicaCount=1 --set client.replicaCount=1
 
 k8s-scale-enable: ## Enable horizontal scaling
 	@echo "🚀 Enabling horizontal scaling..."
-	@helm upgrade --install chat-app helm/chat-app -n default --create-namespace -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml --set server.hpa.enabled=true --set client.hpa.enabled=true
+	@helm upgrade --install $(K8S_RELEASE) helm/chat-app -n $(K8S_NAMESPACE) --create-namespace --wait -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml --set server.hpa.enabled=true --set client.hpa.enabled=true
 
 k8s-cleanup: ## Clean up Kubernetes resources managed by chart
 	@echo "🧹 Cleaning up Kubernetes resources..."
-	@helm uninstall chat-app -n default --ignore-not-found
+	@helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found
 	@echo "Kubernetes chart resources cleaned up"
 
 k8s-stop: ## Stop Minikube
@@ -204,6 +230,24 @@ k8s-stop: ## Stop Minikube
 	else \
 		echo "Minikube not found. Nothing to stop."; \
 	fi
+
+_show-k8s-urls:
+	@echo "Application URLs:"
+	@echo "================"
+	@CONTEXT="$$(kubectl config current-context 2>/dev/null || echo unknown)"; \
+	echo "Kubernetes context: $$CONTEXT"; \
+	echo "Client NodePort:     $(K8S_CLIENT_URL)"; \
+	echo "API NodePort:        $(K8S_API_URL)"; \
+	echo "API Health:          $(K8S_API_HEALTH_URL)"; \
+	if [ "$$CONTEXT" = "minikube" ] && command -v minikube >/dev/null 2>&1; then \
+		echo ""; \
+		echo "Resolved Minikube URLs:"; \
+		echo "Client Service:      $$(minikube service $(K8S_RELEASE)-client -n $(K8S_NAMESPACE) --url 2>/dev/null | head -n 1)"; \
+		echo "Server Service:      $$(minikube service $(K8S_RELEASE)-server -n $(K8S_NAMESPACE) --url 2>/dev/null | head -n 1)"; \
+	fi; \
+	echo ""; \
+	echo "Optional Gateway URL (if Traefik Gateway is installed and routed):"; \
+	echo "App Hostname:        https://app.docker.localhost"
 
 langfuse-start: ## Start Langfuse observability stack
 	@if [ ! -f compose.langfuse.yml ]; then \

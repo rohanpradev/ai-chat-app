@@ -14,10 +14,7 @@ interface ChatMessagesProps {
   onClearError?: () => void;
 }
 
-const getPartBaseKey = (
-  messageId: string,
-  part: MyUIMessage["parts"][number],
-) => {
+const getPartBaseKey = (messageId: string, part: MyUIMessage["parts"][number]) => {
   const baseType = part.type;
 
   if ("toolCallId" in part && typeof part.toolCallId === "string") {
@@ -39,13 +36,7 @@ const getPartBaseKey = (
   return `${messageId}:${baseType}:${JSON.stringify(part)}`;
 };
 
-export function ChatMessages({
-  messages,
-  status,
-  error,
-  onRetry,
-  onClearError,
-}: ChatMessagesProps) {
+export function ChatMessages({ messages, status, error, onRetry, onClearError }: ChatMessagesProps) {
   return (
     <>
       {messages.length === 0 && (
@@ -62,16 +53,8 @@ export function ChatMessages({
                 const baseKey = getPartBaseKey(message.id, part);
                 const seenCount = perMessageKeyCount.get(baseKey) ?? 0;
                 perMessageKeyCount.set(baseKey, seenCount + 1);
-                const key =
-                  seenCount === 0 ? baseKey : `${baseKey}:${seenCount}`;
-                return (
-                  <MessagePart
-                    key={key}
-                    part={part}
-                    messageId={message.id}
-                    index={i}
-                  />
-                );
+                const key = seenCount === 0 ? baseKey : `${baseKey}:${seenCount}`;
+                return <MessagePart key={key} part={part} messageId={message.id} index={i} />;
               });
             })()}
           </MessageContent>
@@ -89,11 +72,7 @@ export function ChatMessages({
       )}
       {error && onRetry && onClearError && (
         <div className="px-4">
-          <ErrorDisplay
-            error={error}
-            onRetry={onRetry}
-            onClear={onClearError}
-          />
+          <ErrorDisplay error={error} onRetry={onRetry} onClear={onClearError} />
         </div>
       )}
     </>

@@ -49,6 +49,63 @@ jobs:
           (cd client && bun test)
           (cd server && bun run test)
 
+  validate-kubernetes:
+    name: Validate Helm Chart
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Create CI .env
+        run: |
+          cat > .env <<'EOF'
+          SERVER_PORT=3000
+          NODE_ENV=production
+          LOG_LEVEL=info
+          DB_PASSWORD=postgres
+          DB_USER=postgres
+          DB_HOST=db
+          DB_PORT=5432
+          DB_NAME=chatapp
+          DB_URL=postgres://postgres:postgres@db:5432/chatapp
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_AUTH=redis_password
+          REDIS_URL=redis://redis:6379
+          OPENAI_API_KEY=test-openai-key
+          SERPER_API_KEY=
+          LANGFUSE_SECRET_KEY=
+          LANGFUSE_PUBLIC_KEY=
+          LANGFUSE_BASEURL=
+          JWT_SECRET=test_secret_min_32_characters_long
+          CLIENT_URL=http://localhost
+          BASE_API_SLUG=api
+          VITE_API_URL=/api
+          VITE_DEV_MODE=false
+          VITE_APP_NAME=Chat App
+          VITE_APP_VERSION=1.0.0
+          DOMAIN=localhost
+          ACME_EMAIL=admin@example.com
+          TRAEFIK_LOG_LEVEL=INFO
+          TRAEFIK_AUTH=admin:$$apr1$$8xHIH3J5$$yQ7eGEEXf1bQCvGp3q7BL1
+          EOF
+
+      - name: Validate Kubernetes chart
+        run: bun run k8s:validate
+
   build-client:
     name: Build Client
     runs-on: ubuntu-latest
@@ -92,8 +149,7 @@ jobs:
   docker:
     name: Docker Build & Test
     runs-on: ubuntu-latest
-    needs: [build-client, build-server]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-client, build-server, validate-kubernetes]
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -104,6 +160,40 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Create CI .env
+        run: |
+          cat > .env <<'EOF'
+          SERVER_PORT=3000
+          NODE_ENV=production
+          LOG_LEVEL=info
+          DB_PASSWORD=postgres
+          DB_USER=postgres
+          DB_HOST=db
+          DB_PORT=5432
+          DB_NAME=chatapp
+          DB_URL=postgres://postgres:postgres@db:5432/chatapp
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_AUTH=redis_password
+          REDIS_URL=redis://redis:6379
+          OPENAI_API_KEY=test-openai-key
+          SERPER_API_KEY=
+          LANGFUSE_SECRET_KEY=
+          LANGFUSE_PUBLIC_KEY=
+          LANGFUSE_BASEURL=
+          JWT_SECRET=test_secret_min_32_characters_long
+          CLIENT_URL=http://localhost
+          BASE_API_SLUG=api
+          VITE_API_URL=/api
+          VITE_DEV_MODE=false
+          VITE_APP_NAME=Chat App
+          VITE_APP_VERSION=1.0.0
+          DOMAIN=localhost
+          ACME_EMAIL=admin@example.com
+          TRAEFIK_LOG_LEVEL=INFO
+          TRAEFIK_AUTH=admin:$$apr1$$8xHIH3J5$$yQ7eGEEXf1bQCvGp3q7BL1
+          EOF
 
       - name: Detect DHI credentials
         id: dhi
@@ -131,41 +221,30 @@ jobs:
 
       - name: Build server image (DHI)
         if: steps.dhi.outputs.enabled == 'true'
-        run: docker build -t ai-chat-app-server:latest --target server-prod .
+        run: docker build -t chat-app-server:latest --target server-prod .
 
       - name: Build client image (DHI)
         if: steps.dhi.outputs.enabled == 'true'
-        run: docker build -t ai-chat-app-client:latest --target client-prod .
+        run: docker build -t chat-app-client:latest --target client-prod .
 
       - name: Build migrate image (DHI)
         if: steps.dhi.outputs.enabled == 'true'
-        run: docker build -t ai-chat-app-migrate:latest -f server/Dockerfile.migrate .
+        run: docker build -t chat-app-migrate:latest -f server/Dockerfile.migrate .
 
       - name: Build server image (fallback)
         if: steps.dhi.outputs.enabled != 'true'
-        run: docker build -t ai-chat-app-server:latest --target server-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg BUN_RUNTIME_IMAGE=oven/bun:1-alpine .
+        run: docker build -t chat-app-server:latest --target server-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg BUN_RUNTIME_IMAGE=oven/bun:1-alpine .
 
       - name: Build client image (fallback)
         if: steps.dhi.outputs.enabled != 'true'
-        run: docker build -t ai-chat-app-client:latest --target client-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg NGINX_IMAGE=nginx:1.29-alpine .
+        run: docker build -t chat-app-client:latest --target client-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg NGINX_IMAGE=nginx:1.29-alpine .
 
       - name: Build migrate image (fallback)
         if: steps.dhi.outputs.enabled != 'true'
-        run: docker build -t ai-chat-app-migrate:latest -f server/Dockerfile.migrate --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine .
+        run: docker build -t chat-app-migrate:latest -f server/Dockerfile.migrate --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine .
 
-      - name: Test Docker Compose
+      - name: Validate Docker Compose
         run: |
           set -euo pipefail
-          # Create minimal .env for testing
-          cat > .env << EOF
-          AZURE_API_KEY=test_key
-          AZURE_RESOURCE_NAME=test_resource
-          JWT_SECRET=test_secret_min_32_characters_long
-          DB_PASSWORD=postgres
-          DB_USER=postgres
-          LANGFUSE_SECRET_KEY=
-          LANGFUSE_PUBLIC_KEY=
-          EOF
-          # Validate compose file
           docker compose config > /dev/null
-          echo "✅ Docker Compose configuration is valid"
+          echo "Docker Compose configuration is valid"

@@ -129,9 +129,9 @@ const BunIcon = () => (
 	</svg>
 );
 
-const AzureAIFoundryIcon = () => (
+const OpenAIIcon = () => (
 	<svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-		<title>Azure AI Foundry</title>
+		<title>OpenAI</title>
 		<path
 			fill-rule="evenodd"
 			clip-rule="evenodd"
@@ -467,7 +467,7 @@ const HomePage: FC = () => {
 					<div className="header">
 						<div className="header-content">
 							<h1 className="title">
-								<AzureAIFoundryIcon /> ChatFlow API
+								<OpenAIIcon /> ChatFlow API
 							</h1>
 							<p className="subtitle">Modern AI Chat Application Backend</p>
 							<div className="status-badge">

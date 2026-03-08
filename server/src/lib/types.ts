@@ -1,4 +1,5 @@
 import type { OpenAPIHono, RouteConfig, RouteHandler } from "@hono/zod-openapi";
+import type { MiddlewareHandler } from "hono";
 import type { PinoLogger } from "hono-pino";
 
 export interface UserDetails {
@@ -17,9 +18,11 @@ export interface AppBindings {
 	Variables: {
 		logger: PinoLogger;
 		jwtPayload: JWTPayload;
+		user: UserDetails;
 	};
 }
 
 export type AppOpenAPI = OpenAPIHono<AppBindings>;
 
 export type AppRouteHandler<R extends RouteConfig> = RouteHandler<R, AppBindings>;
+export type AppMiddleware = MiddlewareHandler<AppBindings>;

@@ -12,6 +12,7 @@ import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
+import { buildChatRequestBody } from "@/lib/chat-request";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
 interface User {
@@ -34,10 +35,9 @@ const suggestions = [
 export function ChatApp({ user }: ChatAppProps) {
   const { mutate: logout } = useUserLogout();
   const [input, setInput] = useState("");
-  const [model, setModel] = useState(models[0].id);
+  const [model, setModel] = useState<string>(models[0].id);
   const [webSearch, setWebSearch] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
-  const [currentConversationId] = useState<string | undefined>();
 
   const { messages, sendMessage, status, error, clearError, regenerate } = useChat<MyUIMessage>({
     transport: new DefaultChatTransport({
@@ -55,13 +55,11 @@ export function ChatApp({ user }: ChatAppProps) {
         parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
       },
       {
-        body: {
-          model: model,
-          webSearch: webSearch,
-          tools: selectedTools,
-          conversationId: currentConversationId,
-          title: message.text?.slice(0, 50) || "New conversation",
-        },
+        body: buildChatRequestBody({
+          model,
+          selectedTools,
+          webSearch,
+        }),
       },
     );
   };
@@ -73,13 +71,11 @@ export function ChatApp({ user }: ChatAppProps) {
         parts: [{ type: "text", text: suggestion }],
       },
       {
-        body: {
-          model: model,
-          webSearch: webSearch,
-          tools: selectedTools,
-          conversationId: currentConversationId,
-          title: suggestion.slice(0, 50),
-        },
+        body: buildChatRequestBody({
+          model,
+          selectedTools,
+          webSearch,
+        }),
       },
     );
   };

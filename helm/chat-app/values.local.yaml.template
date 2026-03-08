@@ -1,14 +1,60 @@
-# Copy to values.local.yaml and edit before deploying.
+images:
+  client:
+    tag: latest
+    pullPolicy: Never
+  server:
+    tag: latest
+    pullPolicy: Never
+  migrate:
+    tag: latest
+    pullPolicy: Never
+
+config:
+  env:
+    CLIENT_URL: http://localhost:30080
+    DOMAIN: localhost
+    NODE_ENV: development
+    VITE_DEV_MODE: "true"
+    CORS_ORIGINS: http://localhost:5173,http://localhost:30080
 
 secrets:
   app:
-    POSTGRES_PASSWORD: change-me
-    DB_PASSWORD: change-me
-    JWT_SECRET: change-me-minimum-32-characters
-    DB_URL: postgres://username:change-me@db:5432/chatapp
-  azure:
-    AZURE_API_KEY: change-me
-    AZURE_OPENAI_API_ENDPOINT: https://your-endpoint.openai.azure.com/
-    AZURE_DEPLOYMENT_NAME: gpt-4
-    AZURE_RESOURCE_NAME: change-me
-    SERPER_API_KEY: change-me
+    data:
+      POSTGRES_PASSWORD: change-me
+      DB_PASSWORD: change-me
+      JWT_SECRET: local-dev-jwt-secret-minimum-32-chars-1234567890
+      DB_URL: ""
+      OPENAI_API_KEY: local-test-openai-key
+      SERPER_API_KEY: ""
+      LANGFUSE_PUBLIC_KEY: ""
+      LANGFUSE_SECRET_KEY: ""
+      LANGFUSE_BASEURL: https://cloud.langfuse.com
+
+networkPolicy:
+  enabled: false
+
+server:
+  replicaCount: 1
+  service:
+    type: NodePort
+    nodePort: 30001
+  persistence:
+    uploads:
+      enabled: false
+  hpa:
+    enabled: false
+
+client:
+  replicaCount: 1
+  service:
+    type: NodePort
+    nodePort: 30080
+  hpa:
+    enabled: false
+
+exposure:
+  gateway:
+    enabled: false
+
+migration:
+  enabled: false

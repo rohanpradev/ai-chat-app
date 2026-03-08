@@ -11,10 +11,22 @@ import {
 import { createRoute } from "@hono/zod-openapi";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { jsonContent } from "stoker/openapi/helpers";
+import { asRouteMiddleware } from "@/lib/hono-compat";
 import { authMiddleware } from "@/middlewares/auth-middleware";
 import { redisCache } from "@/middlewares/redis-cache-middleware";
 
 const tags = ["Auth"];
+const authenticated = asRouteMiddleware(authMiddleware);
+const cachedMe = redisCache({
+  key: (c) => {
+    const jwtPayload = c.get("jwtPayload") as
+      | { sub?: { id?: string } }
+      | undefined;
+    const userId = jwtPayload?.sub?.id || "anonymous";
+    return `user:${userId}:auth:me`;
+  },
+  ttl: 300,
+});
 
 export const registerUser = createRoute({
   description: "Register a new user",
@@ -81,7 +93,7 @@ export const loginUser = createRoute({
 export const logoutUser = createRoute({
   description: "Logout current user",
   method: "post",
-  middleware: [authMiddleware],
+  middleware: [authenticated],
   path: "/auth/logout",
   request: {},
   responses: {
@@ -95,19 +107,7 @@ export const logoutUser = createRoute({
 export const me = createRoute({
   description: "Get current authenticated user information",
   method: "get",
-  middleware: [
-    authMiddleware,
-    redisCache({
-      key: (c) => {
-        const jwtPayload = c.get("jwtPayload") as
-          | { sub?: { id?: string } }
-          | undefined;
-        const userId = jwtPayload?.sub?.id || "anonymous";
-        return `user:${userId}:auth:me`;
-      },
-      ttl: 300,
-    }),
-  ],
+  middleware: [authenticated, asRouteMiddleware(cachedMe)],
   path: "/auth/me",
   request: {},
   responses: {

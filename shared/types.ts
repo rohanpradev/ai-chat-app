@@ -1,4 +1,5 @@
 import type { z } from "@hono/zod-openapi";
+import { models } from "./models";
 
 // Import only used schemas
 import type {
@@ -34,15 +35,7 @@ export type ApiError = ErrorResponse & {
 // Model Types
 export type Model = z.infer<typeof ModelSchema>;
 export type ModelsArray = z.infer<typeof ModelsArraySchema>;
-
-// Available models
-export const models: Model[] = [
-	{ id: "gpt-4.1-mini", name: "GPT-4.1 Mini", provider: "azure" },
-	{ id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "azure" },
-	{ id: "gpt-4", name: "GPT-4", provider: "azure" },
-	{ id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", provider: "azure" },
-	{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" },
-];
+export { models };
 
 // Auth-related composite types
 export type AuthResponse = z.infer<typeof MeResponseSchema>;

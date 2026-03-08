@@ -27,7 +27,7 @@ Here's an overview of the monorepo structure:
   ├── /docker-compose.yml  # Production container orchestration
   ├── /compose.dev.yml     # Development container setup
   └── /README.md          # Project documentation
-```ns, **Hono** for the web framework, and **Azure OpenAI** for AI integration. The project uses **TypeScript** for strong typing and **Biome** for code formatting and linting.
+```ns, **Hono** for the web framework, and **OpenAI** for AI integration. The project uses **TypeScript** for strong typing and **Biome** for code formatting and linting.
 
 ## Table of Contents
 
@@ -51,11 +51,11 @@ Before getting started, ensure that you have the following software installed:
 - **Bun**: Modern JavaScript runtime and package manager. Install from [bun.sh](https://bun.sh)
 - **Docker & Docker Compose**: For containerized development and deployment
 - **Git**: Version control system to clone the project repository
-- **Azure OpenAI**: Access to Azure OpenAI services for AI functionality
+- **OpenAI**: Access to OpenAI services for AI functionality
 
 ## Features
 
-- 🤖 **Real-time Chat with AI**: Interactive chat interface powered by Azure OpenAI
+- 🤖 **Real-time Chat with AI**: Interactive chat interface powered by OpenAI
 - � **User Authentication**: Secure JWT-based authentication system
 - � **Real-time Updates**: WebSocket connections for instant messaging
 - � **PostgreSQL Database**: Robust data persistence with Drizzle ORM
@@ -85,7 +85,7 @@ Before getting started, ensure that you have the following software installed:
 
 ### AI Integration
 
-- **Azure OpenAI**: Cloud-based AI services for chat functionality
+- **OpenAI**: Cloud-based AI services for chat functionality
 - **GPT-4 Mini**: Advanced language model for conversational AI
 
 ### Infrastructure
@@ -122,7 +122,7 @@ Copy the environment example files and configure them:
 ```bash
 # Server environment
 cp server/.env.example server/.env.docker
-# Update server/.env.docker with your Azure OpenAI credentials
+# Update server/.env.docker with your OpenAI credentials
 
 # Client environment (if needed)
 cp client/.env.example client/.env.docker
@@ -225,10 +225,9 @@ DB_URL=postgres://postgres:password@db:5432/chatapp
 # Redis  
 REDIS_URL=redis://redis:6379
 
-# Azure OpenAI
-AZURE_API_KEY=your_azure_api_key
-AZURE_OPENAI_API_ENDPOINT=your_azure_endpoint
-AZURE_DEPLOYMENT_NAME=your_deployment_name
+# OpenAI
+OPENAI_API_KEY=your_openai_api_key
+SERPER_API_KEY=your_serper_api_key
 
 # JWT
 JWT_SECRET=your_jwt_secret
@@ -284,7 +283,7 @@ This project demonstrates a modern approach to building chat applications with:
 
 🛡️ **Type Safety**: Full TypeScript coverage from database to frontend
 
-🤖 **AI Integration**: Seamless Azure OpenAI integration for intelligent conversations  
+🤖 **AI Integration**: Seamless OpenAI integration for intelligent conversations  
 
 � **Containerization**: Complete Docker setup for easy deployment and scaling
 

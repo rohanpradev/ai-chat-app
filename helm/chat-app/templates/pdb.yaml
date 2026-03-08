@@ -1,31 +1,31 @@
+{{- if .Values.server.pdb.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: server-pdb
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}
   labels:
-    app.kubernetes.io/name: chat-app
+    {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: server
-    app.kubernetes.io/part-of: chat-app
 spec:
-  minAvailable: 1
+  minAvailable: {{ .Values.server.pdb.minAvailable }}
+  unhealthyPodEvictionPolicy: {{ .Values.server.pdb.unhealthyPodEvictionPolicy }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: chat-app
-      app.kubernetes.io/component: server
+      {{- include "chat-app.componentLabels" (dict "root" . "component" "server") | nindent 6 }}
+{{- end }}
+{{- if .Values.client.pdb.enabled }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: client-pdb
-  namespace: {{ .Values.namespace | quote }}
+  name: {{ include "chat-app.componentName" (dict "root" . "component" "client") }}
   labels:
-    app.kubernetes.io/name: chat-app
+    {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: client
-    app.kubernetes.io/part-of: chat-app
 spec:
-  minAvailable: 1
+  minAvailable: {{ .Values.client.pdb.minAvailable }}
+  unhealthyPodEvictionPolicy: {{ .Values.client.pdb.unhealthyPodEvictionPolicy }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: chat-app
-      app.kubernetes.io/component: client
+      {{- include "chat-app.componentLabels" (dict "root" . "component" "client") | nindent 6 }}
+{{- end }}

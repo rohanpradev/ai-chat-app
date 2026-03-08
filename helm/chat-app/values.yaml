@@ -1,67 +1,332 @@
-namespace: default
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
 
 images:
-  client: chat-app-client:latest
-  server: chat-app-server:latest
-  migrate: chat-app-migrate:latest
-  db: postgres:17.5-alpine
-  redis: redis:8.2-alpine
-  traefik: traefik:v3.6
+  client:
+    registry: ""
+    repository: chat-app-client
+    tag: "1.0.0"
+    digest: ""
+    pullPolicy: IfNotPresent
+  server:
+    registry: ""
+    repository: chat-app-server
+    tag: "1.0.0"
+    digest: ""
+    pullPolicy: IfNotPresent
+  migrate:
+    registry: ""
+    repository: chat-app-migrate
+    tag: "1.0.0"
+    digest: ""
+    pullPolicy: IfNotPresent
+  db:
+    registry: docker.io
+    repository: postgres
+    tag: "17.5-alpine"
+    digest: ""
+    pullPolicy: IfNotPresent
+  redis:
+    registry: docker.io
+    repository: redis
+    tag: "8.2-alpine"
+    digest: ""
+    pullPolicy: IfNotPresent
 
-imagePullPolicy:
-  app: Never
-  infra: IfNotPresent
+config:
+  env:
+    ACME_EMAIL: your_email@example.com
+    BASE_API_SLUG: api
+    CLIENT_URL: https://app.docker.localhost
+    DB_NAME: chatapp
+    DB_PORT: "5432"
+    DB_USER: username
+    DOMAIN: app.docker.localhost
+    LOG_LEVEL: info
+    NODE_ENV: production
+    REDIS_PORT: "6379"
+    SERVER_PORT: "3000"
+    TRAEFIK_LOG_LEVEL: INFO
+    VITE_API_URL: /api
+    VITE_APP_NAME: Chat App
+    VITE_APP_VERSION: 1.0.0
+    VITE_DEV_MODE: "false"
+    CORS_ORIGINS: https://app.docker.localhost
+
+secrets:
+  create: true
+  app:
+    existingSecret: ""
+    data:
+      POSTGRES_PASSWORD: change-me
+      DB_PASSWORD: change-me
+      JWT_SECRET: change-me-minimum-32-characters
+      DB_URL: ""
+      OPENAI_API_KEY: ""
+      SERPER_API_KEY: ""
+      LANGFUSE_PUBLIC_KEY: ""
+      LANGFUSE_SECRET_KEY: ""
+      LANGFUSE_BASEURL: ""
+
+exposure:
+  gateway:
+    enabled: true
+    create: false
+    namespace: traefik
+    name: traefik-gateway
+    className: traefik
+    hostnames:
+      - app.docker.localhost
+    tls:
+      enabled: true
+      secretName: local-selfsigned-tls
+    createMiddlewares: true
+    cors:
+      allowOrigins:
+        - https://app.docker.localhost
+    rateLimit:
+      average: 100
+      burst: 200
+      period: 1m
+
+networkPolicy:
+  enabled: true
+  gatewayNamespaces:
+    - traefik
+  allowInternetEgressForServer: true
+  allowInternetEgressForClient: false
+  dns:
+    namespace: kube-system
+    podLabels:
+      k8s-app: kube-dns
 
 server:
-  replicaCount: 1
+  replicaCount: 2
+  revisionHistoryLimit: 3
+  terminationGracePeriodSeconds: 30
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  service:
+    type: ClusterIP
+    port: 3000
+    nodePort: null
+  startupProbe:
+    httpGet:
+      path: /health
+      port: http
+    failureThreshold: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  persistence:
+    uploads:
+      enabled: true
+      storageClassName: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 1Gi
+    logs:
+      enabled: false
+      storageClassName: ""
+      accessModes:
+        - ReadWriteOnce
+      size: 256Mi
   hpa:
     enabled: true
     minReplicas: 2
     maxReplicas: 8
+    cpuUtilization: 70
+    memoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
 
 client:
-  replicaCount: 1
+  replicaCount: 2
+  revisionHistoryLimit: 3
+  terminationGracePeriodSeconds: 30
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  service:
+    type: ClusterIP
+    port: 80
+    nodePort: null
+  startupProbe:
+    httpGet:
+      path: /health
+      port: http
+    failureThreshold: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  resources:
+    requests:
+      cpu: 250m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
   hpa:
     enabled: true
     minReplicas: 2
     maxReplicas: 6
+    cpuUtilization: 70
+    memoryUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
 
-env:
-  ACME_EMAIL: your_email@example.com
-  BASE_API_SLUG: api
-  CLIENT_URL: http://client
-  DB_HOST: db
-  DB_NAME: chatapp
-  DB_PORT: "5432"
-  DB_USER: username
-  DOMAIN: localhost
-  LOG_LEVEL: info
-  NODE_ENV: development
-  REDIS_HOST: redis
-  REDIS_PORT: "6379"
-  REDIS_URL: redis://redis:6379
-  SERVER_PORT: "3000"
-  SERVER_HOST: server.default.svc.cluster.local
-  TRAEFIK_LOG_LEVEL: INFO
-  VITE_API_URL: /api
-  VITE_APP_NAME: Chat App
-  VITE_APP_VERSION: 1.0.0
-  VITE_DEV_MODE: "true"
-  CORS_ORIGINS: http://localhost:5173,http://localhost:30080
+db:
+  enabled: true
+  terminationGracePeriodSeconds: 60
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+  service:
+    port: 5432
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  persistence:
+    enabled: true
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
 
-secrets:
-  app:
-    POSTGRES_PASSWORD: password
-    DB_PASSWORD: password
-    JWT_SECRET: your-jwt-secret-here
-    DB_URL: postgres://username:password@db:5432/chatapp
-  azure:
-    AZURE_API_KEY: your-azure-api-key
-    AZURE_OPENAI_API_ENDPOINT: https://your-endpoint.openai.azure.com/
-    AZURE_DEPLOYMENT_NAME: gpt-4
-    AZURE_RESOURCE_NAME: your-resource-name
-    SERPER_API_KEY: your-serper-api-key
+redis:
+  enabled: true
+  terminationGracePeriodSeconds: 30
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  service:
+    port: 6379
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
 
-features:
-  gatewayApi: true
-  traefikCRDs: true
+migration:
+  enabled: true
+  useHook: true
+  backoffLimit: 1
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 600
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

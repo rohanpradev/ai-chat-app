@@ -1,23 +1,39 @@
-import { azure } from "@ai-sdk/azure";
 import { openai } from "@ai-sdk/openai";
+import { type AIModelDefinition, type AIProvider, getModelById, getModelsByProvider } from "@chat-app/shared";
 import type { LanguageModel, ModelMessage } from "ai";
 import { convertToModelMessages, type UIMessage } from "ai";
 import env from "@/utils/env";
 
-type ModelFactory = (model?: string) => LanguageModel;
-type ModelType = LanguageModel | ModelFactory;
-export const MODELS = {
-	azureOpenAI: (model = "gpt-5-mini") => azure(model),
-	openAI: (model = "gpt-4o-mini") => openai(model)
-} satisfies Record<string, ModelType>;
+const configuredProviders = (): AIProvider[] => (env.OPENAI_API_KEY ? ["openai"] : []);
 
-export const resolveModel = (model = "gpt-5-mini"): LanguageModel => {
-	const hasAzure = Boolean(env.AZURE_API_KEY && env.AZURE_RESOURCE_NAME);
-	if (hasAzure) {
-		return MODELS.azureOpenAI(model);
+const resolveConfiguredModel = (): AIModelDefinition => {
+	const [fallbackModel] = getModelsByProvider("openai");
+
+	if (!fallbackModel) {
+		throw new Error('No models configured for provider "openai"');
 	}
 
-	return MODELS.openAI(model);
+	return fallbackModel;
+};
+
+export const resolveModelSelection = (requestedModelId?: string): AIModelDefinition => {
+	const availableProviders = configuredProviders();
+	const requestedModel = getModelById(requestedModelId);
+
+	if (requestedModel && availableProviders.some((provider) => provider === requestedModel.provider)) {
+		return requestedModel;
+	}
+
+	if (availableProviders.length === 0) {
+		throw new Error("OPENAI_API_KEY is required");
+	}
+
+	return resolveConfiguredModel();
+};
+
+export const resolveModel = (requestedModelId?: string): LanguageModel => {
+	const resolvedModel = resolveModelSelection(requestedModelId);
+	return openai(resolvedModel.id);
 };
 
 export const transformPrompt = async (message: UIMessage[]): Promise<ModelMessage[]> =>

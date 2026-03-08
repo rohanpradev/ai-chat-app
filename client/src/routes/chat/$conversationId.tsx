@@ -1,15 +1,15 @@
 import { useChat } from "@ai-sdk/react";
-import type { MyUIMessage } from "@chat-app/shared";
-import { models } from "@chat-app/shared";
+import { type MyUIMessage, models, validateMyUIMessages } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { DefaultChatTransport, validateUIMessages } from "ai";
+import { DefaultChatTransport } from "ai";
 import { useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { useApi } from "@/composables/useApi";
+import { buildChatRequestBody } from "@/lib/chat-request";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
@@ -74,12 +74,7 @@ export const Route = createFileRoute("/chat/$conversationId")({
         };
       });
 
-      const messages =
-        rawMessages.length > 0
-          ? await validateUIMessages({
-              messages: rawMessages as MyUIMessage[],
-            })
-          : [];
+      const messages = rawMessages.length > 0 ? await validateMyUIMessages(rawMessages) : [];
 
       return {
         chat: conversation,
@@ -124,7 +119,7 @@ function ConversationChat() {
   const { conversationId } = Route.useParams();
   const { initialMessages } = Route.useLoaderData();
   const [input, setInput] = useState("");
-  const [model, setModel] = useState(models[0].id);
+  const [model, setModel] = useState<string>(models[0].id);
   const [webSearch, setWebSearch] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
 
@@ -146,12 +141,12 @@ function ConversationChat() {
         parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
       },
       {
-        body: {
-          model: model,
-          webSearch: webSearch,
-          tools: selectedTools,
-          chatId: conversationId,
-        },
+        body: buildChatRequestBody({
+          conversationId,
+          model,
+          selectedTools,
+          webSearch,
+        }),
       },
     );
   };
