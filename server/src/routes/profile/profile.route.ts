@@ -6,9 +6,9 @@ import {
 	UpdateProfileResponseSchema
 } from "@chat-app/shared";
 import { createRoute } from "@hono/zod-openapi";
-import * as HttpStatusCodes from "stoker/http-status-codes";
-import { jsonContent } from "stoker/openapi/helpers";
 import { asRouteMiddleware } from "@/lib/hono-compat";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
+import { jsonContent } from "@/lib/openapi";
 import { authMiddleware } from "@/middlewares/auth-middleware";
 import { userCache } from "@/middlewares/redis-cache-middleware";
 

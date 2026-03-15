@@ -252,4 +252,4 @@ export const userCache = (keyPattern: string, options: Omit<RedisCacheOptions, "
 	});
 };
 
-export { HonoRedisCache, cacheInstance };
+export { cacheInstance, HonoRedisCache };

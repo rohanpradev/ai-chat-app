@@ -1,8 +1,8 @@
 import { CreateConversationRequestSchema, UpdateConversationRequestSchema } from "@chat-app/shared";
 import { and, eq } from "drizzle-orm";
-import * as HttpStatusCodes from "stoker/http-status-codes";
 import { db } from "@/db";
 import { chats } from "@/db/schema";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
 import type { AppRouteHandler } from "@/lib/types";
 import type {
 	CreateConversationRoute,
@@ -62,7 +62,7 @@ export const getConversations: AppRouteHandler<GetConversationsRoute> = async (c
 
 export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
-	const { id } = c.req.param();
+	const { id } = c.req.param() as { id: string };
 
 	const chat = await db.query.chats.findFirst({
 		where: and(eq(chats.id, id), eq(chats.userId, userJwt.id)),
@@ -110,22 +110,26 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 
 export const updateConversation: AppRouteHandler<UpdateConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
-	const { id } = c.req.param();
+	const { id } = c.req.param() as { id: string };
 	const { title } = UpdateConversationRequestSchema.parse(await c.req.json());
 
-	await db
+	const [updatedChat] = await db
 		.update(chats)
 		.set({
 			title,
 			updatedAt: new Date()
 		})
-		.where(and(eq(chats.id, id), eq(chats.userId, userJwt.id)));
-
-	const [updatedChat] = await db
-		.select()
-		.from(chats)
 		.where(and(eq(chats.id, id), eq(chats.userId, userJwt.id)))
-		.limit(1);
+		.returning();
+
+	if (!updatedChat) {
+		return c.json(
+			{
+				message: "Conversation not found"
+			},
+			HttpStatusCodes.NOT_FOUND
+		);
+	}
 
 	return c.json(
 		{

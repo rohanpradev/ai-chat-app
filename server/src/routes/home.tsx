@@ -276,9 +276,7 @@ const HomePage: FC = () => {
 				<meta charSet="UTF-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 				<title>Chat App API - Powered by Modern Tech Stack</title>
-				<style
-					dangerouslySetInnerHTML={{
-						__html: `
+				<style>{`
 					* {
 						margin: 0;
 						padding: 0;
@@ -458,9 +456,7 @@ const HomePage: FC = () => {
 							padding: 20px;
 						}
 					}
-					`
-					}}
-				/>
+					`}</style>
 			</head>
 			<body>
 				<div className="container">

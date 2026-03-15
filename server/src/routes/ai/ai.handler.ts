@@ -1,7 +1,7 @@
 import { ChatRequestSchema, safeValidateMyUIMessages } from "@chat-app/shared";
 import { consumeStream, createIdGenerator, smoothStream, streamText } from "ai";
 import { HTTPException } from "hono/http-exception";
-import * as HttpStatusCodes from "stoker/http-status-codes";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
 import { getAvailableTools } from "@/lib/tools";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AIStreamRoute } from "@/routes/ai/ai.route";

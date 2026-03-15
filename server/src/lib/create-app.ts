@@ -4,11 +4,11 @@ import { cors } from "hono/cors";
 import { etag } from "hono/etag";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
-import { notFound, onError, serveEmojiFavicon } from "stoker/middlewares";
-import { defaultHook } from "stoker/openapi";
 import { asAppErrorHandler, asAppMiddleware, asAppNotFoundHandler } from "@/lib/hono-compat";
+import { defaultHook } from "@/lib/openapi";
 import type { AppBindings } from "@/lib/types";
 
+import { notFound, onError, serveEmojiFavicon } from "@/middlewares/app-defaults";
 import { pinoLogger } from "@/middlewares/pino-logger";
 import env from "@/utils/env";
 
@@ -18,7 +18,7 @@ export function createRouter() {
 
 export function createApp() {
 	const app = createRouter();
-	const useAppMiddleware = (middleware: MiddlewareHandler<AppBindings>) => app.use("*", middleware);
+	const useAppMiddleware = (middleware: MiddlewareHandler<AppBindings, "*">) => app.use("*", middleware);
 
 	useAppMiddleware(asAppMiddleware(serveEmojiFavicon("🔥")));
 

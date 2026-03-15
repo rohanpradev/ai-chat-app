@@ -35,8 +35,6 @@ function ProfileComponent() {
   const [profileImage, setProfileImage] = useState<string | undefined>(initialProfileImage);
 
   const handleSave = () => {
-    // TODO: Implement profile update API call
-    console.log("Saving profile:", { name, profileImage });
     setIsEditing(false);
   };
 

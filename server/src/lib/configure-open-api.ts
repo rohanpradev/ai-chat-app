@@ -19,6 +19,11 @@ export default function configureOpenAPI(app: AppOpenAPI) {
 		type: "apiKey"
 	});
 
-	// Simple Scalar configuration
-	app.get("/reference", Scalar({ url: "/doc" }));
+	app.get(
+		"/reference",
+		Scalar({
+			pageTitle: "AI API Reference",
+			url: "/doc"
+		})
+	);
 }

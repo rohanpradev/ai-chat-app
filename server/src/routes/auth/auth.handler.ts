@@ -1,8 +1,8 @@
 import { deleteCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
-import * as HttpStatusCodes from "stoker/http-status-codes";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AuthRoute, CurrentUserRoute, LoginRoute, LogoutRoute } from "@/routes/auth/auth.route";
 import env from "@/utils/env";
@@ -29,7 +29,12 @@ export const registerUser: AppRouteHandler<AuthRoute> = async (c) => {
 			password: Auth.hashPassword(password),
 			profileImage
 		})
-		.returning({ email: users.email, id: users.id, name: users.name, profileImage: users.profileImage });
+		.returning({
+			email: users.email,
+			id: users.id,
+			name: users.name,
+			profileImage: users.profileImage
+		});
 
 	const userDetails = {
 		email: user.email,
@@ -97,7 +102,9 @@ export const logoutUser: AppRouteHandler<LogoutRoute> = async (c) => {
 		httpOnly: true,
 		sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
 		secure: env.NODE_ENV === "production",
-		...(env.NODE_ENV === "production" && { domain: new URL(env.CLIENT_URL).hostname })
+		...(env.NODE_ENV === "production" && {
+			domain: new URL(env.CLIENT_URL).hostname
+		})
 	});
 
 	return c.json(
