@@ -12,10 +12,19 @@ export {
 	providers,
 } from "./models.js";
 export * from "./schemas/index.js";
+export {
+	type EnabledRequestToolId,
+	enabledRequestToolIds,
+	type SerperToolInput,
+	type SerperToolOutput,
+	serperOutputSchema,
+	uiMessageToolDefinitions,
+	uiMessageTools,
+	webSearchToolId,
+} from "./tools.js";
 // Export specific types from types.ts
 export type {
 	ApiError,
-	AuthError,
 	AuthResponse,
 	BasicUserProfile,
 	GetProfileResponse,
@@ -34,6 +43,7 @@ export {
 	type MyMetadata,
 	type MyTools,
 	type MyUIMessage,
+	type SerperUITool,
 	safeValidateMyUIMessages,
 	tools,
 	validateMyUIMessages,

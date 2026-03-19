@@ -28,7 +28,6 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
-import { ToolSelector } from "@/components/chat/ToolSelector";
 
 interface ChatInputProps {
   input: string;
@@ -37,8 +36,6 @@ interface ChatInputProps {
   setModel: (value: string) => void;
   webSearch: boolean;
   setWebSearch: (value: boolean) => void;
-  selectedTools: string[];
-  setSelectedTools: (tools: string[]) => void;
   onMessageSend: (message: PromptInputMessage) => void;
   status: ChatStatus;
 }
@@ -63,7 +60,7 @@ function PromptInputAttachmentsDisplay() {
   );
 }
 
-function PromptSubmit({ input, status }: { input: string; status: ChatStatus }) {
+function PromptSubmit({ input, status }: Readonly<{ input: string; status: ChatStatus }>) {
   const attachments = usePromptInputAttachments();
   const hasAttachments = attachments.files.length > 0;
   const isStreaming = status === "streaming";
@@ -78,11 +75,9 @@ export function ChatInput({
   setModel,
   webSearch,
   setWebSearch,
-  selectedTools,
-  setSelectedTools,
   onMessageSend,
   status,
-}: ChatInputProps) {
+}: Readonly<ChatInputProps>) {
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
@@ -102,11 +97,10 @@ export function ChatInput({
       multiple
       accept="image/*,application/pdf,.txt,.md,.json,.js,.ts,.tsx,.jsx,.py,.java,.cpp,.c,.html,.css,.xml,.csv"
       maxFiles={10}
-      maxFileSize={10 * 1024 * 1024} // 10MB
+      maxFileSize={10 * 1024 * 1024}
       onError={(err) => {
         const errorMessage = typeof err === "object" && "message" in err ? err.message : "File upload error";
         console.error("File upload error:", errorMessage);
-        // You could add a toast notification here
       }}
     >
       <PromptInputAttachmentsDisplay />
@@ -123,9 +117,8 @@ export function ChatInput({
           </PromptInputActionMenu>
           <PromptInputButton variant={webSearch ? "default" : "ghost"} onClick={() => setWebSearch(!webSearch)}>
             <GlobeIcon size={16} />
-            <span>Search</span>
+            <span>Web Search</span>
           </PromptInputButton>
-          <ToolSelector selectedTools={selectedTools} onToolsChange={setSelectedTools} />
           <PromptInputSelect onValueChange={setModel} value={model}>
             <PromptInputSelectTrigger>
               <PromptInputSelectValue />

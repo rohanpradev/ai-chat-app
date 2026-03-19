@@ -1,7 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { type AIModelDefinition, type AIProvider, getModelById, getModelsByProvider } from "@chat-app/shared";
-import type { LanguageModel, ModelMessage } from "ai";
-import { convertToModelMessages, type UIMessage } from "ai";
+import { convertToModelMessages, type LanguageModel, type ModelMessage, pruneMessages, type UIMessage } from "ai";
 import env from "@/utils/env";
 
 const configuredProviders = (): AIProvider[] => (env.OPENAI_API_KEY ? ["openai"] : []);
@@ -20,7 +19,7 @@ export const resolveModelSelection = (requestedModelId?: string): AIModelDefinit
 	const availableProviders = configuredProviders();
 	const requestedModel = getModelById(requestedModelId);
 
-	if (requestedModel && availableProviders.some((provider) => provider === requestedModel.provider)) {
+	if (requestedModel && availableProviders.includes(requestedModel.provider)) {
 		return requestedModel;
 	}
 
@@ -37,15 +36,23 @@ export const resolveModel = (requestedModelId?: string): LanguageModel => {
 };
 
 export const transformPrompt = async (message: UIMessage[]): Promise<ModelMessage[]> =>
-	convertToModelMessages([
-		{
-			parts: [
-				{
-					text: "You are a helpful assistant that helps people find information. Be concise.",
-					type: "text"
-				}
-			],
-			role: "system"
-		},
-		...message
-	]);
+	pruneMessages({
+		emptyMessages: "remove",
+		messages: await convertToModelMessages([
+			{
+				parts: [
+					{
+						text: [
+							"You are a helpful assistant that helps people find information.",
+							"Be concise.",
+							"If a tool execution is denied or unavailable, explain that and do not retry the same tool unless the user asks again."
+						].join(" "),
+						type: "text"
+					}
+				],
+				role: "system"
+			},
+			...message
+		]),
+		reasoning: "before-last-message"
+	});

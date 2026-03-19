@@ -2,11 +2,11 @@ import type { LoginUserRequest } from "@chat-app/shared";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useApi } from "@/composables/useApi";
+import { getApiClient } from "@/composables/useApi";
 import { Route as IndexRoute } from "@/routes/index";
 
 export const useUserLogin = (redirectTo?: string) => {
-  const api = useApi();
+  const api = getApiClient();
   const { auth } = useRouteContext({ strict: false });
   const navigate = useNavigate();
 

@@ -1,4 +1,4 @@
-ARG BUN_DEV_IMAGE=dhi.io/bun:1.3.9-dev
+ARG BUN_DEV_IMAGE=dhi.io/bun:1.3.11-dev
 FROM ${BUN_DEV_IMAGE}
 
 WORKDIR /app

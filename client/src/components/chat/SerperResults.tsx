@@ -1,27 +1,20 @@
+import type { SerperUITool } from "@chat-app/shared";
 import { ExternalLinkIcon, GlobeIcon, SearchIcon } from "lucide-react";
 
-interface SerperResult {
-  title: string;
-  link: string;
-  snippet: string;
-  position: number;
-}
-
-interface RelatedSearch {
-  query: string;
-}
-
 interface SerperResultsProps {
-  data: {
-    searchParameters?: { q: string };
-    organic?: SerperResult[];
-    relatedSearches?: RelatedSearch[];
-    totalResults?: number;
-  };
+  data: SerperUITool["output"];
 }
 
-export function SerperResults({ data }: SerperResultsProps) {
-  const { searchParameters, organic = [], relatedSearches = [], totalResults } = data;
+export function SerperResults({ data }: Readonly<SerperResultsProps>) {
+  const {
+    answerBox,
+    knowledgeGraph,
+    organic = [],
+    peopleAlsoAsk = [],
+    relatedSearches = [],
+    searchParameters,
+    totalResults,
+  } = data;
 
   return (
     <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
@@ -36,6 +29,29 @@ export function SerperResults({ data }: SerperResultsProps) {
           </div>
         </div>
       </div>
+
+      {(answerBox?.answer || answerBox?.snippet || knowledgeGraph?.description) && (
+        <div className="space-y-3 rounded-lg border border-blue-100 bg-white p-4 dark:border-blue-800/50 dark:bg-gray-900/50">
+          {answerBox?.title && (
+            <div className="text-sm font-semibold text-blue-900 dark:text-blue-100">{answerBox.title}</div>
+          )}
+          {answerBox?.answer && (
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{answerBox.answer}</p>
+          )}
+          {!answerBox?.answer && answerBox?.snippet && (
+            <p className="text-sm text-gray-700 dark:text-gray-300">{answerBox.snippet}</p>
+          )}
+          {knowledgeGraph?.title && (
+            <div className="text-xs text-blue-700 dark:text-blue-300">
+              {knowledgeGraph.title}
+              {knowledgeGraph.type ? ` • ${knowledgeGraph.type}` : ""}
+            </div>
+          )}
+          {knowledgeGraph?.description && (
+            <p className="text-sm text-gray-600 dark:text-gray-300">{knowledgeGraph.description}</p>
+          )}
+        </div>
+      )}
 
       {organic.length > 0 && (
         <div className="space-y-4">
@@ -61,6 +77,23 @@ export function SerperResults({ data }: SerperResultsProps) {
               </a>
             </div>
           ))}
+        </div>
+      )}
+
+      {peopleAlsoAsk.length > 0 && (
+        <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
+          <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">People also ask</h4>
+          <div className="space-y-2">
+            {peopleAlsoAsk.slice(0, 3).map((item) => (
+              <div
+                key={item.question}
+                className="rounded-lg border border-blue-100 bg-white/80 p-3 text-sm dark:border-blue-800/50 dark:bg-gray-900/40"
+              >
+                <div className="font-medium text-gray-900 dark:text-gray-100">{item.question}</div>
+                {item.snippet && <div className="mt-1 text-gray-600 dark:text-gray-300">{item.snippet}</div>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

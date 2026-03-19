@@ -1,8 +1,8 @@
 import { ChatRequestSchema, safeValidateMyUIMessages } from "@chat-app/shared";
-import { consumeStream, createIdGenerator, smoothStream, streamText } from "ai";
+import { consumeStream, createIdGenerator, smoothStream, stepCountIs, streamText } from "ai";
 import { HTTPException } from "hono/http-exception";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
-import { getAvailableTools } from "@/lib/tools";
+import { executableTools, getActiveTools } from "@/lib/tools";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AIStreamRoute } from "@/routes/ai/ai.route";
 import { saveConversation } from "@/services/conversation.service";
@@ -14,7 +14,7 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const { model = "gpt-5-mini", tools: toolNames = [] } = requestBody;
 	const uiMessages = requestBody.messages;
 
-	const selectedTools = getAvailableTools(toolNames);
+	const activeTools = getActiveTools(toolNames);
 	const validation = await safeValidateMyUIMessages(uiMessages);
 
 	if (!validation.success) {
@@ -22,11 +22,12 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 			message: `Invalid UI messages payload: ${validation.error.message}`
 		});
 	}
+
 	const validatedMessages = validation.data;
 	const resolvedModel = resolveModelSelection(model);
-
 	const messages = await transformPrompt(validatedMessages);
 	const userJwt = c.get("jwtPayload").sub;
+	const logger = c.get("logger");
 
 	const result = streamText({
 		abortSignal: c.req.raw.signal,
@@ -46,16 +47,27 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 		experimental_transform: smoothStream(),
 		messages,
 		model: resolveModel(model),
-		tools: selectedTools
+		...(activeTools.length > 0
+			? {
+					activeTools,
+					stopWhen: stepCountIs(5),
+					tools: executableTools
+				}
+			: {})
 	});
 
 	return result.toUIMessageStreamResponse({
 		consumeSseStream: consumeStream,
 		generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
+		onError: (error) => {
+			logger.error({ error }, "AI stream failed");
+			return "The assistant request failed. Please retry.";
+		},
 		onFinish: async ({ isAborted, messages: finalMessages }) => {
 			if (isAborted) {
 				return;
 			}
+
 			await saveConversation(coalescedChatId, finalMessages, userJwt.id);
 		},
 		originalMessages: validatedMessages,

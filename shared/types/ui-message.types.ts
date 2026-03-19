@@ -1,25 +1,8 @@
-import { type InferUITools, safeValidateUIMessages, type ToolSet, tool, type UIMessage, validateUIMessages } from "ai";
+import { type InferUITool, type InferUITools, safeValidateUIMessages, type UIMessage, validateUIMessages } from "ai";
 import { z } from "zod";
+import { uiMessageTools } from "../tools";
 
-// Tool definitions
-export const tools = {
-	deepSearch: tool({
-		description: "Perform deep web search with advanced filtering and analysis",
-		execute: async () => ({ results: [] }),
-		inputSchema: z.object({
-			maxResults: z.number().optional().describe("Maximum number of results"),
-			query: z.string().describe("Search query"),
-			timeRange: z.string().optional().describe("Time range: day, week, month, year, all"),
-		}),
-	}),
-	serper: tool({
-		description: "Search the web using Serper API for real-time results",
-		execute: async () => ({ organic: [], relatedSearches: [] }),
-		inputSchema: z.object({
-			q: z.string().describe("Search query"),
-		}),
-	}),
-} satisfies ToolSet;
+export { uiMessageTools as tools } from "../tools";
 
 // Metadata schema
 const metadataSchema = z
@@ -31,20 +14,20 @@ const metadataSchema = z
 	.optional();
 
 export type MyMetadata = z.infer<typeof metadataSchema>;
-export type MyTools = InferUITools<typeof tools>;
+export type MyTools = InferUITools<typeof uiMessageTools>;
+export type SerperUITool = InferUITool<(typeof uiMessageTools)["serper"]>;
 
 export type MyUIMessage = UIMessage<MyMetadata, never, MyTools>;
-
 export const validateMyUIMessages = (messages: unknown) =>
 	validateUIMessages<MyUIMessage>({
 		messages,
 		metadataSchema,
-		tools,
+		tools: uiMessageTools,
 	});
 
 export const safeValidateMyUIMessages = (messages: unknown) =>
 	safeValidateUIMessages<MyUIMessage>({
 		messages,
 		metadataSchema,
-		tools,
+		tools: uiMessageTools,
 	});

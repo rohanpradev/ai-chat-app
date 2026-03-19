@@ -26,3 +26,124 @@ data:
   VITE_APP_NAME: {{ .Values.config.env.VITE_APP_NAME | quote }}
   VITE_APP_VERSION: {{ .Values.config.env.VITE_APP_VERSION | quote }}
   VITE_DEV_MODE: {{ .Values.config.env.VITE_DEV_MODE | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chat-app.fullname" . }}-client-nginx
+  labels:
+    {{- include "chat-app.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+
+        root /app/static;
+        index index.html;
+
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;" always;
+
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_comp_level 6;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/json
+            application/javascript
+            application/xml+rss
+            application/atom+xml
+            image/svg+xml;
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            access_log off;
+        }
+
+        location = /index.html {
+            expires -1;
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+            add_header Pragma "no-cache";
+        }
+
+        location ~* \.html$ {
+            expires -1;
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+            add_header Pragma "no-cache";
+        }
+
+        location ~ ^/{{ .Values.config.env.BASE_API_SLUG }}/ai/.*-stream$ {
+            gzip off;
+            proxy_pass http://{{ printf "%s.%s.svc.cluster.local" (include "chat-app.componentName" (dict "root" . "component" "server")) .Release.Namespace }}:{{ .Values.config.env.SERVER_PORT }};
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_pass_header Set-Cookie;
+            proxy_pass_header Cookie;
+            proxy_set_header Cookie $http_cookie;
+            proxy_cache_bypass $http_upgrade;
+            proxy_buffering off;
+            proxy_set_header Connection '';
+            proxy_cache off;
+            proxy_read_timeout 86400;
+        }
+
+        location /{{ .Values.config.env.BASE_API_SLUG }}/ {
+            proxy_pass http://{{ printf "%s.%s.svc.cluster.local" (include "chat-app.componentName" (dict "root" . "component" "server")) .Release.Namespace }}:{{ .Values.config.env.SERVER_PORT }}/{{ .Values.config.env.BASE_API_SLUG }}/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_pass_header Set-Cookie;
+            proxy_pass_header Cookie;
+            proxy_set_header Cookie $http_cookie;
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+            proxy_cache_bypass $http_upgrade;
+            proxy_no_cache 1;
+            proxy_cache_bypass 1;
+            proxy_intercept_errors on;
+            error_page 502 503 504 /api_error.html;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+
+        location = /api_error.html {
+            root /app/static;
+            internal;
+        }
+
+        location ~ /\. {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+
+        location ~* \.(aspx|php|jsp|cgi)$ {
+            return 410;
+        }
+    }

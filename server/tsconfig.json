@@ -18,9 +18,11 @@
     },
     "allowImportingTsExtensions": true,
     "allowJs": true,
+    "isolatedModules": true,
     // Best practices
     "strict": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
     "noPropertyAccessFromIndexSignature": false,
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,

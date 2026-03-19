@@ -3,6 +3,14 @@ import type { ZodError } from "zod";
 
 import { z } from "zod";
 
+const emptyStringToUndefined = (value: unknown) => {
+	if (typeof value === "string" && value.trim() === "") {
+		return undefined;
+	}
+
+	return value;
+};
+
 const EnvSchema = z.object({
 	AUTH_COOKIE_NAME: z.string().default("token"),
 	BASE_API_SLUG: z.string().default("api"),
@@ -11,7 +19,7 @@ const EnvSchema = z.object({
 	CORS_ORIGINS: z.string().optional(),
 	DB_URL: z.url(),
 	JWT_SECRET: z.string().min(32),
-	LANGFUSE_BASEURL: z.url().optional().default("https://cloud.langfuse.com"),
+	LANGFUSE_BASEURL: z.preprocess(emptyStringToUndefined, z.url().optional().default("https://cloud.langfuse.com")),
 	LANGFUSE_PUBLIC_KEY: z.string().optional(),
 	// Langfuse observability configuration (optional)
 	LANGFUSE_SECRET_KEY: z.string().optional(),

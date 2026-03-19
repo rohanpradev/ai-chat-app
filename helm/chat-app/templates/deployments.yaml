@@ -1,5 +1,6 @@
 {{- $appSecretName := .Values.secrets.app.existingSecret | default (printf "%s-app-secrets" (include "chat-app.fullname" .)) -}}
 {{- $configMapName := printf "%s-env" (include "chat-app.fullname" .) -}}
+{{- $clientNginxConfigMapName := printf "%s-client-nginx" (include "chat-app.fullname" .) -}}
 {{- if .Values.db.enabled }}
 apiVersion: apps/v1
 kind: Deployment
@@ -384,16 +385,18 @@ spec:
             - name: nginx-cache
               mountPath: /var/cache/nginx
             - name: nginx-conf
-              mountPath: /etc/nginx/conf.d
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
             - name: nginx-run
-              mountPath: /var/run
+              mountPath: /run/nginx
             - name: tmp
               mountPath: /tmp
       volumes:
         - name: nginx-cache
           emptyDir: {}
         - name: nginx-conf
-          emptyDir: {}
+          configMap:
+            name: {{ $clientNginxConfigMapName }}
         - name: nginx-run
           emptyDir: {}
         - name: tmp

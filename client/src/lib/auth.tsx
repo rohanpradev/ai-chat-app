@@ -34,7 +34,8 @@ export async function loadUser(queryClient: QueryClient, authContext: AuthContex
       authContext.login({ data: user, message: "User loaded" });
       return user;
     }
-  } catch (_error) {
+  } catch (error) {
+    console.error("Failed to load current user:", error);
     authContext.logout();
   }
   return null;

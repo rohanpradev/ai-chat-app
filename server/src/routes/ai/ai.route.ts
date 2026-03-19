@@ -26,7 +26,7 @@ export const aiStream = createRoute({
 					schema: ChatRequestSchema
 				}
 			},
-			description: "Schema for ai chat request with model and webSearch"
+			description: "Schema for AI chat requests with model selection and approved tool access"
 		}
 	},
 	responses: {
@@ -39,8 +39,7 @@ export const aiStream = createRoute({
 				"text/event-stream": {
 					schema: {
 						description: "Server-Sent Events stream using Vercel AI SDK UI message stream protocol",
-						example:
-							'data: {"type":"start","messageId":"msg_123"}\\n\\ndata: {"type":"text-start","id":"text-1"}\\n\\ndata: {"type":"text-delta","id":"text-1","delta":"Hello"}\\n\\ndata: {"type":"text-end","id":"text-1"}\\n\\ndata: {"type":"finish"}\\n\\ndata: [DONE]\\n\\n',
+						example: String.raw`data: {"type":"start","messageId":"msg_123"}\n\ndata: {"type":"text-start","id":"text-1"}\n\ndata: {"type":"text-delta","id":"text-1","delta":"Hello"}\n\ndata: {"type":"text-end","id":"text-1"}\n\ndata: {"type":"finish"}\n\ndata: [DONE]\n\n`,
 						type: "string"
 					}
 				}

@@ -8,26 +8,32 @@
 	},
 	"description": "A chat application built with Bun, React, and Zod.",
 	"devDependencies": {
-		"@biomejs/biome": "2.4.7",
-		"knip": "^5.86.0",
+		"@biomejs/biome": "2.4.8",
+		"knip": "^5.88.0",
 		"rimraf": "^6.1.3"
 	},
 	"name": "chat-app",
+	"packageManager": "bun@1.3.11",
 	"private": true,
 	"scripts": {
 		"app:health": "make health",
 		"app:start": "make start",
-		"check": "bunx --bun biome check --write --unsafe",
+		"build": "bun run --filter @chat-app/client build",
+		"check": "bun run lint && bun run typecheck && bun run test",
 		"clean": "rimraf node_modules bun.lock",
-		"format": "bunx --bun biome format --write",
+		"dev": "bun run --filter '*' dev",
+		"format": "bunx --bun biome format . --write",
 		"k8s:deploy": "bash scripts/deploy-k8s.sh",
 		"k8s:prepare": "bash scripts/ensure-k8s-secrets.sh",
 		"k8s:status": "kubectl get all -n default",
 		"k8s:validate": "bun run k8s:prepare && helm lint helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml && helm template chat-app helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml > /dev/null",
 		"knip": "knip",
 		"knip:production": "knip --production",
-		"lint": "bunx --bun biome lint",
-		"start": "bun run --filter '*' dev"
+		"lint": "bunx --bun biome check .",
+		"lint:fix": "bunx --bun biome check . --write --unsafe",
+		"start": "bun run dev",
+		"test": "bun run --filter '*' test",
+		"typecheck": "bun run --filter '*' typecheck"
 	},
 	"type": "module",
 	"workspaces": [

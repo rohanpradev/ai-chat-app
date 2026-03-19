@@ -23,6 +23,14 @@ HELM_ARGS=(
   -f "${CHART_DIR}/values.local.yaml"
 )
 
+# Local Kubernetes uses stable image tags such as :latest with imagePullPolicy=Never.
+# Bump pod-template annotations on each deploy so rebuilt local images actually roll out.
+BUILD_STAMP="$(date -u +%Y%m%d%H%M%S)"
+HELM_ARGS+=(
+  --set-string "client.podAnnotations.local-build-timestamp=${BUILD_STAMP}"
+  --set-string "server.podAnnotations.local-build-timestamp=${BUILD_STAMP}"
+)
+
 if [ "${ROLLBACK_ON_FAILURE}" = "true" ]; then
   HELM_ARGS+=(--rollback-on-failure)
 fi

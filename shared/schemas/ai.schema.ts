@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { modelIds } from "../models";
+import { enabledRequestToolIds } from "../tools";
 import { UIMessagesArraySchema } from "./ui-message.schema";
 
 export const AIStreamResponseHeaders = {
@@ -46,8 +47,7 @@ export const ChatRequestSchema = z
 			error: "No messages provided",
 		}).describe("Array of chat messages"),
 		model: z.enum(modelIds).optional().describe("AI model to use"),
-		tools: z.array(z.string()).optional().describe("Available tools"),
-		webSearch: z.boolean().optional().default(false).describe("Enable web search"),
+		tools: z.array(z.enum(enabledRequestToolIds)).optional().describe("Approved server-side tools to make available"),
 	})
 	// Allow unknown props to safely ignore future additions from clients
 	.loose();

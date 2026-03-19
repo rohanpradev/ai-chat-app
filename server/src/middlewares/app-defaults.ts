@@ -28,9 +28,9 @@ export const onError: ErrorHandler = (error, c) => {
 	const currentStatus =
 		"status" in error && typeof error.status === "number" ? error.status : c.newResponse(null).status;
 	const statusCode =
-		currentStatus !== HttpStatusCodes.OK
-			? (currentStatus as ContentfulStatusCode)
-			: HttpStatusCodes.INTERNAL_SERVER_ERROR;
+		currentStatus === HttpStatusCodes.OK
+			? HttpStatusCodes.INTERNAL_SERVER_ERROR
+			: (currentStatus as ContentfulStatusCode);
 
 	return c.json(
 		{

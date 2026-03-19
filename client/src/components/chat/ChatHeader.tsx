@@ -18,7 +18,7 @@ interface ChatHeaderProps {
   onLogout: () => void;
 }
 
-export function ChatHeader({ user, onLogout }: ChatHeaderProps) {
+export function ChatHeader({ user, onLogout }: Readonly<ChatHeaderProps>) {
   const navigate = useNavigate();
   const { mutate: createChat, status } = useCreateChat();
 

@@ -4,7 +4,8 @@ const defaults: Record<string, string> = {
 	JWT_SECRET: "test_secret_minimum_32_characters",
 	NODE_ENV: "test",
 	OPENAI_API_KEY: "test-openai-key",
-	REDIS_URL: "redis://localhost:6379"
+	REDIS_URL: "redis://localhost:6379",
+	SERPER_API_KEY: "test-serper-key"
 };
 
 for (const [key, value] of Object.entries(defaults)) {

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_DEV_IMAGE=dhi.io/bun:1.3.9-dev
-ARG BUN_RUNTIME_IMAGE=dhi.io/bun:1.3.9
+ARG BUN_DEV_IMAGE=dhi.io/bun:1.3.11-dev
+ARG BUN_RUNTIME_IMAGE=dhi.io/bun:1.3.11
 ARG NGINX_IMAGE=dhi.io/nginx:1.29.5
 
 # Stage 1: Production dependencies only
@@ -10,9 +10,10 @@ WORKDIR /app
 
 # Copy package files for dependency resolution
 COPY package.json bun.lock* ./
-COPY client/package.json ./client/
-COPY server/package.json ./server/
-COPY shared/package.json ./shared/
+COPY tsconfig.json ./
+COPY client/package.json client/tsconfig.json ./client/
+COPY server/package.json server/tsconfig.json ./server/
+COPY shared/package.json shared/tsconfig.json ./shared/
 
 # Install all dependencies (needed for monorepo workspace resolution)
 RUN bun install --frozen-lockfile
@@ -23,9 +24,10 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json bun.lock* ./
-COPY client/package.json ./client/
-COPY server/package.json ./server/
-COPY shared/package.json ./shared/
+COPY tsconfig.json ./
+COPY client/package.json client/tsconfig.json ./client/
+COPY server/package.json server/tsconfig.json ./server/
+COPY shared/package.json shared/tsconfig.json ./shared/
 
 # Install all dependencies (including dev for building)
 RUN bun install --frozen-lockfile
@@ -56,7 +58,7 @@ COPY --from=client-build --chown=65532:65532 --chmod=0444 /app/client/nginx.conf
 
 USER 65532
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["-g", "daemon off;"]
 
 # Stage 5: Server production
 FROM ${BUN_RUNTIME_IMAGE} AS server-prod

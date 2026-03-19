@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useApi } from "@/composables/useApi";
+import { getApiClient } from "@/composables/useApi";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 
 export const useUserLogout = () => {
-  const api = useApi();
+  const api = getApiClient();
   const { auth } = useRouteContext({ strict: false });
   const navigate = useNavigate();
   const queryClient = useQueryClient();

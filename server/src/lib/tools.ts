@@ -1,87 +1,250 @@
+import {
+	type EnabledRequestToolId,
+	type SerperToolOutput,
+	serperOutputSchema,
+	uiMessageToolDefinitions
+} from "@chat-app/shared";
 import { type ToolSet, tool } from "ai";
-import { z } from "zod";
 import env from "@/utils/env";
 
-export const tools = {
-	deepSearch: tool({
-		description: "Perform deep web search with advanced filtering and analysis",
-		execute: async ({ query, maxResults, timeRange }) => {
-			return {
-				maxResults: maxResults || 10,
-				message: "Deep search functionality not yet implemented",
-				query,
-				results: [],
-				timeRange: timeRange || "all",
-				totalFound: 0
-			};
-		},
-		inputSchema: z.object({
-			maxResults: z.number().optional().describe("Maximum number of results"),
-			query: z.string().describe("Search query"),
-			timeRange: z.string().optional().describe("Time range: day, week, month, year, all")
-		})
-	}),
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
 
-	serper: tool({
-		description: "Search the web using Serper API for real-time results",
-		execute: async ({ q }) => {
-			try {
-				const apiKey = env.SERPER_API_KEY;
-				if (!apiKey) {
-					return {
-						error: "SERPER_API_KEY not configured",
-						query: q
-					};
-				}
+const toOptionalNumber = (value: unknown): number | undefined => {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return value;
+	}
 
-				const response = await fetch("https://google.serper.dev/search", {
-					body: JSON.stringify({ q }),
-					headers: {
-						"Content-Type": "application/json",
-						"X-API-KEY": apiKey
-					},
-					method: "POST"
-				});
+	if (typeof value === "string") {
+		const normalized = Number(value.replaceAll(",", ""));
+		if (Number.isFinite(normalized)) {
+			return normalized;
+		}
+	}
 
-				if (!response.ok) {
-					throw new Error(`Serper API error: ${response.status}`);
-				}
+	return undefined;
+};
 
-				const data = await response.json();
-				return {
-					answerBox: data.answerBox,
-					knowledgeGraph: data.knowledgeGraph,
-					organic: data.organic?.slice(0, 10) || [],
-					peopleAlsoAsk: data.peopleAlsoAsk,
-					query: q,
-					relatedSearches: data.relatedSearches,
-					searchInformation: data.searchInformation,
-					totalResults: data.searchInformation?.totalResults || 0
-				};
-			} catch (error) {
-				return {
-					error: error instanceof Error ? error.message : "Unknown error",
-					query: q
-				};
+const toOptionalString = (value: unknown): string | undefined => {
+	if (typeof value !== "string") {
+		return undefined;
+	}
+
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const toOptionalUrl = (value: unknown): string | undefined => {
+	const url = toOptionalString(value);
+	if (!url) {
+		return undefined;
+	}
+
+	try {
+		new URL(url);
+		return url;
+	} catch {
+		return undefined;
+	}
+};
+
+const normalizeStringRecord = (value: unknown): Record<string, string> | undefined => {
+	if (!isRecord(value)) {
+		return undefined;
+	}
+
+	const record = Object.entries(value).reduce<Record<string, string>>((accumulator, [key, entryValue]) => {
+		const normalizedValue = toOptionalString(entryValue);
+
+		if (normalizedValue !== undefined) {
+			accumulator[key] = normalizedValue;
+		}
+
+		return accumulator;
+	}, {});
+
+	return Object.keys(record).length > 0 ? record : undefined;
+};
+
+const normalizeSerperOutput = (query: string, payload: unknown): SerperToolOutput => {
+	const data = isRecord(payload) ? payload : {};
+	const answerBox = isRecord(data.answerBox)
+		? {
+				answer: toOptionalString(data.answerBox.answer),
+				link: toOptionalUrl(data.answerBox.link),
+				snippet: toOptionalString(data.answerBox.snippet),
+				title: toOptionalString(data.answerBox.title)
 			}
+		: undefined;
+
+	const knowledgeGraph = isRecord(data.knowledgeGraph)
+		? {
+				attributes: normalizeStringRecord(data.knowledgeGraph.attributes),
+				description: toOptionalString(data.knowledgeGraph.description),
+				descriptionLink: toOptionalUrl(data.knowledgeGraph.descriptionLink),
+				title: toOptionalString(data.knowledgeGraph.title),
+				type: toOptionalString(data.knowledgeGraph.type),
+				website: toOptionalUrl(data.knowledgeGraph.website)
+			}
+		: undefined;
+
+	const organic = Array.isArray(data.organic)
+		? data.organic
+				.map((entry, index) => {
+					if (!isRecord(entry)) {
+						return null;
+					}
+
+					const link = toOptionalUrl(entry.link);
+					const title = toOptionalString(entry.title);
+					if (!link || !title) {
+						return null;
+					}
+
+					return {
+						date: toOptionalString(entry.date),
+						link,
+						position: toOptionalNumber(entry.position) ?? index + 1,
+						snippet: toOptionalString(entry.snippet) ?? "",
+						source: toOptionalString(entry.source),
+						title
+					};
+				})
+				.filter((entry) => entry !== null)
+				.slice(0, 8)
+		: [];
+
+	const peopleAlsoAsk = Array.isArray(data.peopleAlsoAsk)
+		? data.peopleAlsoAsk
+				.map((entry) => {
+					if (!isRecord(entry)) {
+						return null;
+					}
+
+					const question = toOptionalString(entry.question);
+					if (!question) {
+						return null;
+					}
+
+					return {
+						link: toOptionalUrl(entry.link),
+						question,
+						snippet: toOptionalString(entry.snippet),
+						title: toOptionalString(entry.title)
+					};
+				})
+				.filter((entry) => entry !== null)
+				.slice(0, 5)
+		: [];
+
+	const relatedSearches = Array.isArray(data.relatedSearches)
+		? data.relatedSearches
+				.map((entry) => {
+					if (!isRecord(entry)) {
+						return null;
+					}
+
+					const relatedQuery = toOptionalString(entry.query);
+					return relatedQuery ? { query: relatedQuery } : null;
+				})
+				.filter((entry) => entry !== null)
+				.slice(0, 6)
+		: [];
+
+	const totalResults =
+		toOptionalNumber(isRecord(data.searchInformation) ? data.searchInformation.totalResults : undefined) ??
+		organic.length;
+
+	return serperOutputSchema.parse({
+		answerBox: answerBox && Object.values(answerBox).some((value) => value !== undefined) ? answerBox : undefined,
+		knowledgeGraph:
+			knowledgeGraph && Object.values(knowledgeGraph).some((value) => value !== undefined) ? knowledgeGraph : undefined,
+		organic,
+		peopleAlsoAsk,
+		relatedSearches,
+		searchParameters: { q: query },
+		totalResults
+	});
+};
+
+const buildSerperModelOutput = (output: SerperToolOutput): string => {
+	let answerBoxSummary: string | undefined;
+
+	if (output.answerBox?.answer) {
+		answerBoxSummary = `Answer box: ${output.answerBox.answer}`;
+	} else if (output.answerBox?.snippet) {
+		answerBoxSummary = `Answer box: ${output.answerBox.snippet}`;
+	}
+
+	let knowledgeGraphSummary: string | undefined;
+	if (output.knowledgeGraph?.title) {
+		const typeSuffix = output.knowledgeGraph.type ? ` (${output.knowledgeGraph.type})` : "";
+		const descriptionSuffix = output.knowledgeGraph.description ? ` - ${output.knowledgeGraph.description}` : "";
+		knowledgeGraphSummary = `Knowledge graph: ${output.knowledgeGraph.title}${typeSuffix}${descriptionSuffix}`;
+	}
+
+	const organicSummary =
+		output.organic.length > 0
+			? [
+					"Top search results:",
+					...output.organic
+						.slice(0, 5)
+						.map((result) => `${result.position}. ${result.title} - ${result.snippet} (${result.link})`)
+				].join("\n")
+			: "No organic search results were returned.";
+
+	const sections = [
+		`Web search query: ${output.searchParameters.q}`,
+		answerBoxSummary,
+		knowledgeGraphSummary,
+		organicSummary,
+		output.peopleAlsoAsk.length > 0
+			? `People also ask: ${output.peopleAlsoAsk.map((entry) => entry.question).join("; ")}`
+			: undefined,
+		output.relatedSearches.length > 0
+			? `Related searches: ${output.relatedSearches.map((entry) => entry.query).join("; ")}`
+			: undefined
+	];
+
+	return sections.filter((section): section is string => Boolean(section)).join("\n\n");
+};
+
+export const tools = {
+	serper: tool({
+		...uiMessageToolDefinitions.serper,
+		execute: async ({ q }, { abortSignal }) => {
+			const apiKey = env.SERPER_API_KEY;
+			if (!apiKey) {
+				throw new Error("SERPER_API_KEY is not configured");
+			}
+
+			const response = await fetch("https://google.serper.dev/search", {
+				body: JSON.stringify({ q }),
+				headers: {
+					"Content-Type": "application/json",
+					"X-API-KEY": apiKey
+				},
+				method: "POST",
+				signal: abortSignal
+			});
+
+			if (!response.ok) {
+				throw new Error(`Serper API error: ${response.status}`);
+			}
+
+			return normalizeSerperOutput(q, await response.json());
 		},
-		inputSchema: z.object({
-			q: z.string().describe("Search query")
+		needsApproval: true,
+		toModelOutput: async ({ output }) => ({
+			type: "text",
+			value: buildSerperModelOutput(output)
 		})
 	})
 } satisfies ToolSet;
 
 export type AvailableTools = ToolSet;
 
-export function getAvailableTools(toolNames?: string[]): AvailableTools | undefined {
-	if (!toolNames || toolNames.length === 0) {
-		return undefined;
-	}
+export const getActiveTools = (toolNames: EnabledRequestToolId[] = []): EnabledRequestToolId[] =>
+	Array.from(new Set(toolNames.filter((toolName) => toolName in tools)));
 
-	return toolNames.reduce((selectedTools, toolName) => {
-		if (toolName in tools) {
-			selectedTools[toolName] = tools[toolName as keyof typeof tools];
-		}
-		return selectedTools;
-	}, {} as ToolSet);
-}
+export const executableTools = tools satisfies AvailableTools;
