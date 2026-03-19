@@ -54,7 +54,7 @@ function getDeterministicSkeletonWidth(seed: string) {
   let hash = 0;
 
   for (const char of seed) {
-    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    hash = (hash * 31 + (char.codePointAt(0) ?? 0)) >>> 0;
   }
 
   return SIDEBAR_SKELETON_WIDTHS[hash % SIDEBAR_SKELETON_WIDTHS.length];
@@ -106,7 +106,7 @@ function SidebarProvider({
         "samesite=lax",
       ];
 
-      if (window.location.protocol === "https:") {
+      if (globalThis.location.protocol === "https:") {
         cookieParts.push("secure");
       }
 
@@ -132,8 +132,8 @@ function SidebarProvider({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [toggleSidebar]);
 
   // We add a state so that we can do data-state="expanded" or "collapsed".

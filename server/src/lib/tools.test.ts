@@ -83,7 +83,7 @@ describe("serper tool", () => {
 
 		expect(modelOutput).toBeDefined();
 		expect(modelOutput?.type).toBe("text");
-		if (!modelOutput || modelOutput.type !== "text") {
+		if (modelOutput?.type !== "text") {
 			throw new Error("Expected text model output");
 		}
 
