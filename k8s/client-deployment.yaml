@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: chat-app-client
-          image: chat-app-client:latest
+          image: chat-app-client:1.0.0
           imagePullPolicy: Never
           env:
             - name: BASE_API_SLUG
@@ -52,9 +52,11 @@ spec:
           resources:
             requests:
               cpu: 250m
+              ephemeral-storage: 256Mi
               memory: 128Mi
             limits:
               cpu: 500m
+              ephemeral-storage: 512Mi
               memory: 256Mi
           securityContext:
             runAsUser: 0

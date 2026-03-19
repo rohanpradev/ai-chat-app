@@ -25,6 +25,7 @@ read_env() {
   fi
 
   printf '%s' "${value}"
+  return 0
 }
 
 JWT_SECRET="$(read_env JWT_SECRET)"
@@ -36,6 +37,7 @@ SERPER_API_KEY="$(read_env SERPER_API_KEY)"
 
 yaml_escape() {
   printf '%s' "${1:-}" | sed 's/\\/\\\\/g; s/"/\\"/g'
+  return 0
 }
 
 cat > "${VALUES_FILE}" <<EOF

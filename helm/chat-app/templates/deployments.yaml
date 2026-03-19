@@ -97,7 +97,14 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
           resources:
-            {{- toYaml .Values.db.resources | nindent 12 }}
+            requests:
+              cpu: {{ .Values.db.resources.requests.cpu | quote }}
+              memory: {{ .Values.db.resources.requests.memory | quote }}
+              ephemeral-storage: {{ .Values.db.resources.requests.ephemeralStorage | quote }}
+            limits:
+              cpu: {{ .Values.db.resources.limits.cpu | quote }}
+              memory: {{ .Values.db.resources.limits.memory | quote }}
+              ephemeral-storage: {{ .Values.db.resources.limits.ephemeralStorage | quote }}
           securityContext:
             {{- toYaml .Values.db.securityContext | nindent 12 }}
           volumeMounts:
@@ -189,7 +196,14 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
           resources:
-            {{- toYaml .Values.redis.resources | nindent 12 }}
+            requests:
+              cpu: {{ .Values.redis.resources.requests.cpu | quote }}
+              memory: {{ .Values.redis.resources.requests.memory | quote }}
+              ephemeral-storage: {{ .Values.redis.resources.requests.ephemeralStorage | quote }}
+            limits:
+              cpu: {{ .Values.redis.resources.limits.cpu | quote }}
+              memory: {{ .Values.redis.resources.limits.memory | quote }}
+              ephemeral-storage: {{ .Values.redis.resources.limits.ephemeralStorage | quote }}
           securityContext:
             {{- toYaml .Values.redis.securityContext | nindent 12 }}
           volumeMounts:
@@ -280,7 +294,14 @@ spec:
           livenessProbe:
             {{- toYaml .Values.server.livenessProbe | nindent 12 }}
           resources:
-            {{- toYaml .Values.server.resources | nindent 12 }}
+            requests:
+              cpu: {{ .Values.server.resources.requests.cpu | quote }}
+              memory: {{ .Values.server.resources.requests.memory | quote }}
+              ephemeral-storage: {{ .Values.server.resources.requests.ephemeralStorage | quote }}
+            limits:
+              cpu: {{ .Values.server.resources.limits.cpu | quote }}
+              memory: {{ .Values.server.resources.limits.memory | quote }}
+              ephemeral-storage: {{ .Values.server.resources.limits.ephemeralStorage | quote }}
           securityContext:
             {{- toYaml .Values.server.securityContext | nindent 12 }}
           volumeMounts:
@@ -378,7 +399,14 @@ spec:
           livenessProbe:
             {{- toYaml .Values.client.livenessProbe | nindent 12 }}
           resources:
-            {{- toYaml .Values.client.resources | nindent 12 }}
+            requests:
+              cpu: {{ .Values.client.resources.requests.cpu | quote }}
+              memory: {{ .Values.client.resources.requests.memory | quote }}
+              ephemeral-storage: {{ .Values.client.resources.requests.ephemeralStorage | quote }}
+            limits:
+              cpu: {{ .Values.client.resources.limits.cpu | quote }}
+              memory: {{ .Values.client.resources.limits.memory | quote }}
+              ephemeral-storage: {{ .Values.client.resources.limits.ephemeralStorage | quote }}
           securityContext:
             {{- toYaml .Values.client.securityContext | nindent 12 }}
           volumeMounts:
