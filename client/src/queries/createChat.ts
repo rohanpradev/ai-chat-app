@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApi } from "@/composables/useApi";
+import { getApiClient } from "@/composables/useApi";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
 
 export const useCreateChat = () => {
-  const api = useApi();
+  const api = getApiClient();
   const queryClient = useQueryClient();
 
   return useMutation({

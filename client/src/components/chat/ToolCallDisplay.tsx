@@ -17,7 +17,7 @@ interface ToolCallDisplayProps {
   toolResult?: ToolResult;
 }
 
-export function ToolCallDisplay({ toolCall, toolResult }: ToolCallDisplayProps) {
+export function ToolCallDisplay({ toolCall, toolResult }: Readonly<ToolCallDisplayProps>) {
   if (!toolCall && !toolResult) return null;
 
   const isComplete = !!toolResult;

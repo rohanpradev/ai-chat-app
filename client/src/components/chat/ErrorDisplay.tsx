@@ -7,7 +7,7 @@ interface ErrorDisplayProps {
   onClear: () => void;
 }
 
-export function ErrorDisplay({ error, onRetry, onClear }: ErrorDisplayProps) {
+export function ErrorDisplay({ error, onRetry, onClear }: Readonly<ErrorDisplayProps>) {
   return (
     <div className="flex items-start gap-3 p-4 border border-red-200 rounded-lg bg-red-50 dark:bg-red-950/20 dark:border-red-800">
       <AlertCircleIcon className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />

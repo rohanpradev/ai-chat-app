@@ -1,9 +1,9 @@
 import type { UIMessage } from "ai";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
-import * as HttpStatusCodes from "stoker/http-status-codes";
 import { db } from "@/db";
 import { chats, messages } from "@/db/schema";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
 
 export const saveConversation = async (chatId: string | undefined, uiMessages: UIMessage[], userId: string) => {
 	if (!chatId) return;
@@ -19,7 +19,9 @@ export const saveConversation = async (chatId: string | undefined, uiMessages: U
 	if (existingChat) {
 		// If chat exists but belongs to a different user, throw error
 		if (existingChat.userId !== userId) {
-			throw new HTTPException(HttpStatusCodes.FORBIDDEN, { message: "Chat ID already exists under a different user" });
+			throw new HTTPException(HttpStatusCodes.FORBIDDEN, {
+				message: "Chat ID already exists under a different user"
+			});
 		}
 		// Delete all existing messages
 		await db.delete(messages).where(eq(messages.chatId, chatId));

@@ -191,3 +191,4 @@ dist
 .DS_Store
 
 .tanstack/
+.scannerwork/

@@ -1,13 +1,13 @@
+import { webSearchToolId } from "@chat-app/shared";
+
 export interface ChatRequestBodyOptions {
   conversationId?: string;
   model: string;
-  selectedTools: string[];
   webSearch: boolean;
 }
 
-export const buildChatRequestBody = ({ conversationId, model, selectedTools, webSearch }: ChatRequestBodyOptions) => ({
+export const buildChatRequestBody = ({ conversationId, model, webSearch }: ChatRequestBodyOptions) => ({
   model,
-  tools: selectedTools,
-  webSearch,
+  ...(webSearch ? { tools: [webSearchToolId] } : {}),
   ...(conversationId ? { chatId: conversationId } : {}),
 });

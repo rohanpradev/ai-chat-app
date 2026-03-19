@@ -27,7 +27,7 @@ export interface CacheEntry {
 }
 
 class HonoRedisCache {
-	private client: RedisCommandClient;
+	private readonly client: RedisCommandClient;
 
 	constructor(customClient?: RedisCommandClient) {
 		this.client = customClient || redis;
@@ -252,4 +252,4 @@ export const userCache = (keyPattern: string, options: Omit<RedisCacheOptions, "
 	});
 };
 
-export { HonoRedisCache, cacheInstance };
+export { cacheInstance, HonoRedisCache };

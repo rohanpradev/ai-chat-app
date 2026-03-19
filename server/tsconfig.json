@@ -13,18 +13,16 @@
     "moduleResolution": "bundler",
     "paths": {
       "@/*": ["src/*"],
-      "@hono/*": ["../node_modules/@hono/*"],
-      "hono": ["../node_modules/hono"],
-      "hono/*": ["../node_modules/hono/*"],
-      "hono-pino": ["../node_modules/hono-pino"],
-      "stoker": ["../node_modules/stoker"],
-      "stoker/*": ["../node_modules/stoker/*"],
+      "hono": ["node_modules/hono"],
+      "hono/*": ["node_modules/hono/*"],
     },
     "allowImportingTsExtensions": true,
     "allowJs": true,
+    "isolatedModules": true,
     // Best practices
     "strict": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
     "noPropertyAccessFromIndexSignature": false,
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,

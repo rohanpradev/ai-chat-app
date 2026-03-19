@@ -12,6 +12,7 @@ function create_database() {
 	    SELECT 'CREATE DATABASE $database'
 	    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$database')\gexec
 EOSQL
+	return 0
 }
 
 if [ -n "$POSTGRES_MULTIPLE_DATABASES" ]; then

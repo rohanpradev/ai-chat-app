@@ -85,6 +85,31 @@ Run the client and server directly:
 make local
 ```
 
+Recommended workspace checks:
+
+```bash
+bun run typecheck
+bun run lint
+bun run test
+bun run build
+```
+
+Clean rebootstrap from an empty workspace:
+
+```bash
+bun install --frozen-lockfile
+bun run lint
+bun run typecheck
+bun run test
+bun run build
+```
+
+Script intent:
+
+- `bun run dev`: starts every workspace in watch mode
+- `bun run check`: non-mutating quality gate for lint, types, and tests
+- `bun run lint:fix`: applies Biome fixes and safe assists
+
 ## Kubernetes
 
 The Kubernetes path is driven by the Helm chart in `helm/chat-app`.
@@ -150,3 +175,17 @@ The migration step is required. Without it, registration fails because the `user
 
 - OpenAI is the AI provider used for this project.
 - Azure-related fields may still exist in chart/env plumbing, but the README and expected local setup assume OpenAI-first usage.
+
+## Cleanup
+
+Safe-to-delete local artifacts:
+
+- repo root `node_modules/`
+- `client/dist/`
+- `client/coverage/`
+- `server/coverage/`
+- `helm/chat-app/values.local.yaml`
+- local Docker images tagged `chat-app-*`
+- local Docker build cache
+
+Everything above is recreatable from the lockfile, source tree, and repo-root `.env`.

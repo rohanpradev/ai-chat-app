@@ -1,5 +1,6 @@
 import type { z } from "@hono/zod-openapi";
-import { models } from "./models";
+
+export { models } from "./models";
 
 // Import only used schemas
 import type {
@@ -35,8 +36,5 @@ export type ApiError = ErrorResponse & {
 // Model Types
 export type Model = z.infer<typeof ModelSchema>;
 export type ModelsArray = z.infer<typeof ModelsArraySchema>;
-export { models };
-
 // Auth-related composite types
 export type AuthResponse = z.infer<typeof MeResponseSchema>;
-export type AuthError = ApiError;

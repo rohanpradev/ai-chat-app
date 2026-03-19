@@ -109,6 +109,7 @@ shared/*.test.*
 **/.eslint*
 **/.prettier*
 **/tsconfig.json
+!tsconfig.json
 !server/tsconfig.json
 !client/tsconfig.json
 !shared/tsconfig.json

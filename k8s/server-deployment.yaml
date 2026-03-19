@@ -26,7 +26,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: chat-app-server
-          image: chat-app-server:latest
+          image: chat-app-server:1.0.0
           imagePullPolicy: Never
           envFrom:
             - configMapRef:
@@ -55,9 +55,11 @@ spec:
           resources:
             requests:
               cpu: 500m
+              ephemeral-storage: 512Mi
               memory: 512Mi
             limits:
               cpu: "1"
+              ephemeral-storage: 1Gi
               memory: 1Gi
           securityContext:
             runAsNonRoot: true

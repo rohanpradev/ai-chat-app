@@ -2,25 +2,25 @@ import { useChat } from "@ai-sdk/react";
 import { type MyUIMessage, models, validateMyUIMessages } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { DefaultChatTransport } from "ai";
-import { useState } from "react";
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
+import { useRef, useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
-import { useApi } from "@/composables/useApi";
+import { getApiClient } from "@/composables/useApi";
 import { buildChatRequestBody } from "@/lib/chat-request";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
 
 const getConversationQuery = (conversationId: string) => {
-  const api = useApi();
+  const api = getApiClient();
   return queryOptions({
-    queryKey: CHAT_QUERY_KEY.conversation(conversationId),
     queryFn: () => api.conversations.get(conversationId),
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    queryKey: CHAT_QUERY_KEY.conversation(conversationId),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: (failureCount, error) => {
       const status = (error as Error & { status?: number })?.status;
@@ -37,11 +37,10 @@ export const Route = createFileRoute("/chat/$conversationId")({
     try {
       const conversation = await context.queryClient.ensureQueryData(chatQuery);
 
-      // Allow empty conversations (new chats)
       if (!conversation) {
         throw redirect({
-          to: ChatIndexRoute.to,
           search: { redirect: undefined },
+          to: ChatIndexRoute.to,
         });
       }
 
@@ -68,9 +67,9 @@ export const Route = createFileRoute("/chat/$conversationId")({
 
         return {
           id: msg.id,
-          role: normalizeRole(msg.role),
-          parts: uiParts,
           metadata: msg.metadata || {},
+          parts: uiParts,
+          role: normalizeRole(msg.role),
         };
       });
 
@@ -82,22 +81,16 @@ export const Route = createFileRoute("/chat/$conversationId")({
       };
     } catch (error) {
       if (error && typeof error === "object" && "to" in error) {
-        throw error; // Re-throw redirect errors
+        throw error;
       }
       console.error("Failed to load chat:", error);
-      // Don't redirect on API errors, allow empty chat
       return {
-        chat: { id: params.conversationId, title: "New Chat", messages: [] },
+        chat: { id: params.conversationId, messages: [], title: "New Chat" },
         initialMessages: [],
       };
     }
   },
   component: ConversationChat,
-  pendingComponent: () => (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-    </div>
-  ),
   errorComponent: ({ error }) => (
     <div className="flex-1 flex items-center justify-center p-4">
       <div className="text-center">
@@ -105,12 +98,17 @@ export const Route = createFileRoute("/chat/$conversationId")({
         <p className="text-gray-600 mb-4">{error.message}</p>
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={() => globalThis.location.reload()}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Retry
         </button>
       </div>
+    </div>
+  ),
+  pendingComponent: () => (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
     </div>
   ),
 });
@@ -121,34 +119,45 @@ function ConversationChat() {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].id);
   const [webSearch, setWebSearch] = useState(false);
-  const [selectedTools, setSelectedTools] = useState<string[]>([]);
-
-  const { messages, sendMessage, status, error, clearError, regenerate } = useChat<MyUIMessage>({
-    id: conversationId,
-    messages: initialMessages as MyUIMessage[],
-    transport: new DefaultChatTransport({
+  const requestBodyRef = useRef(buildChatRequestBody({ conversationId, model, webSearch }));
+  const transportRef = useRef(
+    new DefaultChatTransport<MyUIMessage>({
       api: "/api/ai/text-stream",
       credentials: "include",
+      prepareSendMessagesRequest: ({ body, id, messageId, messages, trigger }) => ({
+        body: {
+          ...body,
+          id,
+          messageId,
+          messages,
+          trigger,
+          ...requestBodyRef.current,
+        },
+      }),
     }),
+  );
+
+  requestBodyRef.current = buildChatRequestBody({
+    conversationId,
+    model,
+    webSearch,
   });
+
+  const { messages, sendMessage, status, error, clearError, regenerate, addToolApprovalResponse } =
+    useChat<MyUIMessage>({
+      id: conversationId,
+      messages: initialMessages as MyUIMessage[],
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+      transport: transportRef.current,
+    });
 
   const handleMessageSend = async (message: PromptInputMessage) => {
     const fileParts = message.files && message.files.length > 0 ? await convertFilesToDataURLs(message.files) : [];
 
-    sendMessage(
-      {
-        role: "user",
-        parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
-      },
-      {
-        body: buildChatRequestBody({
-          conversationId,
-          model,
-          selectedTools,
-          webSearch,
-        }),
-      },
-    );
+    sendMessage({
+      role: "user",
+      parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
+    });
   };
 
   return (
@@ -161,6 +170,7 @@ function ConversationChat() {
             error={error}
             onRetry={() => regenerate()}
             onClearError={clearError}
+            onToolApprovalResponse={addToolApprovalResponse}
           />
         </ConversationContent>
         <ConversationScrollButton />
@@ -174,8 +184,6 @@ function ConversationChat() {
           setModel={setModel}
           webSearch={webSearch}
           setWebSearch={setWebSearch}
-          selectedTools={selectedTools}
-          setSelectedTools={setSelectedTools}
           onMessageSend={handleMessageSend}
           status={status}
         />

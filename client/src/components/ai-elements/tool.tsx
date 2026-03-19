@@ -20,8 +20,6 @@ import {
 } from "lucide-react";
 import { isValidElement } from "react";
 
-import { CodeBlock } from "./code-block";
-
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
@@ -87,7 +85,7 @@ export const ToolHeader = ({
     <CollapsibleTrigger
       className={cn(
         "flex w-full items-center justify-between gap-4 p-3",
-        className
+        className,
       )}
       {...props}
     >
@@ -107,7 +105,7 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className
+      className,
     )}
     {...props}
   />
@@ -117,13 +115,30 @@ export type ToolInputProps = ComponentProps<"div"> & {
   input: ToolPart["input"];
 };
 
+const ToolCode = ({
+  code,
+  className,
+}: {
+  code: string;
+  className?: string;
+}) => (
+  <pre
+    className={cn(
+      "overflow-x-auto p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words",
+      className,
+    )}
+  >
+    <code>{code}</code>
+  </pre>
+);
+
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
     <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
       Parameters
     </h4>
     <div className="rounded-md bg-muted/50">
-      <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+      <ToolCode code={JSON.stringify(input, null, 2)} />
     </div>
   </div>
 );
@@ -146,11 +161,9 @@ export const ToolOutput = ({
   let Output = <div>{output as ReactNode}</div>;
 
   if (typeof output === "object" && !isValidElement(output)) {
-    Output = (
-      <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
-    );
+    Output = <ToolCode code={JSON.stringify(output, null, 2)} />;
   } else if (typeof output === "string") {
-    Output = <CodeBlock code={output} language="json" />;
+    Output = <ToolCode code={output} />;
   }
 
   return (
@@ -163,7 +176,7 @@ export const ToolOutput = ({
           "overflow-x-auto rounded-md text-xs [&_table]:w-full",
           errorText
             ? "bg-destructive/10 text-destructive"
-            : "bg-muted/50 text-foreground"
+            : "bg-muted/50 text-foreground",
         )}
       >
         {errorText && <div>{errorText}</div>}

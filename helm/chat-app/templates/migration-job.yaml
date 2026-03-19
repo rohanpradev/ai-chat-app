@@ -46,7 +46,14 @@ spec:
             - secretRef:
                 name: {{ $appSecretName }}
           resources:
-            {{- toYaml .Values.migration.resources | nindent 12 }}
+            requests:
+              cpu: {{ .Values.migration.resources.requests.cpu | quote }}
+              memory: {{ .Values.migration.resources.requests.memory | quote }}
+              ephemeral-storage: {{ .Values.migration.resources.requests.ephemeralStorage | quote }}
+            limits:
+              cpu: {{ .Values.migration.resources.limits.cpu | quote }}
+              memory: {{ .Values.migration.resources.limits.memory | quote }}
+              ephemeral-storage: {{ .Values.migration.resources.limits.ephemeralStorage | quote }}
           securityContext:
             {{- toYaml .Values.migration.securityContext | nindent 12 }}
           volumeMounts:

@@ -156,9 +156,11 @@ server:
   resources:
     requests:
       cpu: 500m
+      ephemeralStorage: 512Mi
       memory: 512Mi
     limits:
       cpu: "1"
+      ephemeralStorage: 1Gi
       memory: 1Gi
   persistence:
     uploads:
@@ -238,9 +240,11 @@ client:
   resources:
     requests:
       cpu: 250m
+      ephemeralStorage: 256Mi
       memory: 128Mi
     limits:
       cpu: 500m
+      ephemeralStorage: 512Mi
       memory: 256Mi
   hpa:
     enabled: true
@@ -267,9 +271,11 @@ db:
   resources:
     requests:
       cpu: 250m
+      ephemeralStorage: 1Gi
       memory: 512Mi
     limits:
       cpu: "1"
+      ephemeralStorage: 2Gi
       memory: 1Gi
   persistence:
     enabled: true
@@ -295,9 +301,11 @@ redis:
   resources:
     requests:
       cpu: 100m
+      ephemeralStorage: 256Mi
       memory: 256Mi
     limits:
       cpu: 500m
+      ephemeralStorage: 1Gi
       memory: 512Mi
   persistence:
     enabled: true
@@ -326,7 +334,9 @@ migration:
   resources:
     requests:
       cpu: 250m
+      ephemeralStorage: 256Mi
       memory: 256Mi
     limits:
       cpu: 500m
+      ephemeralStorage: 512Mi
       memory: 512Mi

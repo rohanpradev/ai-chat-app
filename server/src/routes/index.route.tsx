@@ -1,6 +1,6 @@
 import { createRoute } from "@hono/zod-openapi";
-import * as HttpStatusCodes from "stoker/http-status-codes";
 import { createRouter } from "@/lib/create-app";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
 import Home from "@/routes/home.tsx";
 
 const router = createRouter().openapi(
