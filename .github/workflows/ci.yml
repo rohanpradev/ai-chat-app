@@ -84,7 +84,7 @@ jobs:
           REDIS_HOST=redis
           REDIS_PORT=6379
           REDIS_AUTH=redis_password
-          REDIS_URL=redis://redis:6379
+          REDIS_URL=redis://:redis_password@redis:6379
           OPENAI_API_KEY=test-openai-key
           SERPER_API_KEY=
           LANGFUSE_SECRET_KEY=
@@ -98,9 +98,7 @@ jobs:
           VITE_APP_NAME=Chat App
           VITE_APP_VERSION=1.0.0
           DOMAIN=localhost
-          ACME_EMAIL=admin@example.com
           TRAEFIK_LOG_LEVEL=INFO
-          TRAEFIK_AUTH=admin:$$apr1$$8xHIH3J5$$yQ7eGEEXf1bQCvGp3q7BL1
           EOF
 
       - name: Validate Kubernetes chart
@@ -176,7 +174,7 @@ jobs:
           REDIS_HOST=redis
           REDIS_PORT=6379
           REDIS_AUTH=redis_password
-          REDIS_URL=redis://redis:6379
+          REDIS_URL=redis://:redis_password@redis:6379
           OPENAI_API_KEY=test-openai-key
           SERPER_API_KEY=
           LANGFUSE_SECRET_KEY=
@@ -190,9 +188,7 @@ jobs:
           VITE_APP_NAME=Chat App
           VITE_APP_VERSION=1.0.0
           DOMAIN=localhost
-          ACME_EMAIL=admin@example.com
           TRAEFIK_LOG_LEVEL=INFO
-          TRAEFIK_AUTH=admin:$$apr1$$8xHIH3J5$$yQ7eGEEXf1bQCvGp3q7BL1
           EOF
 
       - name: Detect DHI credentials

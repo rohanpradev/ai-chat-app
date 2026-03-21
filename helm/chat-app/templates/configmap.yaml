@@ -5,7 +5,6 @@ metadata:
   labels:
     {{- include "chat-app.labels" . | nindent 4 }}
 data:
-  ACME_EMAIL: {{ .Values.config.env.ACME_EMAIL | quote }}
   BASE_API_SLUG: {{ .Values.config.env.BASE_API_SLUG | quote }}
   CLIENT_URL: {{ .Values.config.env.CLIENT_URL | quote }}
   CORS_ORIGINS: {{ .Values.config.env.CORS_ORIGINS | quote }}
@@ -18,7 +17,6 @@ data:
   NODE_ENV: {{ .Values.config.env.NODE_ENV | quote }}
   REDIS_HOST: {{ include "chat-app.componentName" (dict "root" . "component" "redis") | quote }}
   REDIS_PORT: {{ .Values.config.env.REDIS_PORT | quote }}
-  REDIS_URL: {{ printf "redis://%s:%s" (include "chat-app.componentName" (dict "root" . "component" "redis")) .Values.config.env.REDIS_PORT | quote }}
   SERVER_HOST: {{ printf "%s.%s.svc.cluster.local" (include "chat-app.componentName" (dict "root" . "component" "server")) .Release.Namespace | quote }}
   SERVER_PORT: {{ .Values.config.env.SERVER_PORT | quote }}
   TRAEFIK_LOG_LEVEL: {{ .Values.config.env.TRAEFIK_LOG_LEVEL | quote }}

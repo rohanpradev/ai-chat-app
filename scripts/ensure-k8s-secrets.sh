@@ -28,17 +28,94 @@ read_env() {
   return 0
 }
 
+is_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 JWT_SECRET="$(read_env JWT_SECRET)"
 OPENAI_API_KEY="$(read_env OPENAI_API_KEY)"
+REDIS_AUTH="$(read_env REDIS_AUTH)"
 LANGFUSE_PUBLIC_KEY="$(read_env LANGFUSE_PUBLIC_KEY)"
 LANGFUSE_SECRET_KEY="$(read_env LANGFUSE_SECRET_KEY)"
 LANGFUSE_BASEURL="$(read_env LANGFUSE_BASEURL)"
 SERPER_API_KEY="$(read_env SERPER_API_KEY)"
+K8S_GATEWAY_ENABLED="$(read_env K8S_GATEWAY_ENABLED)"
+K8S_APP_HOSTNAME="$(read_env K8S_APP_HOSTNAME)"
+K8S_TRAEFIK_NAMESPACE="$(read_env K8S_TRAEFIK_NAMESPACE)"
+K8S_TRAEFIK_GATEWAY_NAME="$(read_env K8S_TRAEFIK_GATEWAY_NAME)"
 
 yaml_escape() {
   printf '%s' "${1:-}" | sed 's/\\/\\\\/g; s/"/\\"/g'
   return 0
 }
+
+APP_HOSTNAME="${K8S_APP_HOSTNAME:-app.docker.localhost}"
+TRAEFIK_NAMESPACE="${K8S_TRAEFIK_NAMESPACE:-traefik}"
+TRAEFIK_GATEWAY_NAME="${K8S_TRAEFIK_GATEWAY_NAME:-traefik-gateway}"
+
+if is_truthy "${K8S_GATEWAY_ENABLED:-false}"; then
+  CLIENT_URL_VALUE="https://${APP_HOSTNAME}:30001"
+  DOMAIN_VALUE="${APP_HOSTNAME}"
+  CORS_ORIGINS_VALUE="https://${APP_HOSTNAME}:30001,http://localhost:5173"
+  SERVER_SERVICE_BLOCK=$(cat <<EOF
+  service:
+    type: ClusterIP
+EOF
+)
+  CLIENT_SERVICE_BLOCK=$(cat <<EOF
+  service:
+    type: ClusterIP
+EOF
+)
+  GATEWAY_BLOCK=$(cat <<EOF
+  gateway:
+    enabled: true
+    namespace: ${TRAEFIK_NAMESPACE}
+    name: ${TRAEFIK_GATEWAY_NAME}
+    hostnames:
+      - ${APP_HOSTNAME}
+    tls:
+      enabled: true
+      secretName: local-selfsigned-tls
+    createMiddlewares: true
+    cors:
+      allowOrigins:
+        - https://${APP_HOSTNAME}:30001
+    rateLimit:
+      average: 100
+      burst: 200
+      period: 1m
+EOF
+)
+else
+  CLIENT_URL_VALUE="http://localhost:30080"
+  DOMAIN_VALUE="localhost"
+  CORS_ORIGINS_VALUE="http://localhost:5173,http://localhost:30080"
+  SERVER_SERVICE_BLOCK=$(cat <<'EOF'
+  service:
+    type: NodePort
+    nodePort: 30001
+EOF
+)
+  CLIENT_SERVICE_BLOCK=$(cat <<'EOF'
+  service:
+    type: NodePort
+    nodePort: 30080
+EOF
+)
+  GATEWAY_BLOCK=$(cat <<'EOF'
+  gateway:
+    enabled: false
+EOF
+)
+fi
 
 cat > "${VALUES_FILE}" <<EOF
 images:
@@ -54,17 +131,18 @@ images:
 
 config:
   env:
-    CLIENT_URL: http://localhost:30080
-    DOMAIN: localhost
-    NODE_ENV: development
-    VITE_DEV_MODE: "true"
-    CORS_ORIGINS: http://localhost:5173,http://localhost:30080
+    CLIENT_URL: ${CLIENT_URL_VALUE}
+    DOMAIN: ${DOMAIN_VALUE}
+    NODE_ENV: production
+    VITE_DEV_MODE: "false"
+    CORS_ORIGINS: ${CORS_ORIGINS_VALUE}
 
 secrets:
   app:
     data:
       POSTGRES_PASSWORD: change-me
       DB_PASSWORD: change-me
+      REDIS_AUTH: "$(yaml_escape "${REDIS_AUTH:-redis_password}")"
       JWT_SECRET: "$(yaml_escape "${JWT_SECRET:-}")"
       DB_URL: ""
       OPENAI_API_KEY: "$(yaml_escape "${OPENAI_API_KEY:-}")"
@@ -78,9 +156,7 @@ networkPolicy:
 
 server:
   replicaCount: 1
-  service:
-    type: NodePort
-    nodePort: 30001
+${SERVER_SERVICE_BLOCK}
   persistence:
     uploads:
       enabled: false
@@ -89,15 +165,12 @@ server:
 
 client:
   replicaCount: 1
-  service:
-    type: NodePort
-    nodePort: 30080
+${CLIENT_SERVICE_BLOCK}
   hpa:
     enabled: false
 
 exposure:
-  gateway:
-    enabled: false
+${GATEWAY_BLOCK}
 
 migration:
   enabled: false
