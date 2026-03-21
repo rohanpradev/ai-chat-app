@@ -37,7 +37,6 @@ images:
 
 config:
   env:
-    ACME_EMAIL: your_email@example.com
     BASE_API_SLUG: api
     CLIENT_URL: https://app.docker.localhost
     DB_NAME: chatapp
@@ -62,6 +61,7 @@ secrets:
     data:
       POSTGRES_PASSWORD: change-me
       DB_PASSWORD: change-me
+      REDIS_AUTH: change-me
       JWT_SECRET: change-me-minimum-32-characters
       DB_URL: ""
       OPENAI_API_KEY: ""

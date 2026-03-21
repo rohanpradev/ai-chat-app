@@ -153,8 +153,16 @@ spec:
         - name: redis
           image: {{ include "chat-app.image" .Values.images.redis | quote }}
           imagePullPolicy: {{ .Values.images.redis.pullPolicy }}
+          env:
+            - name: REDIS_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $appSecretName }}
+                  key: REDIS_AUTH
           args:
             - redis-server
+            - --requirepass
+            - $(REDIS_AUTH)
             - --appendonly
             - "yes"
             - --appendfsync
@@ -183,14 +191,14 @@ spec:
               containerPort: {{ .Values.redis.service.port }}
           livenessProbe:
             exec:
-              command: ["redis-cli", "ping"]
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_AUTH\" ping"]
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
           readinessProbe:
             exec:
-              command: ["redis-cli", "ping"]
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_AUTH\" ping"]
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 5

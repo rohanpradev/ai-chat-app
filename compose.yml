@@ -1,7 +1,7 @@
 services:
   # Traefik - Modern reverse proxy and load balancer
   traefik:
-    image: traefik:v3.6
+    image: ${TRAEFIK_IMAGE:-dhi.io/traefik:3.6.11-debian13@sha256:65bd97431b3a35634cd0d0286062c91ed025ab0c8afe28275897652506f80873}
     container_name: chat-app-traefik
     security_opt:
       - no-new-privileges:true
@@ -9,29 +9,24 @@ services:
       # API and Dashboard
       - --api.insecure=true
       - --api.dashboard=true
-      
+
       # Docker provider
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=chat-app-internal
-      
+
       # Entrypoints
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.websecure.http.tls=true
-      
-      # Let's Encrypt
-      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@localhost}
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
-      
+
       # Logging
       - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
       - --accesslog=true
-      
+
       # Ping for healthcheck
       - --ping=true
-      
+
       # Metrics
       - --metrics.prometheus=true
       - --metrics.prometheus.addentrypointslabels=true
@@ -39,10 +34,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Traefik dashboard
+      - "8080:8080" # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_acme:/letsencrypt
       - traefik_logs:/var/log/traefik
     env_file:
       - ./.env
@@ -53,13 +47,12 @@ services:
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.tls=true"
-      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
       # Dashboard security (optional - uncomment and configure if needed)
       # - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
       # - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$..."
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/ping"]
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -68,7 +61,7 @@ services:
       - chat-app-network
 
   db:
-    image: postgres:17.5-alpine
+    image: ${POSTGRES_IMAGE:-postgres:17.5-alpine}
     container_name: chat-app-db
     env_file:
       - ./.env
@@ -77,14 +70,11 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_INITDB_ARGS: "--data-checksums --wal-segsize=64"
-      # Create additional database for Langfuse
-      POSTGRES_MULTIPLE_DATABASES: ${DB_NAME},langfuse
     expose:
       - "${DB_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - postgres_backups:/backups
-      - ./scripts/create-multiple-databases.sh:/docker-entrypoint-initdb.d/create-multiple-databases.sh:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
@@ -114,7 +104,7 @@ services:
 
   # Redis cache with optimizations
   redis:
-    image: redis:8.2-alpine
+    image: ${REDIS_IMAGE:-redis:8.2-alpine}
     container_name: chat-app-redis
     env_file:
       - ./.env
@@ -202,22 +192,21 @@ services:
       # Traefik configuration
       - "traefik.enable=true"
       - "traefik.docker.network=chat-app-internal"
-      
+
       # HTTPS router (primary)
       - "traefik.http.routers.app-secure.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.app-secure.entrypoints=websecure"
       - "traefik.http.routers.app-secure.tls=true"
-      - "traefik.http.routers.app-secure.tls.certresolver=letsencrypt"
       - "traefik.http.routers.app-secure.middlewares=app-compress,security-headers"
-      
+
       # Service configuration
       - "traefik.http.services.app.loadbalancer.server.port=80"
       - "traefik.http.services.app.loadbalancer.healthcheck.path=/"
       - "traefik.http.services.app.loadbalancer.healthcheck.interval=30s"
-      
+
       # Compression middleware
       - "traefik.http.middlewares.app-compress.compress=true"
-      
+
       # Security headers middleware
       - "traefik.http.middlewares.security-headers.headers.framedeny=true"
       - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
@@ -239,12 +228,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 128M
-          cpus: '0.25'
-
-
+          cpus: "0.25"
 
   # Backend API server
   server:
@@ -258,6 +245,8 @@ services:
     environment:
       - NODE_ENV=production
       - DB_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - REDIS_URL=${REDIS_URL:-redis://:${REDIS_AUTH:-redis_password}@redis:6379}
+      - LANGFUSE_BASEURL=${LANGFUSE_BASEURL:-https://cloud.langfuse.com}
     expose:
       - "${SERVER_PORT}"
     volumes:
@@ -281,40 +270,39 @@ services:
       # Traefik configuration
       - "traefik.enable=true"
       - "traefik.docker.network=chat-app-internal"
-      
+
       # HTTPS router (primary)
       - "traefik.http.routers.api-secure.rule=Host(`${DOMAIN}`) && PathPrefix(`/${BASE_API_SLUG}`)"
       - "traefik.http.routers.api-secure.entrypoints=websecure"
       - "traefik.http.routers.api-secure.tls=true"
-      - "traefik.http.routers.api-secure.tls.certresolver=letsencrypt"
       - "traefik.http.routers.api-secure.middlewares=api-cors,api-ratelimit,api-compress,security-headers"
-      
+
       # Service configuration
       - "traefik.http.services.api.loadbalancer.server.port=${SERVER_PORT}"
       - "traefik.http.services.api.loadbalancer.healthcheck.path=/health"
       - "traefik.http.services.api.loadbalancer.healthcheck.interval=30s"
-      
+
       # Sticky sessions for stateful connections
       - "traefik.http.services.api.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.api.loadbalancer.sticky.cookie.name=server_sticky"
       - "traefik.http.services.api.loadbalancer.sticky.cookie.secure=true"
       - "traefik.http.services.api.loadbalancer.sticky.cookie.httpOnly=true"
-      
+
       # CORS middleware
       - "traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolallowheaders=*"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=https://${DOMAIN},${CLIENT_URL}"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolmaxage=86400"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolallowcredentials=true"
-      
+
       # Rate limiting middleware
       - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=200"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.period=1m"
-      
+
       # Compression middleware
       - "traefik.http.middlewares.api-compress.compress=true"
-      
+
       # Security headers middleware (shared with client)
       - "traefik.http.middlewares.security-headers.headers.framedeny=true"
       - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
@@ -336,207 +324,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
-
-  # ClickHouse - Analytics database for Langfuse
-  clickhouse:
-    image: clickhouse/clickhouse-server:24.11-alpine
-    container_name: chat-app-clickhouse
-    user: "101:101"
-    ports:
-      - "127.0.0.1:8123:8123"
-      - "127.0.0.1:9000:9000"
-    environment:
-      CLICKHOUSE_DB: default
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse_password}
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-      - ./clickhouse-config.xml:/etc/clickhouse-server/config.d/custom.xml:ro
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    networks:
-      - chat-app-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-
-  # MinIO - S3-compatible storage for Langfuse
-  minio:
-    image: minio/minio:latest
-    container_name: chat-app-minio
-    entrypoint: sh
-    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
-    environment:
-      MINIO_ROOT_USER: ${MINIO_USER:-minio}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET:-minio_secret_key}
-    ports:
-      - "9090:9000"
-      - "9091:9001"
-    volumes:
-      - minio_data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
-    networks:
-      - chat-app-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-
-  # Langfuse Worker - Background task processing
-  langfuse-worker:
-    image: langfuse/langfuse-worker:3
-    container_name: chat-app-langfuse-worker
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      clickhouse:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    environment: &langfuse-env
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/langfuse
-      NEXTAUTH_URL: https://langfuse.${DOMAIN}
-      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-changeme_nextauth_secret_32_chars_minimum}
-      SALT: ${LANGFUSE_SALT:-changeme_salt_32_chars_minimum_for_security}
-      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
-      TELEMETRY_ENABLED: ${LANGFUSE_TELEMETRY_ENABLED:-true}
-      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: ${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-false}
-      # ClickHouse configuration
-      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
-      CLICKHOUSE_URL: http://clickhouse:8123
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse_password}
-      CLICKHOUSE_CLUSTER_ENABLED: false
-      # S3/MinIO configuration for events
-      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
-      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
-      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_USER:-minio}
-      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_SECRET:-minio_secret_key}
-      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
-      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: true
-      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
-      # S3/MinIO configuration for media
-      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
-      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
-      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_USER:-minio}
-      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_SECRET:-minio_secret_key}
-      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
-      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: true
-      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
-      LANGFUSE_S3_BATCH_EXPORT_ENABLED: false
-      # Redis configuration
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_AUTH: ${REDIS_AUTH:-redis_password}
-      REDIS_TLS_ENABLED: false
-    networks:
-      - chat-app-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-
-  # Langfuse Web - Dashboard and API
-  langfuse-web:
-    image: langfuse/langfuse:3
-    container_name: chat-app-langfuse-web
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      clickhouse:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    expose:
-      - "3000"
-    environment:
-      <<: *langfuse-env
-      # Initial setup (optional - remove after first setup)
-      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
-      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-}
-      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-}
-      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-}
-      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-}
-      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-}
-      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-admin@example.com}
-      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-Admin}
-      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-changeme}
-    labels:
-      # Traefik configuration
-      - "traefik.enable=true"
-      - "traefik.docker.network=chat-app-internal"
-      
-      # HTTPS router
-      - "traefik.http.routers.langfuse-secure.rule=Host(`langfuse.${DOMAIN}`)"
-      - "traefik.http.routers.langfuse-secure.entrypoints=websecure"
-      - "traefik.http.routers.langfuse-secure.tls=true"
-      - "traefik.http.routers.langfuse-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.langfuse-secure.middlewares=langfuse-compress,security-headers"
-      
-      # Service configuration
-      - "traefik.http.services.langfuse.loadbalancer.server.port=3000"
-      - "traefik.http.services.langfuse.loadbalancer.healthcheck.path=/api/public/health"
-      - "traefik.http.services.langfuse.loadbalancer.healthcheck.interval=30s"
-      
-      # Compression middleware
-      - "traefik.http.middlewares.langfuse-compress.compress=true"
-    networks:
-      - chat-app-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 768M
-          cpus: '0.75'
-        reservations:
-          memory: 384M
-          cpus: '0.5'
+          cpus: "0.5"
 
 networks:
   # Internal network for application services
@@ -554,34 +345,22 @@ volumes:
     name: chat-app-postgres-data
   postgres_backups:
     name: chat-app-postgres-backups
-  
+
   # Cache volumes
   redis_data:
     name: chat-app-redis-data
   redis_config:
     name: chat-app-redis-config
-  
+
   # Application volumes
   server_logs:
     name: chat-app-server-logs
   server_uploads:
     name: chat-app-server-uploads
-  
+
   # Traefik volumes
-  traefik_acme:
-    name: chat-app-traefik-acme
   traefik_logs:
     name: chat-app-traefik-logs
-  
-  # Langfuse volumes
-  clickhouse_data:
-    name: chat-app-clickhouse-data
-  clickhouse_logs:
-    name: chat-app-clickhouse-logs
-  minio_data:
-    name: chat-app-minio-data
-  
-
 
 # Health check configuration
 x-healthcheck-defaults: &healthcheck-defaults
@@ -602,7 +381,7 @@ x-deploy-defaults: &deploy-defaults
   resources:
     limits:
       memory: 512M
-      cpus: '0.5'
+      cpus: "0.5"
     reservations:
       memory: 256M
-      cpus: '0.25'
+      cpus: "0.25"

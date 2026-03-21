@@ -13,8 +13,8 @@ config:
   env:
     CLIENT_URL: http://localhost:30080
     DOMAIN: localhost
-    NODE_ENV: development
-    VITE_DEV_MODE: "true"
+    NODE_ENV: production
+    VITE_DEV_MODE: "false"
     CORS_ORIGINS: http://localhost:5173,http://localhost:30080
 
 secrets:
@@ -22,6 +22,7 @@ secrets:
     data:
       POSTGRES_PASSWORD: change-me
       DB_PASSWORD: change-me
+      REDIS_AUTH: redis_password
       JWT_SECRET: local-dev-jwt-secret-minimum-32-chars-1234567890
       DB_URL: ""
       OPENAI_API_KEY: local-test-openai-key

@@ -7,12 +7,14 @@ K8S_SERVER_IMAGE ?= chat-app-server:latest
 K8S_CLIENT_IMAGE ?= chat-app-client:latest
 K8S_MIGRATE_IMAGE ?= chat-app-migrate:latest
 K8S_MIGRATE_JOB ?= $(K8S_RELEASE)-migration
+TRAEFIK_NAMESPACE ?= traefik
+TRAEFIK_RELEASE ?= traefik
 K8S_CLIENT_URL ?= http://localhost:30080
 K8S_API_URL ?= http://localhost:30001
 K8S_API_HEALTH_URL ?= $(K8S_API_URL)/health
 K8S_BUILD_ARGS ?=
 
-.PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls langfuse-start langfuse-stop langfuse-logs
+.PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop shutdown-all kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
 
 # Default target
 help: ## Show this help message
@@ -32,9 +34,8 @@ setup: ## Initial setup - Copy .env.example to .env and guide user
 		echo "   3. DB_PASSWORD           - Change from the default for non-local use"; \
 		echo ""; \
 		echo "💡 Optional: For Langfuse AI observability:"; \
-		echo "   - Start with 'make start' to run self-hosted Langfuse"; \
-		echo "   - Login at https://langfuse.localhost"; \
-		echo "   - Create project and copy API keys to .env"; \
+		echo "   - Create a project in Langfuse Cloud"; \
+		echo "   - Copy LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY to .env"; \
 		echo "   - Restart with 'make restart'"; \
 		echo ""; \
 		echo "🎯 Next steps:"; \
@@ -104,6 +105,29 @@ clean: ## Stop services and remove containers, networks, and volumes
 	@docker compose down -v --remove-orphans
 	@docker system prune -f
 
+shutdown-all: ## Stop local Kubernetes, remove Docker resources, and stop the local runtime
+	@echo "🛑 Shutting down local infrastructure..."
+	@if command -v helm >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1; then \
+		helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
+		helm uninstall $(TRAEFIK_RELEASE) -n $(TRAEFIK_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
+		kubectl delete namespace $(TRAEFIK_NAMESPACE) --ignore-not-found=true --wait=false >/dev/null 2>&1 || true; \
+	fi
+	@if command -v orbctl >/dev/null 2>&1; then \
+		orbctl stop k8s >/dev/null 2>&1 || true; \
+	fi
+	@if command -v minikube >/dev/null 2>&1; then \
+		minikube stop >/dev/null 2>&1 || true; \
+	fi
+	@if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then \
+		ids="$$(docker ps -aq)"; \
+		if [ -n "$$ids" ]; then docker rm -f $$ids >/dev/null 2>&1 || true; fi; \
+		docker system prune -af --volumes >/dev/null 2>&1 || true; \
+	fi
+	@if command -v orbctl >/dev/null 2>&1; then \
+		orbctl stop >/dev/null 2>&1 || true; \
+	fi
+	@echo "✅ Local Docker and Kubernetes resources have been stopped."
+
 dev: ## Start development environment
 	@echo "🛠️  Starting development environment..."
 	@bun start
@@ -114,9 +138,8 @@ _show-urls:
 	@echo "================================"
 	@echo "🎯 Main Application:    https://localhost"
 	@echo "📡 API Health Check:    https://localhost/health"
-	@echo "🔍 Langfuse Dashboard:  https://langfuse.localhost"
+	@echo "🔍 Langfuse Cloud:      https://cloud.langfuse.com"
 	@echo "⚙️  Traefik Dashboard:  http://localhost:8080/dashboard/"
-	@echo "🗄️  MinIO Console:       http://localhost:9091"
 	@echo "================================"
 
 local: ## Start local development (uses cloud services from .env.local)
@@ -146,9 +169,14 @@ k8s-setup: ## Create Helm local values override from template
 	@echo "Preparing Helm values..."
 	@bun run k8s:prepare
 
-k8s-traefik: ## Install optional Gateway API CRDs (chart auto-skips CRD resources when missing)
-	@echo "Installing Gateway API CRDs..."
-	@kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+k8s-traefik: ## Install Traefik via Helm and expose Gateway routes for local hostname-based access
+	@echo "Installing Traefik for Kubernetes Gateway mode..."
+	@TRAEFIK_NAMESPACE=$(TRAEFIK_NAMESPACE) TRAEFIK_RELEASE=$(TRAEFIK_RELEASE) bash scripts/deploy-k8s-traefik.sh
+
+k8s-full-stack: ## Install Traefik and deploy the chat app with Docker-like hostname routing
+	@helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true
+	@$(MAKE) --no-print-directory k8s-traefik
+	@$(MAKE) --no-print-directory kubernetes
 
 k8s-build: ## Build and load images for Kubernetes
 	@echo "Building images for Kubernetes..."
@@ -246,34 +274,6 @@ _show-k8s-urls:
 		echo "Server Service:      $$(minikube service $(K8S_RELEASE)-server -n $(K8S_NAMESPACE) --url 2>/dev/null | head -n 1)"; \
 	fi; \
 	echo ""; \
-	echo "Optional Gateway URL (if Traefik Gateway is installed and routed):"; \
-	echo "App Hostname:        https://app.docker.localhost"
-
-langfuse-start: ## Start Langfuse observability stack
-	@if [ ! -f compose.langfuse.yml ]; then \
-		echo "❌ compose.langfuse.yml not found. Add the file or remove Langfuse Make targets."; \
-		exit 1; \
-	fi
-	@echo "🚀 Starting Langfuse standalone..."
-	@docker compose -f compose.langfuse.yml up -d
-	@echo ""
-	@echo "✅ Langfuse started successfully!"
-	@echo "🌐 Langfuse:            http://langfuse.localhost:8081"
-	@echo "📊 Traefik Dashboard:   http://localhost:8082/dashboard/"
-	@echo "👤 Login: admin@localhost / admin"
-
-langfuse-stop: ## Stop Langfuse services
-	@if [ ! -f compose.langfuse.yml ]; then \
-		echo "❌ compose.langfuse.yml not found. Nothing to stop."; \
-		exit 1; \
-	fi
-	@echo "🛑 Stopping Langfuse..."
-	@docker compose -f compose.langfuse.yml down
-
-langfuse-logs: ## Show Langfuse logs
-	@if [ ! -f compose.langfuse.yml ]; then \
-		echo "❌ compose.langfuse.yml not found. Cannot stream logs."; \
-		exit 1; \
-	fi
-	@echo "📋 Langfuse Logs:"
-	@docker compose -f compose.langfuse.yml logs -f
+	echo "Gateway mode URLs (if Traefik is installed and K8S_GATEWAY_ENABLED=true):"; \
+	echo "App Hostname:        https://app.docker.localhost:30001"; \
+	echo "Traefik Dashboard:   https://traefik.docker.localhost:30001"
