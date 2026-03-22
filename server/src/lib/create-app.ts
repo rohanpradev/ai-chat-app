@@ -33,13 +33,11 @@ export function createApp() {
 	);
 
 	// Allow comma-separated CORS origins via CORS_ORIGINS; fallback to CLIENT_URL
-	const allowedOrigins = (
-		Bun.env.CORS_ORIGINS
-			? Bun.env.CORS_ORIGINS.split(",")
-					.map((s) => s.trim())
-					.filter(Boolean)
-			: [env.CLIENT_URL]
-	) as string[];
+	const allowedOrigins = env.CORS_ORIGINS
+		? env.CORS_ORIGINS.split(",")
+				.map((origin) => origin.trim())
+				.filter(Boolean)
+		: [env.CLIENT_URL];
 
 	useAppMiddleware(
 		asAppMiddleware(

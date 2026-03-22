@@ -5,8 +5,11 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { createAuthContext, loadUser } from "@/lib/auth";
+import { installVitePreloadErrorHandler } from "@/lib/vite-preload";
 import { routeTree } from "@/routeTree.gen";
 import "./styles.css";
+
+installVitePreloadErrorHandler();
 
 const queryClient = new QueryClient({
   defaultOptions: {

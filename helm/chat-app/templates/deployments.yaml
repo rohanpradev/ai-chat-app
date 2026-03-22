@@ -40,7 +40,6 @@ spec:
           image: {{ include "chat-app.image" .Values.images.db | quote }}
           imagePullPolicy: {{ .Values.images.db.pullPolicy }}
           args:
-            - postgres
             - -c
             - shared_buffers=256MB
             - -c
@@ -159,6 +158,11 @@ spec:
                 secretKeyRef:
                   name: {{ $appSecretName }}
                   key: REDIS_AUTH
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $appSecretName }}
+                  key: REDIS_AUTH
           args:
             - redis-server
             - --requirepass
@@ -191,14 +195,14 @@ spec:
               containerPort: {{ .Values.redis.service.port }}
           livenessProbe:
             exec:
-              command: ["sh", "-c", "redis-cli -a \"$REDIS_AUTH\" ping"]
+              command: ["redis-cli", "ping"]
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
           readinessProbe:
             exec:
-              command: ["sh", "-c", "redis-cli -a \"$REDIS_AUTH\" ping"]
+              command: ["redis-cli", "ping"]
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 5

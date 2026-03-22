@@ -9,9 +9,18 @@ K8S_MIGRATE_IMAGE ?= chat-app-migrate:latest
 K8S_MIGRATE_JOB ?= $(K8S_RELEASE)-migration
 TRAEFIK_NAMESPACE ?= traefik
 TRAEFIK_RELEASE ?= traefik
+ENV_FILE ?= .env
+K8S_GATEWAY_ENABLED ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_GATEWAY_ENABLED=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
+K8S_APP_HOSTNAME ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_APP_HOSTNAME=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
+K8S_TRAEFIK_DASHBOARD_HOSTNAME ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_TRAEFIK_DASHBOARD_HOSTNAME=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
+TRAEFIK_DASHBOARD_USER ?= $(shell test -f $(ENV_FILE) && sed -n 's/^TRAEFIK_DASHBOARD_USER=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
+TRAEFIK_DASHBOARD_PASSWORD ?= $(shell test -f $(ENV_FILE) && sed -n 's/^TRAEFIK_DASHBOARD_PASSWORD=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
 K8S_CLIENT_URL ?= http://localhost:30080
 K8S_API_URL ?= http://localhost:30001
 K8S_API_HEALTH_URL ?= $(K8S_API_URL)/health
+K8S_GATEWAY_URL ?= https://$(K8S_APP_HOSTNAME):30001
+K8S_GATEWAY_HEALTH_URL ?= $(K8S_GATEWAY_URL)/health
+K8S_TRAEFIK_DASHBOARD_URL ?= https://$(K8S_TRAEFIK_DASHBOARD_HOSTNAME):30001
 K8S_BUILD_ARGS ?=
 
 .PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop shutdown-all kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
@@ -203,7 +212,14 @@ k8s-test: ## Run a basic Kubernetes smoke test against the deployed app
 	@echo "Running Kubernetes smoke test..."
 	@kubectl rollout status deployment/$(K8S_RELEASE)-server -n $(K8S_NAMESPACE) --timeout=300s
 	@kubectl rollout status deployment/$(K8S_RELEASE)-client -n $(K8S_NAMESPACE) --timeout=300s
-	@if curl -fsS $(K8S_API_HEALTH_URL) >/dev/null 2>&1; then \
+	@if [ "$(K8S_GATEWAY_ENABLED)" = "true" ] || [ "$(K8S_GATEWAY_ENABLED)" = "TRUE" ]; then \
+		if curl -kfSs $(K8S_GATEWAY_HEALTH_URL) >/dev/null 2>&1; then \
+			echo "✅ API health check passed via Gateway"; \
+		else \
+			echo "⚠️  Gateway health check did not succeed from localhost"; \
+			echo "   Check the URLs from 'make k8s-status' for your current cluster runtime."; \
+		fi; \
+	elif curl -fsS $(K8S_API_HEALTH_URL) >/dev/null 2>&1; then \
 		echo "✅ API health check passed via NodePort"; \
 	else \
 		echo "⚠️  NodePort health check did not succeed from localhost"; \
@@ -264,16 +280,22 @@ _show-k8s-urls:
 	@echo "================"
 	@CONTEXT="$$(kubectl config current-context 2>/dev/null || echo unknown)"; \
 	echo "Kubernetes context: $$CONTEXT"; \
-	echo "Client NodePort:     $(K8S_CLIENT_URL)"; \
-	echo "API NodePort:        $(K8S_API_URL)"; \
-	echo "API Health:          $(K8S_API_HEALTH_URL)"; \
+	if [ "$(K8S_GATEWAY_ENABLED)" = "true" ] || [ "$(K8S_GATEWAY_ENABLED)" = "TRUE" ]; then \
+		echo "Primary App URL:     $(K8S_GATEWAY_URL)"; \
+		echo "Primary API Health:  $(K8S_GATEWAY_HEALTH_URL)"; \
+		echo "Traefik Dashboard:   $(K8S_TRAEFIK_DASHBOARD_URL)"; \
+		echo "Dashboard Login:     $(TRAEFIK_DASHBOARD_USER) / $(TRAEFIK_DASHBOARD_PASSWORD)"; \
+	else \
+		echo "Client NodePort:     $(K8S_CLIENT_URL)"; \
+		echo "API NodePort:        $(K8S_API_URL)"; \
+		echo "API Health:          $(K8S_API_HEALTH_URL)"; \
+		echo "Gateway App URL:     $(K8S_GATEWAY_URL)"; \
+		echo "Traefik Dashboard:   $(K8S_TRAEFIK_DASHBOARD_URL)"; \
+		echo "Dashboard Login:     $(TRAEFIK_DASHBOARD_USER) / $(TRAEFIK_DASHBOARD_PASSWORD)"; \
+	fi; \
 	if [ "$$CONTEXT" = "minikube" ] && command -v minikube >/dev/null 2>&1; then \
 		echo ""; \
 		echo "Resolved Minikube URLs:"; \
 		echo "Client Service:      $$(minikube service $(K8S_RELEASE)-client -n $(K8S_NAMESPACE) --url 2>/dev/null | head -n 1)"; \
 		echo "Server Service:      $$(minikube service $(K8S_RELEASE)-server -n $(K8S_NAMESPACE) --url 2>/dev/null | head -n 1)"; \
-	fi; \
-	echo ""; \
-	echo "Gateway mode URLs (if Traefik is installed and K8S_GATEWAY_ENABLED=true):"; \
-	echo "App Hostname:        https://app.docker.localhost:30001"; \
-	echo "Traefik Dashboard:   https://traefik.docker.localhost:30001"
+	fi

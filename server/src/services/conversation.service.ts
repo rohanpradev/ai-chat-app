@@ -11,37 +11,51 @@ export const saveConversation = async (chatId: string | undefined, uiMessages: U
 	const firstUserMessage = uiMessages.find((m) => m.role === "user");
 	const textPart = firstUserMessage?.parts?.find((p) => p.type === "text");
 	const title = textPart?.text?.slice(0, 50) || "New Chat";
+	const now = new Date();
 
-	const existingChat = await db.query.chats.findFirst({
-		where: eq(chats.id, chatId)
-	});
+	await db.transaction(async (tx) => {
+		const existingChat = await tx.query.chats.findFirst({
+			where: eq(chats.id, chatId)
+		});
 
-	if (existingChat) {
-		// If chat exists but belongs to a different user, throw error
-		if (existingChat.userId !== userId) {
-			throw new HTTPException(HttpStatusCodes.FORBIDDEN, {
-				message: "Chat ID already exists under a different user"
+		if (existingChat) {
+			if (existingChat.userId !== userId) {
+				throw new HTTPException(HttpStatusCodes.FORBIDDEN, {
+					message: "Chat ID already exists under a different user"
+				});
+			}
+
+			await tx
+				.update(chats)
+				.set({
+					updatedAt: now
+				})
+				.where(eq(chats.id, chatId));
+
+			await tx.delete(messages).where(eq(messages.chatId, chatId));
+		} else {
+			await tx.insert(chats).values({
+				createdAt: now,
+				id: chatId,
+				title,
+				updatedAt: now,
+				userId
 			});
 		}
-		// Delete all existing messages
-		await db.delete(messages).where(eq(messages.chatId, chatId));
-	} else {
-		// Create new chat
-		await db.insert(chats).values({
-			id: chatId,
-			title,
-			userId: userId
-		});
-	}
 
-	// Insert all messages
-	await db.insert(messages).values(
-		uiMessages.map((message, index) => ({
-			chatId,
-			id: Bun.randomUUIDv7(),
-			order: index,
-			parts: message.parts,
-			role: message.role
-		}))
-	);
+		if (uiMessages.length === 0) {
+			return;
+		}
+
+		await tx.insert(messages).values(
+			uiMessages.map((message, index) => ({
+				chatId,
+				createdAt: now,
+				id: Bun.randomUUIDv7(),
+				order: index,
+				parts: message.parts,
+				role: message.role
+			}))
+		);
+	});
 };

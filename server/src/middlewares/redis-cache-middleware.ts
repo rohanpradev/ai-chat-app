@@ -126,11 +126,15 @@ class HonoRedisCache {
 
 const cacheInstance = new HonoRedisCache();
 
+function getAuthenticatedUserId(c: Context<AppBindings>): string | undefined {
+	return c.get("jwtPayload")?.sub?.id || c.get("user")?.id;
+}
+
 function generateCacheKey(c: Context<AppBindings>): string {
 	const { pathname, search } = new URL(c.req.url);
 	const method = c.req.method;
 
-	const userId = c.get("user")?.id || "";
+	const userId = getAuthenticatedUserId(c) || "";
 	const userPart = userId ? `user:${userId}:` : "";
 
 	return `${userPart}${method}:${pathname}${search}`;
@@ -246,7 +250,7 @@ export const userCache = (keyPattern: string, options: Omit<RedisCacheOptions, "
 	return redisCache({
 		...options,
 		key: (c) => {
-			const userId = c.get("user")?.id || "anonymous";
+			const userId = getAuthenticatedUserId(c) || "anonymous";
 			return `user:${userId}:${keyPattern}`;
 		}
 	});

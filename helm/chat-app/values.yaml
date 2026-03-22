@@ -23,15 +23,15 @@ images:
     digest: ""
     pullPolicy: IfNotPresent
   db:
-    registry: docker.io
+    registry: dhi.io
     repository: postgres
-    tag: "17.5-alpine"
+    tag: "18.3-debian13"
     digest: ""
     pullPolicy: IfNotPresent
   redis:
-    registry: docker.io
+    registry: dhi.io
     repository: redis
-    tag: "8.2-alpine"
+    tag: "8.6.1-debian13"
     digest: ""
     pullPolicy: IfNotPresent
 

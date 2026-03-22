@@ -13,10 +13,6 @@ const routes = [auth, profile, ai, conversations];
 
 app.route("/", index);
 
-app.get("/health", (c) => {
-	return c.text("healthy", 200);
-});
-
 for (const route of routes) {
 	app.route(`/${env.BASE_API_SLUG}`, route);
 }
