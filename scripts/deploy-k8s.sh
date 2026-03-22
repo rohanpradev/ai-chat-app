@@ -8,6 +8,7 @@ RELEASE_NAME="${RELEASE_NAME:-chat-app}"
 ROLLBACK_ON_FAILURE="${ROLLBACK_ON_FAILURE:-false}"
 
 bash "${ROOT_DIR}/scripts/ensure-k8s-secrets.sh"
+NAMESPACE="${NAMESPACE}" SECRET_NAME="dhi-registry" bash "${ROOT_DIR}/scripts/ensure-k8s-registry-secret.sh"
 
 HELM_ARGS=(
   upgrade

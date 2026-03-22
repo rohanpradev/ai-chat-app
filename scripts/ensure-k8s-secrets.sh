@@ -50,6 +50,18 @@ K8S_GATEWAY_ENABLED="$(read_env K8S_GATEWAY_ENABLED)"
 K8S_APP_HOSTNAME="$(read_env K8S_APP_HOSTNAME)"
 K8S_TRAEFIK_NAMESPACE="$(read_env K8S_TRAEFIK_NAMESPACE)"
 K8S_TRAEFIK_GATEWAY_NAME="$(read_env K8S_TRAEFIK_GATEWAY_NAME)"
+DHI_USERNAME="$(read_env DHI_USERNAME)"
+DHI_PASSWORD="$(read_env DHI_PASSWORD)"
+DOCKER_USERNAME="$(read_env DOCKER_USERNAME)"
+DOCKER_PASSWORD="$(read_env DOCKER_PASSWORD)"
+
+if [ -z "${DHI_USERNAME:-}" ]; then
+  DHI_USERNAME="${DOCKER_USERNAME:-}"
+fi
+
+if [ -z "${DHI_PASSWORD:-}" ]; then
+  DHI_PASSWORD="${DOCKER_PASSWORD:-}"
+fi
 
 yaml_escape() {
   printf '%s' "${1:-}" | sed 's/\\/\\\\/g; s/"/\\"/g'
@@ -117,7 +129,18 @@ EOF
 )
 fi
 
+if [ -n "${DHI_USERNAME:-}" ] && [ -n "${DHI_PASSWORD:-}" ]; then
+  IMAGE_PULL_SECRETS_BLOCK=$(cat <<'EOF'
+imagePullSecrets:
+  - name: dhi-registry
+EOF
+)
+else
+  IMAGE_PULL_SECRETS_BLOCK=""
+fi
+
 cat > "${VALUES_FILE}" <<EOF
+${IMAGE_PULL_SECRETS_BLOCK}
 images:
   client:
     tag: latest

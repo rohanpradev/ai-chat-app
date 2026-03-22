@@ -7,7 +7,6 @@ services:
       - no-new-privileges:true
     command:
       # API and Dashboard
-      - --api.insecure=true
       - --api.dashboard=true
 
       # Docker provider
@@ -34,7 +33,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080" # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_logs:/var/log/traefik
@@ -63,6 +61,8 @@ services:
   db:
     image: ${POSTGRES_IMAGE:-dhi.io/postgres:18.3-debian13}
     container_name: chat-app-db
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ./.env
     environment:
@@ -105,6 +105,8 @@ services:
   redis:
     image: ${REDIS_IMAGE:-dhi.io/redis:8.6.1-debian13}
     container_name: chat-app-redis
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ./.env
     environment:
@@ -147,6 +149,8 @@ services:
       context: .
       dockerfile: ./server/Dockerfile.migrate
     container_name: chat-app-migrate
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ./.env
     depends_on:
@@ -170,6 +174,8 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL}
     container_name: chat-app-client
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ./.env
     environment:
@@ -181,7 +187,7 @@ services:
       - "80"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "nginx", "-t"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -241,6 +247,8 @@ services:
       dockerfile: Dockerfile
       target: server-prod
     container_name: chat-app-server
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ./.env
     environment:
@@ -255,7 +263,13 @@ services:
       - server_uploads:/app/uploads
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${SERVER_PORT}/health"]
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://localhost:'+(process.env.SERVER_PORT||'3000')+'/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 10s
       retries: 3
