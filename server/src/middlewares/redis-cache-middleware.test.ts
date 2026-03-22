@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { HonoRedisCache, invalidateCache, redisCache } from "@/middlewares/redis-cache-middleware";
+import { createApp } from "@/lib/create-app";
+import { HonoRedisCache, invalidateCache, redisCache, userCache } from "@/middlewares/redis-cache-middleware";
 
 type MockRedisClient = {
 	del: ReturnType<typeof mock<(key: string, ...keys: string[]) => Promise<number>>>;
@@ -126,6 +127,35 @@ describe("Redis Cache Middleware", () => {
 			});
 
 			expect(middleware).toBeDefined();
+		});
+
+		it("should scope user cache keys from jwtPayload when user is not set", async () => {
+			const app = createApp();
+
+			app.use("*", async (c, next) => {
+				c.set("jwtPayload", {
+					exp: 1,
+					sub: {
+						email: "test@example.com",
+						id: "test-user",
+						name: "Test User"
+					}
+				});
+				await next();
+			});
+
+			app.use(
+				"*",
+				userCache("profile", {
+					redisClient: mockRedisClient
+				})
+			);
+
+			app.get("/profile", (c) => c.json({ ok: true }));
+
+			await app.request("http://localhost/profile");
+
+			expect(mockRedisClient.get).toHaveBeenCalledWith("hono-cache:user:test-user:profile");
 		});
 	});
 });

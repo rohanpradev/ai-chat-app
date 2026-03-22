@@ -61,7 +61,7 @@ services:
       - chat-app-network
 
   db:
-    image: ${POSTGRES_IMAGE:-postgres:17.5-alpine}
+    image: ${POSTGRES_IMAGE:-dhi.io/postgres:18.3-debian13}
     container_name: chat-app-db
     env_file:
       - ./.env
@@ -83,7 +83,6 @@ services:
       retries: 5
       start_period: 15s
     command: >
-      postgres
       -c shared_buffers=256MB
       -c effective_cache_size=512MB
       -c maintenance_work_mem=128MB
@@ -104,10 +103,12 @@ services:
 
   # Redis cache with optimizations
   redis:
-    image: ${REDIS_IMAGE:-redis:8.2-alpine}
+    image: ${REDIS_IMAGE:-dhi.io/redis:8.6.1-debian13}
     container_name: chat-app-redis
     env_file:
       - ./.env
+    environment:
+      REDISCLI_AUTH: ${REDIS_AUTH:-redis_password}
     expose:
       - "${REDIS_PORT}"
     volumes:
@@ -115,7 +116,7 @@ services:
       - redis_config:/usr/local/etc/redis
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
