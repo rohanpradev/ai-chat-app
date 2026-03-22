@@ -38,6 +38,10 @@ TRAEFIK_IMAGE_REGISTRY="$(read_env TRAEFIK_IMAGE_REGISTRY)"
 TRAEFIK_IMAGE_REPOSITORY="$(read_env TRAEFIK_IMAGE_REPOSITORY)"
 TRAEFIK_IMAGE_TAG="$(read_env TRAEFIK_IMAGE_TAG)"
 TRAEFIK_IMAGE_DIGEST="$(read_env TRAEFIK_IMAGE_DIGEST)"
+DHI_USERNAME="$(read_env DHI_USERNAME)"
+DHI_PASSWORD="$(read_env DHI_PASSWORD)"
+DOCKER_USERNAME="$(read_env DOCKER_USERNAME)"
+DOCKER_PASSWORD="$(read_env DOCKER_PASSWORD)"
 
 APP_HOSTNAME="${APP_HOSTNAME:-app.docker.localhost}"
 TRAEFIK_DASHBOARD_HOSTNAME="${TRAEFIK_DASHBOARD_HOSTNAME:-traefik.docker.localhost}"
@@ -56,6 +60,25 @@ else
   IMAGE_TAG="${TRAEFIK_IMAGE_TAG}"
 fi
 
+if [ -z "${DHI_USERNAME:-}" ]; then
+  DHI_USERNAME="${DOCKER_USERNAME:-}"
+fi
+
+if [ -z "${DHI_PASSWORD:-}" ]; then
+  DHI_PASSWORD="${DOCKER_PASSWORD:-}"
+fi
+
+if [ -n "${DHI_USERNAME:-}" ] && [ -n "${DHI_PASSWORD:-}" ]; then
+  TRAEFIK_DEPLOYMENT_BLOCK=$(cat <<'EOF'
+deployment:
+  imagePullSecrets:
+    - name: dhi-registry
+EOF
+)
+else
+  TRAEFIK_DEPLOYMENT_BLOCK=""
+fi
+
 IMAGE_BLOCK=$(cat <<EOF
 image:
   registry: ${TRAEFIK_IMAGE_REGISTRY}
@@ -66,6 +89,7 @@ EOF
 )
 
 cat > "${VALUES_FILE}" <<EOF
+${TRAEFIK_DEPLOYMENT_BLOCK}
 ${IMAGE_BLOCK}
 
 service:

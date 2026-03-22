@@ -10,6 +10,7 @@ K8S_MIGRATE_JOB ?= $(K8S_RELEASE)-migration
 TRAEFIK_NAMESPACE ?= traefik
 TRAEFIK_RELEASE ?= traefik
 ENV_FILE ?= .env
+DOMAIN ?= $(shell test -f $(ENV_FILE) && sed -n 's/^DOMAIN=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
 K8S_GATEWAY_ENABLED ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_GATEWAY_ENABLED=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
 K8S_APP_HOSTNAME ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_APP_HOSTNAME=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
 K8S_TRAEFIK_DASHBOARD_HOSTNAME ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_TRAEFIK_DASHBOARD_HOSTNAME=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
@@ -21,6 +22,7 @@ K8S_API_HEALTH_URL ?= $(K8S_API_URL)/health
 K8S_GATEWAY_URL ?= https://$(K8S_APP_HOSTNAME):30001
 K8S_GATEWAY_HEALTH_URL ?= $(K8S_GATEWAY_URL)/health
 K8S_TRAEFIK_DASHBOARD_URL ?= https://$(K8S_TRAEFIK_DASHBOARD_HOSTNAME):30001
+DOCKER_TRAEFIK_DASHBOARD_URL ?= https://traefik.$(DOMAIN)
 K8S_BUILD_ARGS ?=
 
 .PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop shutdown-all kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
@@ -111,8 +113,7 @@ build: ## Build all images
 
 clean: ## Stop services and remove containers, networks, and volumes
 	@echo "🧹 Cleaning up..."
-	@docker compose down -v --remove-orphans
-	@docker system prune -f
+	@docker compose down -v --remove-orphans --rmi local
 
 shutdown-all: ## Stop local Kubernetes, remove Docker resources, and stop the local runtime
 	@echo "🛑 Shutting down local infrastructure..."
@@ -128,9 +129,10 @@ shutdown-all: ## Stop local Kubernetes, remove Docker resources, and stop the lo
 		minikube stop >/dev/null 2>&1 || true; \
 	fi
 	@if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then \
-		ids="$$(docker ps -aq)"; \
-		if [ -n "$$ids" ]; then docker rm -f $$ids >/dev/null 2>&1 || true; fi; \
-		docker system prune -af --volumes >/dev/null 2>&1 || true; \
+		docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; \
+		for image in $(K8S_SERVER_IMAGE) $(K8S_CLIENT_IMAGE) $(K8S_MIGRATE_IMAGE); do \
+			docker image rm -f "$$image" >/dev/null 2>&1 || true; \
+		done; \
 	fi
 	@if command -v orbctl >/dev/null 2>&1; then \
 		orbctl stop >/dev/null 2>&1 || true; \
@@ -148,7 +150,7 @@ _show-urls:
 	@echo "🎯 Main Application:    https://localhost"
 	@echo "📡 API Health Check:    https://localhost/health"
 	@echo "🔍 Langfuse Cloud:      https://cloud.langfuse.com"
-	@echo "⚙️  Traefik Dashboard:  http://localhost:8080/dashboard/"
+	@echo "⚙️  Traefik Dashboard:  $(DOCKER_TRAEFIK_DASHBOARD_URL)"
 	@echo "================================"
 
 local: ## Start local development (uses cloud services from .env.local)
@@ -171,7 +173,19 @@ docker: start ## Alias for Docker Compose start
 docker-stop: stop ## Stop Docker Compose services
 
 # Kubernetes Commands
-kubernetes: k8s-setup k8s-build k8s-deploy k8s-migrate k8s-test k8s-status ## Complete Kubernetes setup and deployment
+kubernetes: ## Complete local Kubernetes setup and deployment
+	@if [ "$(K8S_GATEWAY_ENABLED)" = "true" ] || [ "$(K8S_GATEWAY_ENABLED)" = "TRUE" ]; then \
+		echo "Bootstrapping Traefik for Gateway mode..."; \
+		$(MAKE) --no-print-directory k8s-traefik; \
+	else \
+		echo "Gateway mode disabled; skipping Traefik bootstrap."; \
+	fi
+	@$(MAKE) --no-print-directory k8s-setup
+	@$(MAKE) --no-print-directory k8s-build
+	@$(MAKE) --no-print-directory k8s-deploy
+	@$(MAKE) --no-print-directory k8s-migrate
+	@$(MAKE) --no-print-directory k8s-test
+	@$(MAKE) --no-print-directory k8s-status
 kubernetes-stop: k8s-cleanup k8s-stop ## Stop and clean up Kubernetes
 
 k8s-setup: ## Create Helm local values override from template
@@ -182,9 +196,7 @@ k8s-traefik: ## Install Traefik via Helm and expose Gateway routes for local hos
 	@echo "Installing Traefik for Kubernetes Gateway mode..."
 	@TRAEFIK_NAMESPACE=$(TRAEFIK_NAMESPACE) TRAEFIK_RELEASE=$(TRAEFIK_RELEASE) bash scripts/deploy-k8s-traefik.sh
 
-k8s-full-stack: ## Install Traefik and deploy the chat app with Docker-like hostname routing
-	@helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true
-	@$(MAKE) --no-print-directory k8s-traefik
+k8s-full-stack: ## Alias for the one-command full local Kubernetes bootstrap
 	@$(MAKE) --no-print-directory kubernetes
 
 k8s-build: ## Build and load images for Kubernetes

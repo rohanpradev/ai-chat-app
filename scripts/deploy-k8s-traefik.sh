@@ -35,6 +35,7 @@ TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-37.4.0}"
 
 bash "${ROOT_DIR}/scripts/ensure-k8s-traefik-values.sh"
 bash "${ROOT_DIR}/scripts/ensure-k8s-local-tls.sh"
+NAMESPACE="${TRAEFIK_NAMESPACE}" SECRET_NAME="dhi-registry" bash "${ROOT_DIR}/scripts/ensure-k8s-registry-secret.sh"
 
 if [[ "${TRAEFIK_CHART_REF}" == traefik/* ]]; then
   helm repo add traefik https://traefik.github.io/charts >/dev/null 2>&1 || true
