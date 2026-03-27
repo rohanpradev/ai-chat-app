@@ -1,20 +1,29 @@
-import { ChatRequestSchema, safeValidateMyUIMessages } from "@chat-app/shared";
-import { consumeStream, createIdGenerator, smoothStream, stepCountIs, streamText } from "ai";
+import { ChatRequestSchema, defaultModelId, type MyUIMessage, safeValidateMyUIMessages } from "@chat-app/shared";
+import { propagateAttributes } from "@langfuse/tracing";
+import { consumeStream, convertToModelMessages, createIdGenerator, smoothStream } from "ai";
 import { HTTPException } from "hono/http-exception";
+import { normalizeMessagesForAgent } from "@/lib/agent-message-normalizer";
+import { getChatAgent, resolveAgentMode } from "@/lib/agents";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
-import { executableTools, getActiveTools } from "@/lib/tools";
 import type { AppRouteHandler } from "@/lib/types";
-import type { AIStreamRoute } from "@/routes/ai/ai.route";
+import type { AIStreamRoute, GetAvailableModelsRoute } from "@/routes/ai/ai.route";
 import { saveConversation } from "@/services/conversation.service";
-import { resolveModel, resolveModelSelection, transformPrompt } from "@/utils/index";
+import { getAvailableChatModels } from "@/services/model-catalog.service";
+
+export const getAvailableModels: AppRouteHandler<GetAvailableModelsRoute> = async (c) => {
+	const availableModels = await getAvailableChatModels();
+
+	return c.json({
+		data: availableModels,
+		message: "Available AI models retrieved successfully"
+	});
+};
 
 export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const requestBody = ChatRequestSchema.parse(await c.req.json());
 	const coalescedChatId = requestBody.chatId || requestBody.id || requestBody.conversationId;
-	const { model = "gpt-5-mini", tools: toolNames = [] } = requestBody;
+	const { agentMode, model = defaultModelId, tools: toolNames = [] } = requestBody;
 	const uiMessages = requestBody.messages;
-
-	const activeTools = getActiveTools(toolNames);
 	const validation = await safeValidateMyUIMessages(uiMessages);
 
 	if (!validation.success) {
@@ -24,43 +33,46 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	}
 
 	const validatedMessages = validation.data;
-	const resolvedModel = resolveModelSelection(model);
-	const messages = await transformPrompt(validatedMessages);
+	const normalizedMessages = normalizeMessagesForAgent(validatedMessages);
 	const userJwt = c.get("jwtPayload").sub;
 	const logger = c.get("logger");
-
-	const result = streamText({
-		abortSignal: c.req.raw.signal,
-		experimental_telemetry: {
-			functionId: "ai-stream-chat",
-			isEnabled: true,
-			metadata: {
-				userId: userJwt.id,
-				...(coalescedChatId && { sessionId: coalescedChatId }),
-				model: resolvedModel.id,
-				requestedModel: model,
-				tags: ["chat", "stream", resolvedModel.id, resolvedModel.provider],
-				toolCount: toolNames.length,
-				...(toolNames.length > 0 && { tools: toolNames.join(",") })
-			}
-		},
-		experimental_transform: smoothStream(),
-		messages,
-		model: resolveModel(model),
-		...(activeTools.length > 0
-			? {
-					activeTools,
-					stopWhen: stepCountIs(5),
-					tools: executableTools
-				}
-			: {})
+	const selectedAgentMode = resolveAgentMode(agentMode);
+	const modelMessages = await convertToModelMessages(normalizedMessages, {
+		ignoreIncompleteToolCalls: true
 	});
+	const telemetryMetadata = {
+		agentMode: selectedAgentMode,
+		requestedModel: model
+	};
 
-	return result.toUIMessageStreamResponse({
+	const result = await propagateAttributes(
+		{
+			metadata: telemetryMetadata,
+			...(coalescedChatId ? { sessionId: coalescedChatId } : {}),
+			tags: ["chat", "ai", selectedAgentMode],
+			traceName: "ai-chat-stream",
+			userId: userJwt.id,
+			version: "agents-v1"
+		},
+		async () =>
+			getChatAgent(selectedAgentMode).stream({
+				abortSignal: c.req.raw.signal,
+				experimental_transform: smoothStream(),
+				messages: modelMessages,
+				options: {
+					conversationId: coalescedChatId,
+					requestedModel: model,
+					toolNames,
+					userId: userJwt.id
+				}
+			})
+	);
+
+	return result.toUIMessageStreamResponse<MyUIMessage>({
 		consumeSseStream: consumeStream,
 		generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
-		onError: (error) => {
-			logger.error({ error }, "AI stream failed");
+		onError: (error: unknown) => {
+			logger.error({ error, selectedAgentMode }, "AI agent stream failed");
 			return "The assistant request failed. Please retry.";
 		},
 		onFinish: async ({ isAborted, messages: finalMessages }) => {

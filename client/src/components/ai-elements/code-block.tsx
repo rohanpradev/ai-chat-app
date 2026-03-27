@@ -1,13 +1,5 @@
 "use client";
 
-import type { ComponentProps, CSSProperties, HTMLAttributes } from "react";
-import type {
-  BundledLanguage,
-  BundledTheme,
-  HighlighterGeneric,
-  ThemedToken,
-} from "shiki";
-
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { CheckIcon, CopyIcon } from "lucide-react";
+import type { ComponentProps, CSSProperties, HTMLAttributes } from "react";
 import {
   createContext,
   memo,
@@ -28,18 +21,21 @@ import {
   useRef,
   useState,
 } from "react";
-import { createHighlighter } from "shiki";
+import type { ThemedToken } from "@shikijs/types";
+import {
+  createRawTokens,
+  getTokensCacheKey,
+  highlightCode,
+  normalizeCodeInput,
+  type TokenizedCode,
+} from "@/lib/code-highlighter";
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
-// biome-ignore lint/suspicious/noBitwiseOperators: shiki bitflag check
-// eslint-disable-next-line no-bitwise -- shiki bitflag check
+// oxlint-disable-next-line eslint(no-bitwise)
 const isItalic = (fontStyle: number | undefined) => fontStyle && fontStyle & 1;
-// biome-ignore lint/suspicious/noBitwiseOperators: shiki bitflag check
-// eslint-disable-next-line no-bitwise -- shiki bitflag check
 // oxlint-disable-next-line eslint(no-bitwise)
 const isBold = (fontStyle: number | undefined) => fontStyle && fontStyle & 2;
 const isUnderline = (fontStyle: number | undefined) =>
-  // biome-ignore lint/suspicious/noBitwiseOperators: shiki bitflag check
   // oxlint-disable-next-line eslint(no-bitwise)
   fontStyle && fontStyle & 4;
 
@@ -81,6 +77,20 @@ const TokenSpan = ({ token }: { token: ThemedToken }) => (
   </span>
 );
 
+// Line number styles using CSS counters
+const LINE_NUMBER_CLASSES = cn(
+  "block",
+  "before:content-[counter(line)]",
+  "before:inline-block",
+  "before:[counter-increment:line]",
+  "before:w-8",
+  "before:mr-4",
+  "before:text-right",
+  "before:text-muted-foreground/50",
+  "before:font-mono",
+  "before:select-none",
+);
+
 // Line rendering component
 const LineSpan = ({
   keyedLine,
@@ -100,16 +110,10 @@ const LineSpan = ({
 
 // Types
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
-  code: string;
-  language: BundledLanguage;
+  code?: string | null;
+  language: string;
   showLineNumbers?: boolean;
 };
-
-interface TokenizedCode {
-  tokens: ThemedToken[][];
-  fg: string;
-  bg: string;
-}
 
 interface CodeBlockContextType {
   code: string;
@@ -119,136 +123,6 @@ interface CodeBlockContextType {
 const CodeBlockContext = createContext<CodeBlockContextType>({
   code: "",
 });
-
-// Highlighter cache (singleton per language)
-const highlighterCache = new Map<
-  string,
-  Promise<HighlighterGeneric<BundledLanguage, BundledTheme>>
->();
-
-// Token cache
-const tokensCache = new Map<string, TokenizedCode>();
-
-// Subscribers for async token updates
-const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
-
-const getTokensCacheKey = (code: string, language: BundledLanguage) => {
-  const start = code.slice(0, 100);
-  const end = code.length > 100 ? code.slice(-100) : "";
-  return `${language}:${code.length}:${start}:${end}`;
-};
-
-const getHighlighter = (
-  language: BundledLanguage
-): Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> => {
-  const cached = highlighterCache.get(language);
-  if (cached) {
-    return cached;
-  }
-
-  const highlighterPromise = createHighlighter({
-    langs: [language],
-    themes: ["github-light", "github-dark"],
-  });
-
-  highlighterCache.set(language, highlighterPromise);
-  return highlighterPromise;
-};
-
-// Create raw tokens for immediate display while highlighting loads
-const createRawTokens = (code: string): TokenizedCode => ({
-  bg: "transparent",
-  fg: "inherit",
-  tokens: code.split("\n").map((line) =>
-    line === ""
-      ? []
-      : [
-          {
-            color: "inherit",
-            content: line,
-          } as ThemedToken,
-        ]
-  ),
-});
-
-// Synchronous highlight with callback for async results
-export const highlightCode = (
-  code: string,
-  language: BundledLanguage,
-  // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-callbacks)
-  callback?: (result: TokenizedCode) => void
-): TokenizedCode | null => {
-  const tokensCacheKey = getTokensCacheKey(code, language);
-
-  // Return cached result if available
-  const cached = tokensCache.get(tokensCacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  // Subscribe callback if provided
-  if (callback) {
-    if (!subscribers.has(tokensCacheKey)) {
-      subscribers.set(tokensCacheKey, new Set());
-    }
-    subscribers.get(tokensCacheKey)?.add(callback);
-  }
-
-  // Start highlighting in background - fire-and-forget async pattern
-  getHighlighter(language)
-    // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
-    .then((highlighter) => {
-      const availableLangs = highlighter.getLoadedLanguages();
-      const langToUse = availableLangs.includes(language) ? language : "text";
-
-      const result = highlighter.codeToTokens(code, {
-        lang: langToUse,
-        themes: {
-          dark: "github-dark",
-          light: "github-light",
-        },
-      });
-
-      const tokenized: TokenizedCode = {
-        bg: result.bg ?? "transparent",
-        fg: result.fg ?? "inherit",
-        tokens: result.tokens,
-      };
-
-      // Cache the result
-      tokensCache.set(tokensCacheKey, tokenized);
-
-      // Notify all subscribers
-      const subs = subscribers.get(tokensCacheKey);
-      if (subs) {
-        for (const sub of subs) {
-          sub(tokenized);
-        }
-        subscribers.delete(tokensCacheKey);
-      }
-    })
-    // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then), eslint-plugin-promise(prefer-await-to-callbacks)
-    .catch((error) => {
-      console.error("Failed to highlight code:", error);
-      subscribers.delete(tokensCacheKey);
-    });
-
-  return null;
-};
-
-// Line number styles using CSS counters
-const LINE_NUMBER_CLASSES = cn(
-  "block",
-  "before:content-[counter(line)]",
-  "before:inline-block",
-  "before:[counter-increment:line]",
-  "before:w-8",
-  "before:mr-4",
-  "before:text-right",
-  "before:text-muted-foreground/50",
-  "before:font-mono",
-  "before:select-none"
-);
 
 const CodeBlockBody = memo(
   ({
@@ -265,26 +139,27 @@ const CodeBlockBody = memo(
         backgroundColor: tokenized.bg,
         color: tokenized.fg,
       }),
-      [tokenized.bg, tokenized.fg]
+      [tokenized.bg, tokenized.fg],
     );
 
     const keyedLines = useMemo(
       () => addKeysToTokens(tokenized.tokens),
-      [tokenized.tokens]
+      [tokenized.tokens],
     );
 
     return (
       <pre
         className={cn(
           "dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)] m-0 p-4 text-sm",
-          className
+          className,
         )}
         style={preStyle}
       >
         <code
           className={cn(
             "font-mono text-sm",
-            showLineNumbers && "[counter-increment:line_0] [counter-reset:line]"
+            showLineNumbers &&
+              "[counter-increment:line_0] [counter-reset:line]",
           )}
         >
           {keyedLines.map((keyedLine) => (
@@ -301,7 +176,7 @@ const CodeBlockBody = memo(
   (prevProps, nextProps) =>
     prevProps.tokenized === nextProps.tokenized &&
     prevProps.showLineNumbers === nextProps.showLineNumbers &&
-    prevProps.className === nextProps.className
+    prevProps.className === nextProps.className,
 );
 
 CodeBlockBody.displayName = "CodeBlockBody";
@@ -315,7 +190,7 @@ export const CodeBlockContainer = ({
   <div
     className={cn(
       "group relative w-full overflow-hidden rounded-md border bg-background text-foreground",
-      className
+      className,
     )}
     data-language={language}
     style={{
@@ -335,7 +210,7 @@ export const CodeBlockHeader = ({
   <div
     className={cn(
       "flex items-center justify-between border-b bg-muted/80 px-3 py-2 text-muted-foreground text-xs",
-      className
+      className,
     )}
     {...props}
   >
@@ -381,35 +256,57 @@ export const CodeBlockContent = ({
   language,
   showLineNumbers = false,
 }: {
-  code: string;
-  language: BundledLanguage;
+  code?: string | null;
+  language: string;
   showLineNumbers?: boolean;
 }) => {
-  // Memoized raw tokens for immediate display
-  const rawTokens = useMemo(() => createRawTokens(code), [code]);
-
-  // Try to get cached result synchronously, otherwise use raw tokens
-  const [tokenized, setTokenized] = useState<TokenizedCode>(
-    () => highlightCode(code, language) ?? rawTokens
+  const normalizedCode = useMemo(() => normalizeCodeInput(code), [code]);
+  const highlightKey = useMemo(
+    () => getTokensCacheKey(normalizedCode, language),
+    [normalizedCode, language],
   );
+
+  // Memoized raw tokens for immediate display
+  const rawTokens = useMemo(
+    () => createRawTokens(normalizedCode),
+    [normalizedCode],
+  );
+
+  // Synchronous cache lookup for already highlighted or fallback code.
+  const immediateTokens = useMemo(
+    () => highlightCode(normalizedCode, language),
+    [normalizedCode, language],
+  );
+
+  const [asyncTokens, setAsyncTokens] = useState<{
+    key: string;
+    value: TokenizedCode;
+  } | null>(null);
+  const asyncHighlight =
+    asyncTokens?.key === highlightKey ? asyncTokens.value : null;
 
   useEffect(() => {
     let cancelled = false;
 
-    // Reset to raw tokens when code changes (shows current code, not stale tokens)
-    setTokenized(highlightCode(code, language) ?? rawTokens);
+    if (immediateTokens) {
+      setAsyncTokens(null);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-    // Subscribe to async highlighting result
-    highlightCode(code, language, (result) => {
+    highlightCode(normalizedCode, language, (result) => {
       if (!cancelled) {
-        setTokenized(result);
+        setAsyncTokens({ key: highlightKey, value: result });
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [code, language, rawTokens]);
+  }, [highlightKey, immediateTokens, normalizedCode, language]);
+
+  const tokenized = asyncHighlight ?? immediateTokens ?? rawTokens;
 
   return (
     <div className="relative overflow-auto">
@@ -426,14 +323,18 @@ export const CodeBlock = ({
   children,
   ...props
 }: CodeBlockProps) => {
-  const contextValue = useMemo(() => ({ code }), [code]);
+  const normalizedCode = useMemo(() => normalizeCodeInput(code), [code]);
+  const contextValue = useMemo(
+    () => ({ code: normalizedCode }),
+    [normalizedCode],
+  );
 
   return (
     <CodeBlockContext.Provider value={contextValue}>
       <CodeBlockContainer className={className} language={language} {...props}>
         {children}
         <CodeBlockContent
-          code={code}
+          code={normalizedCode}
           language={language}
           showLineNumbers={showLineNumbers}
         />
@@ -473,7 +374,7 @@ export const CodeBlockCopyButton = ({
         onCopy?.();
         timeoutRef.current = window.setTimeout(
           () => setIsCopied(false),
-          timeout
+          timeout,
         );
       }
     } catch (error) {
@@ -485,7 +386,7 @@ export const CodeBlockCopyButton = ({
     () => () => {
       window.clearTimeout(timeoutRef.current);
     },
-    []
+    [],
   );
 
   const Icon = isCopied ? CheckIcon : CopyIcon;
@@ -506,7 +407,7 @@ export const CodeBlockCopyButton = ({
 export type CodeBlockLanguageSelectorProps = ComponentProps<typeof Select>;
 
 export const CodeBlockLanguageSelector = (
-  props: CodeBlockLanguageSelectorProps
+  props: CodeBlockLanguageSelectorProps,
 ) => <Select {...props} />;
 
 export type CodeBlockLanguageSelectorTriggerProps = ComponentProps<
@@ -520,7 +421,7 @@ export const CodeBlockLanguageSelectorTrigger = ({
   <SelectTrigger
     className={cn(
       "h-7 border-none bg-transparent px-2 text-xs shadow-none",
-      className
+      className,
     )}
     size="sm"
     {...props}
@@ -532,7 +433,7 @@ export type CodeBlockLanguageSelectorValueProps = ComponentProps<
 >;
 
 export const CodeBlockLanguageSelectorValue = (
-  props: CodeBlockLanguageSelectorValueProps
+  props: CodeBlockLanguageSelectorValueProps,
 ) => <SelectValue {...props} />;
 
 export type CodeBlockLanguageSelectorContentProps = ComponentProps<
@@ -551,5 +452,5 @@ export type CodeBlockLanguageSelectorItemProps = ComponentProps<
 >;
 
 export const CodeBlockLanguageSelectorItem = (
-  props: CodeBlockLanguageSelectorItemProps
+  props: CodeBlockLanguageSelectorItemProps,
 ) => <SelectItem {...props} />;

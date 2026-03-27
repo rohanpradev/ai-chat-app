@@ -1,14 +1,16 @@
+import { uiMessageTools } from "@chat-app/shared/tools";
 import { type InferUITool, type InferUITools, safeValidateUIMessages, type UIMessage, validateUIMessages } from "ai";
 import { z } from "zod";
-import { uiMessageTools } from "../tools";
 
-export { uiMessageTools as tools } from "../tools";
+export { uiMessageTools as tools } from "@chat-app/shared/tools";
+
+const isoDatetimeSchema = z.string().datetime({ offset: true });
 
 // Metadata schema
 const metadataSchema = z
 	.object({
 		conversationId: z.string().optional(),
-		createdAt: z.iso.datetime().optional(),
+		createdAt: isoDatetimeSchema.optional(),
 		totalTokens: z.number().optional(),
 	})
 	.optional();

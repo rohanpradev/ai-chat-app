@@ -5,6 +5,10 @@ interface SerperResultsProps {
   data: SerperUITool["output"];
 }
 
+type OrganicResult = SerperResultsProps["data"]["organic"][number];
+type PeopleAlsoAskResult = SerperResultsProps["data"]["peopleAlsoAsk"][number];
+type RelatedSearchResult = SerperResultsProps["data"]["relatedSearches"][number];
+
 export function SerperResults({ data }: Readonly<SerperResultsProps>) {
   const {
     answerBox,
@@ -55,7 +59,7 @@ export function SerperResults({ data }: Readonly<SerperResultsProps>) {
 
       {organic.length > 0 && (
         <div className="space-y-4">
-          {organic.slice(0, 4).map((result) => (
+          {organic.slice(0, 4).map((result: OrganicResult) => (
             <div
               key={result.position}
               className="bg-white dark:bg-gray-900/50 p-4 rounded-lg border border-blue-100 dark:border-blue-800/50 hover:shadow-md transition-shadow"
@@ -84,7 +88,7 @@ export function SerperResults({ data }: Readonly<SerperResultsProps>) {
         <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
           <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">People also ask</h4>
           <div className="space-y-2">
-            {peopleAlsoAsk.slice(0, 3).map((item) => (
+            {peopleAlsoAsk.slice(0, 3).map((item: PeopleAlsoAskResult) => (
               <div
                 key={item.question}
                 className="rounded-lg border border-blue-100 bg-white/80 p-3 text-sm dark:border-blue-800/50 dark:bg-gray-900/40"
@@ -101,7 +105,7 @@ export function SerperResults({ data }: Readonly<SerperResultsProps>) {
         <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
           <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">Related searches</h4>
           <div className="flex flex-wrap gap-2">
-            {relatedSearches.slice(0, 6).map((search) => (
+            {relatedSearches.slice(0, 6).map((search: RelatedSearchResult) => (
               <span
                 key={search.query}
                 className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-700"

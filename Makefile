@@ -24,8 +24,30 @@ K8S_GATEWAY_HEALTH_URL ?= $(K8S_GATEWAY_URL)/health
 K8S_TRAEFIK_DASHBOARD_URL ?= https://$(K8S_TRAEFIK_DASHBOARD_HOSTNAME):30001
 DOCKER_TRAEFIK_DASHBOARD_URL ?= https://traefik.$(DOMAIN)
 K8S_BUILD_ARGS ?=
+RECREATABLE_DIRS := \
+	.turbo \
+	.vite \
+	coverage \
+	dist \
+	node_modules \
+	client/.vite \
+	client/coverage \
+	client/dist \
+	client/node_modules \
+	server/.vite \
+	server/coverage \
+	server/dist \
+	server/node_modules \
+	shared/.vite \
+	shared/coverage \
+	shared/dist \
+	shared/node_modules
+RECREATABLE_FILES := \
+	client/src/routeTree.gen.ts \
+	helm/chat-app/values.local.yaml \
+	k8s/traefik-values.generated.yaml
 
-.PHONY: help setup validate start stop restart status logs clean build dev health local local-stop docker docker-stop shutdown-all kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
+.PHONY: help setup validate start stop restart status logs clean clean-generated build dev health local local-stop docker docker-stop shutdown-all kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
 
 # Default target
 help: ## Show this help message
@@ -114,6 +136,13 @@ build: ## Build all images
 clean: ## Stop services and remove containers, networks, and volumes
 	@echo "🧹 Cleaning up..."
 	@docker compose down -v --remove-orphans --rmi local
+
+clean-generated: ## Remove recreatable workspace artifacts without touching .env files
+	@echo "🧽 Removing recreatable workspace artifacts..."
+	@rm -rf $(RECREATABLE_DIRS)
+	@rm -f $(RECREATABLE_FILES)
+	@find . -type f -name '*.tsbuildinfo' -delete
+	@echo "✅ Removed generated workspace files. .env files were left untouched."
 
 shutdown-all: ## Stop local Kubernetes, remove Docker resources, and stop the local runtime
 	@echo "🛑 Shutting down local infrastructure..."

@@ -3,6 +3,7 @@ import { simulateReadableStream } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 
 const saveConversationMock = mock(async () => {});
+const getAvailableChatModelsMock = mock(async () => [{ id: "gpt-5.4", name: "GPT-5.4", provider: "openai" }]);
 
 mock.module("@/middlewares/auth-middleware", () => ({
 	authMiddleware: mock(async (c, next) => {
@@ -13,6 +14,10 @@ mock.module("@/middlewares/auth-middleware", () => ({
 
 mock.module("@/services/conversation.service", () => ({
 	saveConversation: saveConversationMock
+}));
+
+mock.module("@/services/model-catalog.service", () => ({
+	getAvailableChatModels: getAvailableChatModelsMock
 }));
 
 mock.module("@/utils/index", () => ({
@@ -43,7 +48,7 @@ mock.module("@/utils/index", () => ({
 				})
 			})
 		}),
-	resolveModelSelection: (model = "gpt-5-mini") => ({
+	resolveModelSelection: async (model = "gpt-5.4") => ({
 		id: model,
 		name: "Mock Model",
 		provider: "openai"
@@ -52,6 +57,19 @@ mock.module("@/utils/index", () => ({
 }));
 
 describe("AI Routes", () => {
+	it("lists available models for the client selector", async () => {
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/ai/ai.index");
+		const app = createApp().route("/", router);
+		const response = await app.request("/ai/models", {
+			method: "GET"
+		});
+
+		expect(response.status).toBe(200);
+		const payload = await response.json();
+		expect(payload.data).toEqual([{ id: "gpt-5.4", name: "GPT-5.4", provider: "openai" }]);
+	});
+
 	it("streams deterministic output using ai/test mock model", async () => {
 		const { createApp } = await import("@/lib/create-app");
 		const { default: router } = await import("@/routes/ai/ai.index");

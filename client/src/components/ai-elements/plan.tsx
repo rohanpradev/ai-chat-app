@@ -20,8 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ChevronsUpDownIcon } from "lucide-react";
 import { createContext, useContext } from "react";
-
-import { Shimmer } from "./shimmer";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 
 interface PlanContextValue {
   isStreaming: boolean;

@@ -5,9 +5,9 @@
  * @see https://langfuse.com/docs/integrations/vercel-ai-sdk
  */
 
+import { LangfuseSpanProcessor } from "@langfuse/otel";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import { LangfuseExporter } from "langfuse-vercel";
 import pino from "pino";
 import env from "@/utils/env";
 
@@ -38,15 +38,16 @@ export function initializeTelemetry(): NodeSDK | null {
 	logger.info("Initializing telemetry");
 
 	try {
-		const langfuseExporter = new LangfuseExporter({
+		const langfuseSpanProcessor = new LangfuseSpanProcessor({
 			baseUrl: env.LANGFUSE_BASEURL,
+			environment: env.NODE_ENV,
 			publicKey: env.LANGFUSE_PUBLIC_KEY,
 			secretKey: env.LANGFUSE_SECRET_KEY
 		});
 
 		sdk = new NodeSDK({
 			instrumentations: [getNodeAutoInstrumentations()],
-			traceExporter: langfuseExporter
+			spanProcessors: [langfuseSpanProcessor]
 		});
 
 		sdk.start();

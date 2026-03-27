@@ -1,8 +1,5 @@
 "use client";
 
-import type { DynamicToolUIPart, ToolUIPart } from "ai";
-import type { ComponentProps, ReactNode } from "react";
-
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
@@ -10,6 +7,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import {
   CheckCircleIcon,
   ChevronDownIcon,
@@ -18,7 +16,9 @@ import {
   WrenchIcon,
   XCircleIcon,
 } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
+import { CodeBlock } from "@/components/ai-elements/code-block";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -79,7 +79,11 @@ export const ToolHeader = ({
   ...props
 }: ToolHeaderProps) => {
   const derivedName =
-    type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
+    type === "dynamic-tool"
+      ? (toolName ?? "tool")
+      : typeof type === "string"
+        ? type.split("-").slice(1).join("-") || type
+        : "tool";
 
   return (
     <CollapsibleTrigger
@@ -115,30 +119,19 @@ export type ToolInputProps = ComponentProps<"div"> & {
   input: ToolPart["input"];
 };
 
-const ToolCode = ({
-  code,
-  className,
-}: {
-  code: string;
-  className?: string;
-}) => (
-  <pre
-    className={cn(
-      "overflow-x-auto p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words",
-      className,
-    )}
-  >
-    <code>{code}</code>
-  </pre>
-);
-
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
     <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
       Parameters
     </h4>
     <div className="rounded-md bg-muted/50">
-      <ToolCode code={JSON.stringify(input, null, 2)} />
+      {typeof input === "undefined" ? (
+        <div className="px-3 py-2 text-muted-foreground text-sm">
+          Parameters are still streaming.
+        </div>
+      ) : (
+        <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+      )}
     </div>
   </div>
 );
@@ -161,9 +154,11 @@ export const ToolOutput = ({
   let Output = <div>{output as ReactNode}</div>;
 
   if (typeof output === "object" && !isValidElement(output)) {
-    Output = <ToolCode code={JSON.stringify(output, null, 2)} />;
+    Output = (
+      <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
+    );
   } else if (typeof output === "string") {
-    Output = <ToolCode code={output} />;
+    Output = <CodeBlock code={output} language="json" />;
   }
 
   return (

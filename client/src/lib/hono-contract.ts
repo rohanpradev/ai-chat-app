@@ -1,5 +1,6 @@
 import type {
   AuthResponse,
+  AvailableModelsResponse,
   CreateConversationRequest,
   CreateConversationResponse,
   GetConversationResponse,
@@ -15,6 +16,7 @@ import { Hono } from "hono";
 type LogoutResponse = { message: string };
 
 export const apiContract = new Hono()
+  .get("/ai/models", (c) => c.json({} as AvailableModelsResponse, 200))
   .post<"/auth/register", { in: { json: RegisterUserRequest } }>("/auth/register", (c) =>
     c.json({} as RegisterResponse, 201),
   )

@@ -1,5 +1,6 @@
 import type {
   AuthResponse,
+  AvailableModelsResponse,
   CreateConversationResponse,
   GetConversationResponse,
   GetConversationsResponse,
@@ -49,6 +50,13 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 export const getApiClient = () => {
   return {
+    ai: {
+      models: async () => {
+        const response = await apiClient.ai.models.$get();
+        const result = await parseResponse<AvailableModelsResponse>(response);
+        return result.data;
+      },
+    },
     auth: {
       login: async (
         payload: InferRequestType<typeof apiClient.auth.login.$post>["json"],

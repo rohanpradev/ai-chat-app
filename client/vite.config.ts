@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": resolve(__dirname, "./src"),
+        "@shared": resolve(__dirname, "../shared"),
       },
     },
     build: {
@@ -48,7 +49,10 @@ export default defineConfig(({ mode }) => {
               },
               {
                 name: "syntax-vendor",
-                test: /shiki|highlight\.js|react-syntax-highlighter/,
+                // Keep the Shiki runtime together, but leave language/theme
+                // loaders as independent async chunks so the browser only
+                // downloads the grammars that a rendered code block needs.
+                test: /@shikijs\/(?:core|engine-javascript|primitive|types|vscode-textmate)|highlight\.js|react-syntax-highlighter/,
               },
               {
                 name: "mermaid-vendor",

@@ -1,12 +1,26 @@
-import { webSearchToolId } from "@chat-app/shared";
+import { type AgentMode, type AIModelId, type ChatRequest, webSearchToolId } from "@chat-app/shared";
 
 export interface ChatRequestBodyOptions {
   conversationId?: string;
-  model: string;
+  agentMode: AgentMode;
+  model: AIModelId;
   webSearch: boolean;
 }
 
-export const buildChatRequestBody = ({ conversationId, model, webSearch }: ChatRequestBodyOptions) => ({
+type ChatRequestBody = {
+  agentMode: ChatRequest["agentMode"];
+  chatId?: ChatRequest["chatId"];
+  model: ChatRequest["model"];
+  tools?: ChatRequest["tools"];
+};
+
+export const buildChatRequestBody = ({
+  conversationId,
+  agentMode,
+  model,
+  webSearch,
+}: ChatRequestBodyOptions): ChatRequestBody => ({
+  agentMode,
   model,
   ...(webSearch ? { tools: [webSearchToolId] } : {}),
   ...(conversationId ? { chatId: conversationId } : {}),
