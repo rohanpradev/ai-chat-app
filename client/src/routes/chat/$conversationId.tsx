@@ -1,17 +1,12 @@
-import { useChat } from "@ai-sdk/react";
-import { type MyUIMessage, models, validateMyUIMessages } from "@chat-app/shared";
+import { type MyUIMessage, validateMyUIMessages } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { useRef, useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
-import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { getApiClient } from "@/composables/useApi";
-import { buildChatRequestBody } from "@/lib/chat-request";
+import { useAgentChat } from "@/hooks/useAgentChat";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
-import { convertFilesToDataURLs } from "@/utils/fileUtils";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
 
 const getConversationQuery = (conversationId: string) => {
@@ -116,49 +111,28 @@ export const Route = createFileRoute("/chat/$conversationId")({
 function ConversationChat() {
   const { conversationId } = Route.useParams();
   const { initialMessages } = Route.useLoaderData();
-  const [input, setInput] = useState("");
-  const [model, setModel] = useState<string>(models[0].id);
-  const [webSearch, setWebSearch] = useState(false);
-  const requestBodyRef = useRef(buildChatRequestBody({ conversationId, model, webSearch }));
-  const transportRef = useRef(
-    new DefaultChatTransport<MyUIMessage>({
-      api: "/api/ai/text-stream",
-      credentials: "include",
-      prepareSendMessagesRequest: ({ body, id, messageId, messages, trigger }) => ({
-        body: {
-          ...body,
-          id,
-          messageId,
-          messages,
-          trigger,
-          ...requestBodyRef.current,
-        },
-      }),
-    }),
-  );
-
-  requestBodyRef.current = buildChatRequestBody({
-    conversationId,
+  const {
+    addToolApprovalResponse,
+    agentMode,
+    availableModels,
+    clearError,
+    error,
+    input,
+    messages,
     model,
+    regenerate,
+    sendPromptMessage,
+    setAgentMode,
+    setInput,
+    setModel,
+    setWebSearch,
+    showAgentGuide,
+    status,
     webSearch,
+  } = useAgentChat({
+    conversationId,
+    initialMessages: initialMessages as MyUIMessage[],
   });
-
-  const { messages, sendMessage, status, error, clearError, regenerate, addToolApprovalResponse } =
-    useChat<MyUIMessage>({
-      id: conversationId,
-      messages: initialMessages as MyUIMessage[],
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-      transport: transportRef.current,
-    });
-
-  const handleMessageSend = async (message: PromptInputMessage) => {
-    const fileParts = message.files && message.files.length > 0 ? await convertFilesToDataURLs(message.files) : [];
-
-    sendMessage({
-      role: "user",
-      parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
-    });
-  };
 
   return (
     <>
@@ -178,13 +152,17 @@ function ConversationChat() {
 
       <div className="border-t p-6">
         <ChatInput
+          availableModels={availableModels}
           input={input}
           setInput={setInput}
+          agentMode={agentMode}
+          setAgentMode={setAgentMode}
           model={model}
           setModel={setModel}
           webSearch={webSearch}
           setWebSearch={setWebSearch}
-          onMessageSend={handleMessageSend}
+          onMessageSend={sendPromptMessage}
+          showAgentGuide={showAgentGuide}
           status={status}
         />
       </div>

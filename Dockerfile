@@ -4,38 +4,32 @@ ARG BUN_DEV_IMAGE=dhi.io/bun:1.3.11-dev
 ARG BUN_RUNTIME_IMAGE=dhi.io/bun:1.3.11
 ARG NGINX_IMAGE=dhi.io/nginx:1.29.5
 
-# Stage 1: Production dependencies only
-FROM ${BUN_DEV_IMAGE} AS prod-deps
+# Stage 1: Workspace manifests only.
+FROM ${BUN_DEV_IMAGE} AS workspace-manifests
 WORKDIR /app
 
-# Copy package files for dependency resolution
 COPY package.json bun.lock* ./
+COPY client/package.json ./client/package.json
+COPY server/package.json ./server/package.json
+COPY shared/package.json ./shared/package.json
+
+# Stage 2: Production dependencies only.
+FROM workspace-manifests AS prod-deps
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --production --filter './server' --filter './shared'
+
+# Stage 3: Build dependencies (includes dev deps).
+FROM workspace-manifests AS build-deps
 COPY tsconfig.json ./
-COPY client/package.json client/tsconfig.json ./client/
-COPY server/package.json server/tsconfig.json ./server/
-COPY shared/package.json shared/tsconfig.json ./shared/
+COPY client/tsconfig.json ./client/tsconfig.json
+COPY shared/tsconfig.json ./shared/tsconfig.json
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --filter './client' --filter './shared'
 
-# Install all dependencies (needed for monorepo workspace resolution)
-RUN bun install --frozen-lockfile
-
-# Stage 2: Build dependencies (includes dev deps)
-FROM ${BUN_DEV_IMAGE} AS build-deps
-WORKDIR /app
-
-# Copy package files
-COPY package.json bun.lock* ./
-COPY tsconfig.json ./
-COPY client/package.json client/tsconfig.json ./client/
-COPY server/package.json server/tsconfig.json ./server/
-COPY shared/package.json shared/tsconfig.json ./shared/
-
-# Install all dependencies (including dev for building)
-RUN bun install --frozen-lockfile
-
-# Copy shared source (needed for builds)
+# Copy shared source needed by the client build after dependencies are cached.
 COPY shared/ ./shared/
 
-# Stage 3: Client build
+# Stage 4: Client build.
 FROM build-deps AS client-build
 WORKDIR /app
 
@@ -46,7 +40,7 @@ COPY client/ ./client/
 WORKDIR /app/client
 RUN bun run build
 
-# Stage 4: Client production
+# Stage 5: Client production.
 FROM ${NGINX_IMAGE} AS client-prod
 USER 0
 WORKDIR /app
@@ -60,7 +54,7 @@ USER 65532
 EXPOSE 80
 CMD ["-g", "daemon off;"]
 
-# Stage 5: Server production
+# Stage 6: Server production.
 FROM ${BUN_RUNTIME_IMAGE} AS server-prod
 WORKDIR /app
 
@@ -71,8 +65,10 @@ COPY --from=prod-deps --chown=65532:65532 /app/package.json ./
 # Copy shared package (runtime dependency)
 COPY --chown=65532:65532 shared/ ./shared/
 
-# Copy server source
-COPY --chown=65532:65532 server/ ./server/
+# Copy only runtime server files to keep the final image lean.
+COPY --chown=65532:65532 server/package.json ./server/package.json
+COPY --chown=65532:65532 server/tsconfig.json ./server/tsconfig.json
+COPY --chown=65532:65532 server/src ./server/src
 
 WORKDIR /app/server
 

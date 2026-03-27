@@ -1,50 +1,56 @@
 // Export all schemas (includes both Zod schemas and inferred types)
 
 export {
-	type AIModelDefinition,
-	type AIModelId,
-	type AIProvider,
-	getModelById,
-	getModelsByProvider,
-	modelCatalog,
-	modelIds,
-	models,
-	providers,
-} from "./models.js";
-export * from "./schemas/index.js";
+  type AgentMode,
+  type AgentModeDefinition,
+  agentModeIds,
+  agentModes,
+  defaultAgentMode,
+  getAgentModeById,
+} from "@chat-app/shared/agents";
 export {
-	type EnabledRequestToolId,
-	enabledRequestToolIds,
-	type SerperToolInput,
-	type SerperToolOutput,
-	serperOutputSchema,
-	uiMessageToolDefinitions,
-	uiMessageTools,
-	webSearchToolId,
-} from "./tools.js";
-// Export specific types from types.ts
+  type AIModelDefinition,
+  type AIModelId,
+  type AIProvider,
+  defaultModelId,
+  getModelById,
+  getModelsByProvider,
+  modelCatalog,
+  modelIds,
+  models,
+  providers,
+} from "@chat-app/shared/models";
+export * from "@chat-app/shared/schemas";
+export {
+  type EnabledRequestToolId,
+  enabledRequestToolIds,
+  type SerperToolInput,
+  type SerperToolOutput,
+  serperOutputSchema,
+  uiMessageToolDefinitions,
+  uiMessageTools,
+  webSearchToolId,
+} from "@chat-app/shared/tools";
+export type { ConversationSummary as Chat } from "@chat-app/shared/types/conversation.types";
 export type {
-	ApiError,
-	AuthResponse,
-	BasicUserProfile,
-	GetProfileResponse,
-	LoginResponse,
-	LoginUserRequest,
-	Model,
-	ModelsArray,
-	RegisterResponse,
-	RegisterUserRequest,
-	User,
-} from "./types";
-export type { ConversationSummary as Chat } from "./types/conversation.types";
-
-// Export UI message types and tools
+  ApiError,
+  AuthResponse,
+  BasicUserProfile,
+  GetProfileResponse,
+  LoginResponse,
+  LoginUserRequest,
+  Model,
+  ModelsArray,
+  RegisterResponse,
+  RegisterUserRequest,
+  User,
+} from "@chat-app/shared/types/index";
 export {
-	type MyMetadata,
-	type MyTools,
-	type MyUIMessage,
-	type SerperUITool,
-	safeValidateMyUIMessages,
-	tools,
-	validateMyUIMessages,
-} from "./types/ui-message.types.js";
+  type MyMetadata,
+  type MyTools,
+  type MyUIMessage,
+  type SerperUITool,
+  safeValidateMyUIMessages,
+  tools,
+  validateMyUIMessages,
+} from "@chat-app/shared/types/ui-message.types";

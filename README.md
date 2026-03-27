@@ -201,6 +201,21 @@ Or run the combined quality gate:
 bun run check
 ```
 
+If you want to reset only recreatable workspace artifacts without touching environment files:
+
+```bash
+make clean-generated
+```
+
+This removes local build outputs and generated files such as:
+
+- root and workspace `node_modules/`
+- workspace `dist/`, `coverage/`, `.vite/`, and `*.tsbuildinfo`
+- generated files like `client/src/routeTree.gen.ts`
+- generated Helm and Traefik local values files
+
+It does not remove `.env`, `.env.local`, or lockfiles.
+
 ## Kubernetes Workflow
 
 The Kubernetes path is driven by the Helm chart in `helm/chat-app`.
@@ -313,8 +328,15 @@ Commands worth keeping in your normal loop:
 
 - `bun run check`
 - `bun run test`
+- `make clean-generated`
 - `make status`
 - `make k8s-status`
+
+Cleanup command reference:
+
+- `make clean-generated` removes recreatable workspace artifacts and generated files, but keeps `.env` files.
+- `make clean` removes Docker Compose containers, networks, volumes, and local images.
+- `make shutdown-all` tears down local Docker and Kubernetes infrastructure.
 
 ## Why It Reads Like a Product, Not a Sample
 

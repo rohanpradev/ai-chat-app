@@ -1,6 +1,6 @@
 import { createRouter } from "@/lib/create-app";
-import * as handlers from "./conversations.handler";
-import * as routes from "./conversations.route";
+import * as handlers from "@/routes/conversations/conversations.handler";
+import * as routes from "@/routes/conversations/conversations.route";
 
 const router = createRouter()
 	.openapi(routes.createConversationRoute, handlers.createConversation)

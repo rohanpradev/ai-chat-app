@@ -1,6 +1,8 @@
 import { type ToolSet, tool } from "ai";
 import { z } from "zod";
 
+const urlSchema = z.string().url();
+
 const deepSearchInputSchema = z.object({
 	maxResults: z.number().optional().describe("Maximum number of results"),
 	query: z.string().describe("Search query"),
@@ -21,7 +23,7 @@ const serperInputSchema = z.object({
 const serperAnswerBoxSchema = z
 	.object({
 		answer: z.string().optional(),
-		link: z.url().optional(),
+		link: urlSchema.optional(),
 		snippet: z.string().optional(),
 		title: z.string().optional(),
 	})
@@ -31,16 +33,16 @@ const serperKnowledgeGraphSchema = z
 	.object({
 		attributes: z.record(z.string(), z.string()).optional(),
 		description: z.string().optional(),
-		descriptionLink: z.url().optional(),
+		descriptionLink: urlSchema.optional(),
 		title: z.string().optional(),
 		type: z.string().optional(),
-		website: z.url().optional(),
+		website: urlSchema.optional(),
 	})
 	.partial();
 
 const serperOrganicResultSchema = z.object({
 	date: z.string().optional(),
-	link: z.url(),
+	link: urlSchema,
 	position: z.number().int().nonnegative(),
 	snippet: z.string(),
 	source: z.string().optional(),
@@ -48,7 +50,7 @@ const serperOrganicResultSchema = z.object({
 });
 
 const serperPeopleAlsoAskSchema = z.object({
-	link: z.url().optional(),
+	link: urlSchema.optional(),
 	question: z.string(),
 	snippet: z.string().optional(),
 	title: z.string().optional(),

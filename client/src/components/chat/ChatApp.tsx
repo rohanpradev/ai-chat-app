@@ -1,10 +1,4 @@
-import { useChat } from "@ai-sdk/react";
-import type { MyUIMessage } from "@chat-app/shared";
-import { models } from "@chat-app/shared";
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { useRef, useState } from "react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
-import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -12,8 +6,7 @@ import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
-import { buildChatRequestBody } from "@/lib/chat-request";
-import { convertFilesToDataURLs } from "@/utils/fileUtils";
+import { useAgentChat } from "@/hooks/useAgentChat";
 
 interface User {
   id: string;
@@ -34,43 +27,26 @@ const suggestions = [
 
 export function ChatApp({ user }: Readonly<ChatAppProps>) {
   const { mutate: logout } = useUserLogout();
-  const [input, setInput] = useState("");
-  const [model, setModel] = useState<string>(models[0].id);
-  const [webSearch, setWebSearch] = useState(false);
-  const requestBodyRef = useRef(buildChatRequestBody({ model, webSearch }));
-  const transportRef = useRef(
-    new DefaultChatTransport<MyUIMessage>({
-      api: "/api/ai/text-stream",
-      credentials: "include",
-      prepareSendMessagesRequest: ({ body, id, messageId, messages, trigger }) => ({
-        body: {
-          ...body,
-          id,
-          messageId,
-          messages,
-          trigger,
-          ...requestBodyRef.current,
-        },
-      }),
-    }),
-  );
-
-  requestBodyRef.current = buildChatRequestBody({ model, webSearch });
-
-  const { messages, sendMessage, status, error, clearError, regenerate, addToolApprovalResponse } =
-    useChat<MyUIMessage>({
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-      transport: transportRef.current,
-    });
-
-  const handleMessageSend = async (message: PromptInputMessage) => {
-    const fileParts = message.files && message.files.length > 0 ? await convertFilesToDataURLs(message.files) : [];
-
-    sendMessage({
-      role: "user",
-      parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
-    });
-  };
+  const {
+    addToolApprovalResponse,
+    agentMode,
+    availableModels,
+    clearError,
+    error,
+    input,
+    messages,
+    model,
+    regenerate,
+    sendMessage,
+    sendPromptMessage,
+    setAgentMode,
+    setInput,
+    setModel,
+    setWebSearch,
+    showAgentGuide,
+    status,
+    webSearch,
+  } = useAgentChat({});
 
   const handleSuggestionClick = (suggestion: string) => {
     sendMessage({
@@ -110,13 +86,17 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
               </Suggestions>
             )}
             <ChatInput
+              availableModels={availableModels}
               input={input}
               setInput={setInput}
+              agentMode={agentMode}
+              setAgentMode={setAgentMode}
               model={model}
               setModel={setModel}
               webSearch={webSearch}
               setWebSearch={setWebSearch}
-              onMessageSend={handleMessageSend}
+              onMessageSend={sendPromptMessage}
+              showAgentGuide={showAgentGuide}
               status={status}
             />
           </div>

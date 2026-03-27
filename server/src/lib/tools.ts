@@ -7,6 +7,12 @@ import {
 import { type ToolSet, tool } from "ai";
 import env from "@/utils/env";
 
+type SerperOrganicResult = SerperToolOutput["organic"][number];
+type SerperPeopleAlsoAskResult = SerperToolOutput["peopleAlsoAsk"][number];
+type SerperRelatedSearchResult = SerperToolOutput["relatedSearches"][number];
+
+const isDefined = <T>(value: T | null): value is T => value !== null;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -90,7 +96,7 @@ const normalizeSerperOutput = (query: string, payload: unknown): SerperToolOutpu
 
 	const organic = Array.isArray(data.organic)
 		? data.organic
-				.map((entry, index) => {
+				.map((entry, index): SerperOrganicResult | null => {
 					if (!isRecord(entry)) {
 						return null;
 					}
@@ -110,13 +116,13 @@ const normalizeSerperOutput = (query: string, payload: unknown): SerperToolOutpu
 						title
 					};
 				})
-				.filter((entry) => entry !== null)
+				.filter(isDefined)
 				.slice(0, 8)
 		: [];
 
 	const peopleAlsoAsk = Array.isArray(data.peopleAlsoAsk)
 		? data.peopleAlsoAsk
-				.map((entry) => {
+				.map((entry): SerperPeopleAlsoAskResult | null => {
 					if (!isRecord(entry)) {
 						return null;
 					}
@@ -133,13 +139,13 @@ const normalizeSerperOutput = (query: string, payload: unknown): SerperToolOutpu
 						title: toOptionalString(entry.title)
 					};
 				})
-				.filter((entry) => entry !== null)
+				.filter(isDefined)
 				.slice(0, 5)
 		: [];
 
 	const relatedSearches = Array.isArray(data.relatedSearches)
 		? data.relatedSearches
-				.map((entry) => {
+				.map((entry): SerperRelatedSearchResult | null => {
 					if (!isRecord(entry)) {
 						return null;
 					}
@@ -147,7 +153,7 @@ const normalizeSerperOutput = (query: string, payload: unknown): SerperToolOutpu
 					const relatedQuery = toOptionalString(entry.query);
 					return relatedQuery ? { query: relatedQuery } : null;
 				})
-				.filter((entry) => entry !== null)
+				.filter(isDefined)
 				.slice(0, 6)
 		: [];
 
@@ -189,7 +195,7 @@ const buildSerperModelOutput = (output: SerperToolOutput): string => {
 					"Top search results:",
 					...output.organic
 						.slice(0, 5)
-						.map((result) => `${result.position}. ${result.title} - ${result.snippet} (${result.link})`)
+						.map((result: SerperOrganicResult) => `${result.position}. ${result.title} - ${result.snippet} (${result.link})`)
 				].join("\n")
 			: "No organic search results were returned.";
 
@@ -199,10 +205,10 @@ const buildSerperModelOutput = (output: SerperToolOutput): string => {
 		knowledgeGraphSummary,
 		organicSummary,
 		output.peopleAlsoAsk.length > 0
-			? `People also ask: ${output.peopleAlsoAsk.map((entry) => entry.question).join("; ")}`
+			? `People also ask: ${output.peopleAlsoAsk.map((entry: SerperPeopleAlsoAskResult) => entry.question).join("; ")}`
 			: undefined,
 		output.relatedSearches.length > 0
-			? `Related searches: ${output.relatedSearches.map((entry) => entry.query).join("; ")}`
+			? `Related searches: ${output.relatedSearches.map((entry: SerperRelatedSearchResult) => entry.query).join("; ")}`
 			: undefined
 	];
 

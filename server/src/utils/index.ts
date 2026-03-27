@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
-import { type AIModelDefinition, type AIProvider, getModelById, getModelsByProvider } from "@chat-app/shared";
+import { type AIModelDefinition, type AIProvider, defaultModelId, getModelsByProvider } from "@chat-app/shared";
 import { convertToModelMessages, type LanguageModel, type ModelMessage, pruneMessages, type UIMessage } from "ai";
+import { getAvailableChatModels } from "@/services/model-catalog.service";
 import env from "@/utils/env";
 
 const configuredProviders = (): AIProvider[] => (env.OPENAI_API_KEY ? ["openai"] : []);
@@ -15,24 +16,25 @@ const resolveConfiguredModel = (): AIModelDefinition => {
 	return fallbackModel;
 };
 
-export const resolveModelSelection = (requestedModelId?: string): AIModelDefinition => {
+export const resolveModelSelection = async (requestedModelId?: string): Promise<AIModelDefinition> => {
 	const availableProviders = configuredProviders();
-	const requestedModel = getModelById(requestedModelId);
-
-	if (requestedModel && availableProviders.includes(requestedModel.provider)) {
-		return requestedModel;
-	}
 
 	if (availableProviders.length === 0) {
 		throw new Error("OPENAI_API_KEY is required");
 	}
 
-	return resolveConfiguredModel();
+	const availableModels = await getAvailableChatModels();
+	const requestedModel = availableModels.find((model) => model.id === requestedModelId);
+
+	if (requestedModel && availableProviders.includes(requestedModel.provider)) {
+		return requestedModel;
+	}
+
+	return availableModels.find((model) => model.id === defaultModelId) ?? resolveConfiguredModel();
 };
 
 export const resolveModel = (requestedModelId?: string): LanguageModel => {
-	const resolvedModel = resolveModelSelection(requestedModelId);
-	return openai(resolvedModel.id);
+	return openai(requestedModelId ?? defaultModelId);
 };
 
 const assistantMessageNeedsReasoningContext = (message: ModelMessage, index: number, messages: ModelMessage[]) =>

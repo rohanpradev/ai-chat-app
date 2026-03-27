@@ -1,8 +1,5 @@
 "use client";
 
-import type { UIMessage } from "ai";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
-
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 import {
@@ -13,7 +10,9 @@ import {
 } from "@/components/ui/tooltip";
 import { useStreamdownPlugins } from "@/components/ai-elements/use-streamdown-plugins";
 import { cn } from "@/lib/utils";
+import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import {
   createContext,
   memo,
@@ -317,8 +316,8 @@ export const MessageBranchPage = ({
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse = memo(
-  ({ className, children, ...props }: MessageResponseProps) => {
-    const streamdownPlugins = useStreamdownPlugins(children);
+  ({ children, className, ...props }: MessageResponseProps) => {
+    const plugins = useStreamdownPlugins(children);
 
     return (
       <Streamdown
@@ -326,14 +325,16 @@ export const MessageResponse = memo(
           "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           className,
         )}
-        plugins={streamdownPlugins}
+        plugins={plugins}
         {...props}
       >
         {children}
       </Streamdown>
     );
   },
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children &&
+    nextProps.isAnimating === prevProps.isAnimating,
 );
 
 MessageResponse.displayName = "MessageResponse";

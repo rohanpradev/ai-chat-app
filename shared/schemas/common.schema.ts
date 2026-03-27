@@ -1,64 +1,70 @@
 import { z } from "@hono/zod-openapi";
+import { providers } from "@chat-app/shared/models";
 
 export const ValidationErrorSchema = z
-	.object({
-		field: z.string().describe("Field name with validation error"),
-		message: z.string().describe("Validation error message"),
-	})
-	.openapi({
-		description: "Validation error details",
-		title: "ValidationError",
-	});
+  .object({
+    field: z.string().describe("Field name with validation error"),
+    message: z.string().describe("Validation error message"),
+  })
+  .openapi({
+    description: "Validation error details",
+    title: "ValidationError",
+  });
 
 export const CommonErrorResponseSchema = z
-	.object({
-		message: z.string().describe("Error message"),
-	})
-	.openapi({
-		description: "Standard error response",
-		title: "CommonErrorResponse",
-	});
+  .object({
+    message: z.string().describe("Error message"),
+  })
+  .openapi({
+    description: "Standard error response",
+    title: "CommonErrorResponse",
+  });
 
 export const CommonBadRequestResponseSchema = z
-	.object({
-		errors: z.array(ValidationErrorSchema).optional().describe("Validation errors"),
-		message: z.string().describe("Error message"),
-	})
-	.openapi({
-		description: "Standard bad request response with validation errors",
-		title: "CommonBadRequestResponse",
-	});
+  .object({
+    errors: z
+      .array(ValidationErrorSchema)
+      .optional()
+      .describe("Validation errors"),
+    message: z.string().describe("Error message"),
+  })
+  .openapi({
+    description: "Standard bad request response with validation errors",
+    title: "CommonBadRequestResponse",
+  });
 
 export const CommonUnauthorizedResponseSchema = z
-	.object({
-		message: z.string().describe("Unauthorized access message"),
-	})
-	.openapi({
-		description: "Standard unauthorized response",
-		title: "CommonUnauthorizedResponse",
-	});
+  .object({
+    message: z.string().describe("Unauthorized access message"),
+  })
+  .openapi({
+    description: "Standard unauthorized response",
+    title: "CommonUnauthorizedResponse",
+  });
 
 export const CommonNotFoundResponseSchema = z
-	.object({
-		message: z.string().describe("Resource not found message"),
-	})
-	.openapi({
-		description: "Standard not found response",
-		title: "CommonNotFoundResponse",
-	});
+  .object({
+    message: z.string().describe("Resource not found message"),
+  })
+  .openapi({
+    description: "Standard not found response",
+    title: "CommonNotFoundResponse",
+  });
 
 export const ModelSchema = z
-	.object({
-		id: z.string().describe("Model ID"),
-		name: z.string().describe("Display name of the model"),
-		provider: z.string().optional().describe("AI provider (e.g., openai, anthropic, google)"),
-	})
-	.openapi({
-		description: "AI Model information",
-		title: "Model",
-	});
+  .object({
+    id: z.string().describe("Model ID"),
+    name: z.string().describe("Display name of the model"),
+    provider: z
+      .enum(providers)
+      .describe("AI provider (e.g., openai, anthropic, google)"),
+  })
+  .openapi({
+    description: "AI Model information",
+    title: "Model",
+  });
 
 export const ModelsArraySchema = z.array(ModelSchema).openapi({
-	description: "Array of AI models",
-	title: "ModelsArray",
+  description: "Array of AI models",
+  title: "ModelsArray",
 });

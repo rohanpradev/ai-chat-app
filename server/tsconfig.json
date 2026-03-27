@@ -13,6 +13,8 @@
     "moduleResolution": "bundler",
     "paths": {
       "@/*": ["src/*"],
+      "@server/*": ["./*"],
+      "@shared/*": ["../shared/*"],
       "hono": ["node_modules/hono"],
       "hono/*": ["node_modules/hono/*"],
     },
