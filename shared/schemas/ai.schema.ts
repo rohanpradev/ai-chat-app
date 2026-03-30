@@ -1,7 +1,7 @@
 import { agentModeIds } from "@chat-app/shared/agents";
 import { ModelsArraySchema } from "@chat-app/shared/schemas/common.schema";
 import { UIMessagesArraySchema } from "@chat-app/shared/schemas/ui-message.schema";
-import { enabledRequestToolIds } from "@chat-app/shared/tools";
+import { enabledRequestToolIds } from "@chat-app/shared/tool-ids";
 import { z } from "@hono/zod-openapi";
 
 export const AIStreamResponseHeaders = {

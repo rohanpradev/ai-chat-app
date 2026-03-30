@@ -8,6 +8,7 @@
 		"./models": "./models.ts",
 		"./schemas": "./schemas/index.ts",
 		"./schemas/*": "./schemas/*.ts",
+		"./tool-ids": "./tool-ids.ts",
 		"./tools": "./tools.ts",
 		"./types": "./types.ts",
 		"./types/*": "./types/*.ts"
@@ -17,6 +18,7 @@
 		"index.ts",
 		"models.ts",
 		"schemas",
+		"tool-ids.ts",
 		"tools.ts",
 		"types",
 		"types.ts"

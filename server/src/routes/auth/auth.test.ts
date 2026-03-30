@@ -1,6 +1,4 @@
 import { describe, expect, it, mock } from "bun:test";
-import { createApp } from "@/lib/create-app";
-import router from "@/routes/auth/auth.index";
 
 // Mock Redis cache
 const mockRedisCache = {
@@ -52,26 +50,36 @@ mock.module("@/middlewares/pino-logger", () => ({
 }));
 
 // Mock database
-mock.module("@/db", () => ({
-	default: {
-		query: {
-			users: {
-				findFirst: mock(() =>
-					Promise.resolve({
-						email: "test@test.com",
-						id: "test-user",
-						name: "Test User"
-					})
-				)
-			}
+const mockDb = {
+	query: {
+		users: {
+			findFirst: mock(() =>
+				Promise.resolve({
+					email: "test@test.com",
+					id: "test-user",
+					name: "Test User"
+				})
+			)
 		}
 	}
+};
+
+mock.module("@/db", () => ({
+	db: mockDb,
+	default: mockDb
 }));
+
+const createAuthApp = async () => {
+	const { createApp } = await import("@/lib/create-app");
+	const { default: router } = await import("@/routes/auth/auth.index");
+
+	return createApp().route("/", router);
+};
 
 describe("Auth Routes", () => {
 	describe("POST /auth/register", () => {
 		it("should return validation error for missing fields", async () => {
-			const app = createApp().route("/", router);
+			const app = await createAuthApp();
 			const response = await app.request("/auth/register", {
 				body: JSON.stringify({
 					confirmPassword: "",
@@ -87,7 +95,7 @@ describe("Auth Routes", () => {
 		});
 
 		it("should return validation error for invalid email", async () => {
-			const app = createApp().route("/", router);
+			const app = await createAuthApp();
 			const response = await app.request("/auth/register", {
 				body: JSON.stringify({
 					confirmPassword: "password123",
@@ -105,7 +113,7 @@ describe("Auth Routes", () => {
 
 	describe("POST /auth/login", () => {
 		it("should return error for missing credentials", async () => {
-			const app = createApp().route("/", router);
+			const app = await createAuthApp();
 			const response = await app.request("/auth/login", {
 				body: JSON.stringify({ email: "", password: "" }),
 				headers: { "Content-Type": "application/json" },
@@ -116,7 +124,7 @@ describe("Auth Routes", () => {
 		});
 
 		it("should return error for invalid credentials", async () => {
-			const app = createApp().route("/", router);
+			const app = await createAuthApp();
 			const response = await app.request("/auth/login", {
 				body: JSON.stringify({
 					email: "nonexistent@test.com",
@@ -132,7 +140,7 @@ describe("Auth Routes", () => {
 
 	describe("POST /auth/logout", () => {
 		it("should handle logout endpoint", async () => {
-			const app = createApp().route("/", router);
+			const app = await createAuthApp();
 			const response = await app.request("/auth/logout", { method: "POST" });
 
 			// Should return 401 (no auth) or 200 (mocked auth)
@@ -142,9 +150,18 @@ describe("Auth Routes", () => {
 
 	describe("GET /auth/me", () => {
 		it("should return current user profile", async () => {
-			const app = createApp().route("/", router);
+			const app = await createAuthApp();
 			const response = await app.request("/auth/me");
-			expect([200, 401].includes(response.status)).toBe(true);
+
+			expect(response.status).toBe(200);
+			expect(await response.json()).toEqual({
+				data: {
+					email: "test@test.com",
+					id: "test-user",
+					name: "Test User"
+				},
+				message: "User authenticated successfully"
+			});
 		});
 	});
 });

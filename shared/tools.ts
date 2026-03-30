@@ -1,6 +1,12 @@
 import { type ToolSet, tool } from "ai";
 import { z } from "zod";
 
+export type { EnabledRequestToolId } from "@chat-app/shared/tool-ids";
+export {
+	enabledRequestToolIds,
+	webSearchToolId,
+} from "@chat-app/shared/tool-ids";
+
 const urlSchema = z.string().url();
 
 const deepSearchInputSchema = z.object({
@@ -105,8 +111,3 @@ export const uiMessageTools = {
 	deepSearch: tool<DeepSearchToolInput>(uiMessageToolDefinitions.deepSearch),
 	serper: tool<SerperToolInput, SerperToolOutput>(uiMessageToolDefinitions.serper),
 } satisfies ToolSet;
-
-export const enabledRequestToolIds = ["serper"] as const;
-export type EnabledRequestToolId = (typeof enabledRequestToolIds)[number];
-
-export const webSearchToolId: EnabledRequestToolId = "serper";
