@@ -3,22 +3,15 @@ import type { z } from "@hono/zod-openapi";
 export { models } from "@chat-app/shared/models";
 
 import type {
-  LoginResponseSchema,
-  LoginUserRequestSchema,
-  MeResponseSchema,
-  RegisterResponseSchema,
-  RegisterUserRequestSchema,
-  UserDataSchema,
+	LoginResponseSchema,
+	LoginUserRequestSchema,
+	MeResponseSchema,
+	RegisterResponseSchema,
+	RegisterUserRequestSchema,
+	UserDataSchema,
 } from "@chat-app/shared/schemas/auth.schema";
-import type {
-  CommonErrorResponseSchema,
-  ModelSchema,
-  ModelsArraySchema,
-} from "@chat-app/shared/schemas/common.schema";
-import type {
-  BasicUserProfileDataSchema,
-  GetProfileResponseSchema,
-} from "@chat-app/shared/schemas/profile.schema";
+import type { CommonErrorResponseSchema, ModelSchema, ModelsArraySchema } from "@chat-app/shared/schemas/common.schema";
+import type { BasicUserProfileDataSchema, GetProfileResponseSchema } from "@chat-app/shared/schemas/profile.schema";
 
 export type User = z.infer<typeof UserDataSchema>;
 export type RegisterUserRequest = z.infer<typeof RegisterUserRequestSchema>;
@@ -31,7 +24,7 @@ export type GetProfileResponse = z.infer<typeof GetProfileResponseSchema>;
 
 export type ErrorResponse = z.infer<typeof CommonErrorResponseSchema>;
 export type ApiError = ErrorResponse & {
-  status?: number;
+	status?: number;
 };
 
 export type Model = z.infer<typeof ModelSchema>;

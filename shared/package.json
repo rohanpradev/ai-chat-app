@@ -1,32 +1,34 @@
 {
-  "dependencies": {
-    "@hono/zod-openapi": "^1.2.2"
-  },
-  "exports": {
-    ".": "./index.ts",
-    "./agents": "./agents.ts",
-    "./models": "./models.ts",
-    "./schemas": "./schemas/index.ts",
-    "./schemas/*": "./schemas/*.ts",
-    "./tools": "./tools.ts",
-    "./types": "./types.ts",
-    "./types/*": "./types/*.ts"
-  },
-  "files": [
-    "agents.ts",
-    "index.ts",
-    "models.ts",
-    "schemas",
-    "tools.ts",
-    "types",
-    "types.ts"
-  ],
-  "name": "@chat-app/shared",
-  "private": true,
-  "scripts": {
-    "typecheck": "bunx tsc --noEmit -p tsconfig.json"
-  },
-  "sideEffects": false,
-  "type": "module",
-  "types": "./index.ts"
+	"dependencies": {
+		"@hono/zod-openapi": "^1.2.2"
+	},
+	"exports": {
+		".": "./index.ts",
+		"./agents": "./agents.ts",
+		"./models": "./models.ts",
+		"./schemas": "./schemas/index.ts",
+		"./schemas/*": "./schemas/*.ts",
+		"./tool-ids": "./tool-ids.ts",
+		"./tools": "./tools.ts",
+		"./types": "./types.ts",
+		"./types/*": "./types/*.ts"
+	},
+	"files": [
+		"agents.ts",
+		"index.ts",
+		"models.ts",
+		"schemas",
+		"tool-ids.ts",
+		"tools.ts",
+		"types",
+		"types.ts"
+	],
+	"name": "@chat-app/shared",
+	"private": true,
+	"scripts": {
+		"typecheck": "bunx tsc --noEmit -p tsconfig.json"
+	},
+	"sideEffects": false,
+	"type": "module",
+	"types": "./index.ts"
 }

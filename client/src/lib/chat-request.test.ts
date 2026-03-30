@@ -1,4 +1,6 @@
-import { defaultAgentMode, defaultModelId, webSearchToolId } from "@chat-app/shared";
+import { defaultAgentMode } from "@chat-app/shared/agents";
+import { defaultModelId } from "@chat-app/shared/models";
+import { webSearchToolId } from "@chat-app/shared/tool-ids";
 import { describe, expect, it } from "vitest";
 import { buildChatRequestBody } from "@/lib/chat-request";
 

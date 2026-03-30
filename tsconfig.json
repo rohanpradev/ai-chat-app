@@ -1,22 +1,22 @@
 {
-  "compilerOptions": {
-    "baseUrl": ".",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "ignoreDeprecations": "6.0",
-    "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "paths": {
-      "@chat-app/shared": ["shared/index.ts"],
-      "@chat-app/shared/*": ["shared/*"],
-      "@client/*": ["client/*"],
-      "@server/*": ["server/*"],
-      "@shared/*": ["shared/*"],
-    },
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ESNext",
-  },
+	"compilerOptions": {
+		"baseUrl": ".",
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"ignoreDeprecations": "6.0",
+		"jsx": "react-jsx",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"paths": {
+			"@chat-app/shared": ["shared/index.ts"],
+			"@chat-app/shared/*": ["shared/*"],
+			"@client/*": ["client/*"],
+			"@server/*": ["server/*"],
+			"@shared/*": ["shared/*"]
+		},
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "ESNext"
+	}
 }
