@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { type AIModelDefinition, type AIProvider, defaultModelId, getModelsByProvider } from "@chat-app/shared";
-import { convertToModelMessages, type LanguageModel, type ModelMessage, pruneMessages, type UIMessage } from "ai";
+import { convertToModelMessages, type ModelMessage, pruneMessages, type UIMessage } from "ai";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
 import env from "@/utils/env";
 
@@ -33,9 +33,7 @@ export const resolveModelSelection = async (requestedModelId?: string): Promise<
 	return availableModels.find((model) => model.id === defaultModelId) ?? resolveConfiguredModel();
 };
 
-export const resolveModel = (requestedModelId?: string): LanguageModel => {
-	return openai(requestedModelId ?? defaultModelId);
-};
+export const resolveModel = (requestedModelId?: string) => openai(requestedModelId ?? defaultModelId);
 
 const assistantMessageNeedsReasoningContext = (message: ModelMessage, index: number, messages: ModelMessage[]) =>
 	message.role === "assistant" &&

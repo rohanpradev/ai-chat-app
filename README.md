@@ -115,7 +115,7 @@ Makefile                Common workflows for local, Docker, and Kubernetes
 
 ### Prerequisites
 
-- Bun `1.3.11+`
+- Bun `1.3.12+`
 - Docker Desktop or OrbStack
 - Kubernetes tooling only if you want the Helm flow: `kubectl` and `helm`
 
@@ -138,7 +138,7 @@ Useful optional values:
 - `SERPER_API_KEY` for live web search
 - `LANGFUSE_PUBLIC_KEY`
 - `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_BASEURL` which defaults to `https://cloud.langfuse.com`
+- `LANGFUSE_BASE_URL` which defaults to `https://cloud.langfuse.com`
 
 Validate before starting:
 
@@ -294,7 +294,7 @@ Set these in `.env`:
 
 - `LANGFUSE_PUBLIC_KEY`
 - `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_BASEURL=https://cloud.langfuse.com`
+- `LANGFUSE_BASE_URL=https://cloud.langfuse.com`
 
 Scope:
 

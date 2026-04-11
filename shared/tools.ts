@@ -1,4 +1,4 @@
-import { type ToolSet, tool } from "ai";
+import { type ToolSet, tool, zodSchema } from "ai";
 import { z } from "zod";
 
 export type { EnabledRequestToolId } from "@chat-app/shared/tool-ids";
@@ -91,15 +91,15 @@ const serperInputExamples: Array<{ input: SerperToolInput }> = [
 export const uiMessageToolDefinitions = {
 	deepSearch: {
 		description: "Perform deep web search with advanced filtering and analysis",
-		inputSchema: deepSearchInputSchema,
+		inputSchema: zodSchema(deepSearchInputSchema),
 		strict: true,
 	},
 	serper: {
 		description:
 			"Search the live web for up-to-date factual information. Use this for recent news, current product or company details, changing regulations, or anything that may have changed after training. Returns summarized search results and links, not full page contents.",
 		inputExamples: serperInputExamples,
-		inputSchema: serperInputSchema,
-		outputSchema: serperOutputSchema,
+		inputSchema: zodSchema(serperInputSchema),
+		outputSchema: zodSchema(serperOutputSchema),
 		strict: true,
 		title: "Web Search",
 	},
@@ -108,6 +108,6 @@ export const uiMessageToolDefinitions = {
 // Keep legacy tool shapes available for UI-message validation and old persisted
 // conversations, but only expose production-ready tools to new requests.
 export const uiMessageTools = {
-	deepSearch: tool<DeepSearchToolInput>(uiMessageToolDefinitions.deepSearch),
-	serper: tool<SerperToolInput, SerperToolOutput>(uiMessageToolDefinitions.serper),
+	deepSearch: tool<DeepSearchToolInput, never, {}>(uiMessageToolDefinitions.deepSearch),
+	serper: tool<SerperToolInput, SerperToolOutput, {}>(uiMessageToolDefinitions.serper),
 } satisfies ToolSet;

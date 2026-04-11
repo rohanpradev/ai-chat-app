@@ -5,6 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { normalizeMessagesForAgent } from "@/lib/agent-message-normalizer";
 import { getChatAgent, resolveAgentMode } from "@/lib/agents";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
+import { isTelemetryEnabled } from "@/lib/instrumentation";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AIStreamRoute, GetAvailableModelsRoute } from "@/routes/ai/ai.route";
 import { saveConversation } from "@/services/conversation.service";
@@ -44,29 +45,32 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 		agentMode: selectedAgentMode,
 		requestedModel: model
 	};
+	const runAgentStream = () =>
+		getChatAgent(selectedAgentMode).stream({
+			abortSignal: c.req.raw.signal,
+			experimental_transform: smoothStream(),
+			messages: modelMessages,
+			options: {
+				conversationId: coalescedChatId,
+				requestedModel: model,
+				toolNames,
+				userId: userJwt.id
+			}
+		});
 
-	const result = await propagateAttributes(
-		{
-			metadata: telemetryMetadata,
-			...(coalescedChatId ? { sessionId: coalescedChatId } : {}),
-			tags: ["chat", "ai", selectedAgentMode],
-			traceName: "ai-chat-stream",
-			userId: userJwt.id,
-			version: "agents-v1"
-		},
-		async () =>
-			getChatAgent(selectedAgentMode).stream({
-				abortSignal: c.req.raw.signal,
-				experimental_transform: smoothStream(),
-				messages: modelMessages,
-				options: {
-					conversationId: coalescedChatId,
-					requestedModel: model,
-					toolNames,
-					userId: userJwt.id
-				}
-			})
-	);
+	const result = isTelemetryEnabled
+		? await propagateAttributes(
+				{
+					metadata: telemetryMetadata,
+					...(coalescedChatId ? { sessionId: coalescedChatId } : {}),
+					tags: ["chat", "ai", selectedAgentMode],
+					traceName: "ai-chat-stream",
+					userId: userJwt.id,
+					version: "agents-v1"
+				},
+				runAgentStream
+			)
+		: await runAgentStream();
 
 	return result.toUIMessageStreamResponse<MyUIMessage>({
 		consumeSseStream: consumeStream,

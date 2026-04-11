@@ -19,7 +19,7 @@ export type MyMetadata = z.infer<typeof metadataSchema>;
 export type MyTools = InferUITools<typeof uiMessageTools>;
 export type SerperUITool = InferUITool<(typeof uiMessageTools)["serper"]>;
 
-export type MyUIMessage = UIMessage<MyMetadata, never, MyTools>;
+export type MyUIMessage = UIMessage<MyMetadata, Record<string, never>, MyTools>;
 export const validateMyUIMessages = (messages: unknown) =>
 	validateUIMessages<MyUIMessage>({
 		messages,

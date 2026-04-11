@@ -1,6 +1,6 @@
 {
 	"dependencies": {
-		"@hono/zod-openapi": "^1.2.2"
+		"@hono/zod-openapi": "^1.2.4"
 	},
 	"exports": {
 		".": "./index.ts",
