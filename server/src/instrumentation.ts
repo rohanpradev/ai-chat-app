@@ -1,9 +1,9 @@
-import { OpenTelemetryIntegration } from "@ai-sdk/otel";
-import { registerTelemetryIntegration } from "ai";
+import { OpenTelemetry } from "@ai-sdk/otel";
+import { registerTelemetry } from "ai";
 import { initializeTelemetry, isTelemetryEnabled } from "@/lib/instrumentation";
 
 if (isTelemetryEnabled) {
-	registerTelemetryIntegration(new OpenTelemetryIntegration());
+	registerTelemetry(new OpenTelemetry());
 }
 
 initializeTelemetry();
