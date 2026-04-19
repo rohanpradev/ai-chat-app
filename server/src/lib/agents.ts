@@ -76,9 +76,12 @@ const buildTelemetrySettings = ({
 				functionId,
 				isEnabled: true,
 				metadata: {
+					userId: options.userId,
+					...(options.conversationId ? { sessionId: options.conversationId } : {}),
 					model: resolvedModel.id,
 					provider: resolvedModel.provider,
 					requestedModel: options.requestedModel ?? resolvedModel.id,
+					tags: ["chat", "agent", functionId, resolvedModel.id, resolvedModel.provider],
 					toolCount: activeTools.length,
 					...(activeTools.length > 0 ? { tools: activeTools } : {})
 				}
