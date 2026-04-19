@@ -4,19 +4,15 @@ import {
 	defaultModelId,
 	type EnabledRequestToolId,
 	enabledRequestToolIds,
-	getAgentModeById,
-	uiMessageTools
+	getAgentModeById
 } from "@chat-app/shared";
 import { stepCountIs, ToolLoopAgent, type ToolSet } from "ai";
 import { z } from "zod";
 import { isTelemetryEnabled } from "@/lib/instrumentation";
-import { executableTools, getActiveTools } from "@/lib/tools";
+import { getActiveTools, tools } from "@/lib/tools";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
-const agentTools = {
-	...uiMessageTools,
-	serper: executableTools.serper
-} satisfies ToolSet;
+const agentTools = tools satisfies ToolSet;
 
 const agentCallOptionsSchema = z.object({
 	conversationId: z.string().optional(),
@@ -130,5 +126,3 @@ export const getChatAgent = (mode: AgentMode = defaultAgentMode): ChatAgent => {
 	agentCache.set(mode, agent);
 	return agent;
 };
-
-export type { AgentCallOptions };

@@ -1,3 +1,4 @@
+{{- $supportsUnhealthyPodEvictionPolicy := semverCompare ">=1.31-0" .Capabilities.KubeVersion.Version -}}
 {{- if .Values.server.pdb.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -8,7 +9,9 @@ metadata:
     app.kubernetes.io/component: server
 spec:
   minAvailable: {{ .Values.server.pdb.minAvailable }}
+  {{- if and $supportsUnhealthyPodEvictionPolicy .Values.server.pdb.unhealthyPodEvictionPolicy }}
   unhealthyPodEvictionPolicy: {{ .Values.server.pdb.unhealthyPodEvictionPolicy }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "chat-app.componentLabels" (dict "root" . "component" "server") | nindent 6 }}
@@ -24,7 +27,9 @@ metadata:
     app.kubernetes.io/component: client
 spec:
   minAvailable: {{ .Values.client.pdb.minAvailable }}
+  {{- if and $supportsUnhealthyPodEvictionPolicy .Values.client.pdb.unhealthyPodEvictionPolicy }}
   unhealthyPodEvictionPolicy: {{ .Values.client.pdb.unhealthyPodEvictionPolicy }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "chat-app.componentLabels" (dict "root" . "component" "client") | nindent 6 }}

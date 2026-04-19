@@ -9,7 +9,7 @@ export {
 
 const urlSchema = z.string().url();
 
-const deepSearchInputSchema = z.object({
+export const deepSearchInputSchema = z.object({
 	maxResults: z.number().optional().describe("Maximum number of results"),
 	query: z.string().describe("Search query"),
 	timeRange: z.string().optional().describe("Time range: day, week, month, year, all"),
@@ -17,7 +17,7 @@ const deepSearchInputSchema = z.object({
 
 type DeepSearchToolInput = z.infer<typeof deepSearchInputSchema>;
 
-const serperInputSchema = z.object({
+export const serperInputSchema = z.object({
 	q: z
 		.string()
 		.min(1)

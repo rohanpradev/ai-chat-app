@@ -3,7 +3,7 @@ import type { AIModelId } from "@chat-app/shared/models";
 import type { ChatRequest } from "@chat-app/shared/schemas/ai.schema";
 import { webSearchToolId } from "@chat-app/shared/tool-ids";
 
-export interface ChatRequestBodyOptions {
+interface ChatRequestBodyOptions {
   conversationId?: string;
   agentMode: AgentMode;
   model: AIModelId;

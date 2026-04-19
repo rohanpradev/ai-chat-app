@@ -14,6 +14,7 @@ interface OpenAIModelListResponse {
 }
 
 const MODEL_CACHE_TTL_MS = 5 * 60 * 1000;
+const OPENAI_MODELS_TIMEOUT_MS = 5000;
 const snapshotSuffixPattern = /-\d{4}-\d{2}-\d{2}$/;
 const supportedPrefixes = [/^gpt-/, /^o\d/, /^codex/];
 const unsupportedFragments = [
@@ -182,8 +183,10 @@ const fetchOpenAIModels = async (): Promise<OpenAIModelRecord[]> => {
 
 	const response = await fetch("https://api.openai.com/v1/models", {
 		headers: {
+			Accept: "application/json",
 			Authorization: `Bearer ${env.OPENAI_API_KEY}`
-		}
+		},
+		signal: AbortSignal.timeout(OPENAI_MODELS_TIMEOUT_MS)
 	});
 
 	if (!response.ok) {
@@ -206,7 +209,7 @@ const getFallbackModelCatalog = (): AIModelDefinition[] =>
 				}
 			];
 
-export const clearAvailableModelCatalogCache = () => {
+const clearAvailableModelCatalogCache = () => {
 	cachedModelCatalog = undefined;
 };
 

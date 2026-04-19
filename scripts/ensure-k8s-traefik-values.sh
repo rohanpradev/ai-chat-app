@@ -52,7 +52,7 @@ TRAEFIK_DASHBOARD_USER="${TRAEFIK_DASHBOARD_USER:-admin}"
 TRAEFIK_DASHBOARD_PASSWORD="${TRAEFIK_DASHBOARD_PASSWORD:-change-me}"
 TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-dhi.io}"
 TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-traefik}"
-TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.6.11-debian13}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.6.13-debian13}"
 
 if [ -n "${TRAEFIK_IMAGE_DIGEST:-}" ]; then
   IMAGE_TAG="${TRAEFIK_IMAGE_TAG}@${TRAEFIK_IMAGE_DIGEST}"
@@ -104,8 +104,9 @@ ports:
     port: 8443
     exposedPort: 443
     nodePort: 30001
-    tls:
-      enabled: true
+    http:
+      tls:
+        enabled: true
 
 additionalArguments:
   - "--entrypoints.web.http.redirections.entryPoint.to=websecure"

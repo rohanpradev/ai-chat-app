@@ -69,7 +69,7 @@ const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
 
 export const normalizeCodeInput = (code: string | null | undefined) => (typeof code === "string" ? code : "");
 
-export const normalizeCodeLanguage = (language: string | null | undefined): SupportedCodeLanguage | null => {
+const normalizeCodeLanguage = (language: string | null | undefined): SupportedCodeLanguage | null => {
   if (typeof language !== "string") {
     return null;
   }

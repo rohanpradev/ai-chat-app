@@ -1,4 +1,5 @@
 import type {
+  ApiError,
   AuthResponse,
   AvailableModelsResponse,
   CreateConversationResponse,
@@ -11,10 +12,21 @@ import type {
 import { hc, type InferRequestType } from "hono/client";
 import type { ApiContract } from "@/lib/hono-contract";
 
-interface ApiErrorResponse {
+type ApiErrorPayload = ApiError & {
   details?: unknown;
-  message: string;
-  status?: number;
+  status: number;
+};
+
+export class ApiRequestError extends Error {
+  readonly details?: unknown;
+  readonly status: number;
+
+  constructor({ details, message, status }: ApiErrorPayload) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.details = details;
+    this.status = status;
+  }
 }
 
 const apiClient = hc<ApiContract>("/api", {
@@ -25,9 +37,10 @@ const apiClient = hc<ApiContract>("/api", {
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    let errorData: ApiErrorResponse;
+    let errorData: ApiErrorPayload;
+
     try {
-      const parsed = (await response.json()) as Partial<ApiErrorResponse>;
+      const parsed = (await response.json()) as Partial<ApiErrorPayload>;
       errorData = {
         details: parsed.details,
         message: parsed.message || getStatusMessage(response.status),
@@ -40,9 +53,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
       };
     }
 
-    const error = new Error(errorData.message) as Error & { status: number };
-    error.status = response.status;
-    throw error;
+    throw new ApiRequestError(errorData);
   }
 
   return response.json() as Promise<T>;

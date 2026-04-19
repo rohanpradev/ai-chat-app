@@ -23,8 +23,10 @@ export {
 export * from "@chat-app/shared/schemas";
 export {
 	type EnabledRequestToolId,
-	enabledRequestToolIds,
 	type SerperToolInput,
+	enabledRequestToolIds,
+	deepSearchInputSchema,
+	serperInputSchema,
 	type SerperToolOutput,
 	serperOutputSchema,
 	uiMessageToolDefinitions,

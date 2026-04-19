@@ -5,7 +5,7 @@ import type { AppBindings } from "@/lib/types";
 
 type RedisCommandClient = Pick<typeof redis, "del" | "exists" | "expire" | "get" | "send" | "set" | "ttl">;
 
-export interface RedisCacheOptions {
+interface RedisCacheOptions {
 	key?: string | ((c: Context<AppBindings>) => string);
 	ttl?: number;
 	namespace?: string;
@@ -256,4 +256,4 @@ export const userCache = (keyPattern: string, options: Omit<RedisCacheOptions, "
 	});
 };
 
-export { cacheInstance, HonoRedisCache };
+export { HonoRedisCache };

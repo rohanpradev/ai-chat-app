@@ -41,7 +41,7 @@ const EnvSchema = z.object({
 	SERVER_PORT: z.coerce.number().min(1).max(65535).default(3000)
 });
 
-export type Env = z.infer<typeof EnvSchema>;
+type Env = z.infer<typeof EnvSchema>;
 
 // eslint-disable-next-line import/no-mutable-exports
 let env: Env;

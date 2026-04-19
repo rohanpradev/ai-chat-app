@@ -1,10 +1,11 @@
 import {
 	type EnabledRequestToolId,
+	type SerperToolInput,
 	type SerperToolOutput,
+	serperInputSchema,
 	serperOutputSchema,
-	uiMessageToolDefinitions
 } from "@chat-app/shared";
-import { type ToolSet, tool } from "ai";
+import { tool, zodSchema } from "ai";
 import env from "@/utils/env";
 
 type SerperOrganicResult = SerperToolOutput["organic"][number];
@@ -216,8 +217,12 @@ const buildSerperModelOutput = (output: SerperToolOutput): string => {
 };
 
 export const tools = {
-	serper: tool({
-		...uiMessageToolDefinitions.serper,
+	serper: tool<SerperToolInput, SerperToolOutput, {}>({
+		description:
+			"Search the live web for up-to-date factual information. Use this for recent news, current product or company details, changing regulations, or anything that may have changed after training. Returns summarized search results and links, not full page contents.",
+		inputExamples: [{ input: { q: "latest OpenAI API Responses API docs" } }, { input: { q: "site:kubernetes.io pod disruption budget v1 docs" } }],
+		inputSchema: zodSchema(serperInputSchema),
+		outputSchema: zodSchema(serperOutputSchema),
 		execute: async ({ q }, { abortSignal }) => {
 			const apiKey = env.SERPER_API_KEY;
 			if (!apiKey) {
@@ -241,16 +246,14 @@ export const tools = {
 			return normalizeSerperOutput(q, await response.json());
 		},
 		needsApproval: true,
+		strict: true,
+		title: "Web Search",
 		toModelOutput: async ({ output }) => ({
 			type: "text",
 			value: buildSerperModelOutput(output)
 		})
 	})
-} satisfies ToolSet;
-
-export type AvailableTools = ToolSet;
+};
 
 export const getActiveTools = (toolNames: EnabledRequestToolId[] = []): EnabledRequestToolId[] =>
 	Array.from(new Set(toolNames.filter((toolName) => toolName in tools)));
-
-export const executableTools = tools satisfies AvailableTools;
