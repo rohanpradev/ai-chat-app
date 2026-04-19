@@ -1,5 +1,6 @@
 {{- $gatewayEnabled := and .Values.exposure.gateway.enabled (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") -}}
 {{- $middlewareCRDAvailable := .Capabilities.APIVersions.Has "traefik.io/v1alpha1/Middleware" -}}
+{{- $gatewaySectionName := ternary "websecure" "web" .Values.exposure.gateway.tls.enabled -}}
 {{- if $gatewayEnabled }}
 {{- if .Values.exposure.gateway.create }}
 apiVersion: gateway.networking.k8s.io/v1
@@ -46,7 +47,7 @@ spec:
   parentRefs:
     - name: {{ .Values.exposure.gateway.name }}
       namespace: {{ .Values.exposure.gateway.namespace }}
-      sectionName: websecure
+      sectionName: {{ $gatewaySectionName }}
   hostnames:
     {{- range .Values.exposure.gateway.hostnames }}
     - {{ . | quote }}
@@ -84,7 +85,7 @@ spec:
   parentRefs:
     - name: {{ .Values.exposure.gateway.name }}
       namespace: {{ .Values.exposure.gateway.namespace }}
-      sectionName: websecure
+      sectionName: {{ $gatewaySectionName }}
   hostnames:
     {{- range .Values.exposure.gateway.hostnames }}
     - {{ . | quote }}

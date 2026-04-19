@@ -3,10 +3,24 @@ import { HTTPException } from "hono/http-exception";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
-import type { AppRouteHandler } from "@/lib/types";
+import type { AppRouteHandler, SessionUserDetails } from "@/lib/types";
 import type { AuthRoute, CurrentUserRoute, LoginRoute, LogoutRoute } from "@/routes/auth/auth.route";
 import env from "@/utils/env";
 import { Auth } from "@/utils/token";
+
+const toSessionUserDetails = ({
+	email,
+	id,
+	name
+}: {
+	email: string;
+	id: string;
+	name: string;
+}): SessionUserDetails => ({
+	email,
+	id,
+	name
+});
 
 export const registerUser: AppRouteHandler<AuthRoute> = async (c) => {
 	const { name, email, password, profileImage } = c.req.valid("json");
@@ -43,7 +57,7 @@ export const registerUser: AppRouteHandler<AuthRoute> = async (c) => {
 		profileImage: user.profileImage
 	};
 
-	const token = await Auth.generateToken({ sub: userDetails });
+	const token = await Auth.generateToken({ sub: toSessionUserDetails(userDetails) });
 
 	Auth.setAuthCookie(c, token);
 
@@ -84,7 +98,7 @@ export const loginUser: AppRouteHandler<LoginRoute> = async (c) => {
 		profileImage: existingUser.profileImage
 	};
 
-	const token = await Auth.generateToken({ sub: userDetails });
+	const token = await Auth.generateToken({ sub: toSessionUserDetails(userDetails) });
 
 	Auth.setAuthCookie(c, token);
 

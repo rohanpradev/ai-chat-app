@@ -1,6 +1,7 @@
 import type { ErrorHandler, MiddlewareHandler, NotFoundHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
+import env from "@/utils/env";
 
 const escapeSvgText = (value: string): string =>
 	value
@@ -40,11 +41,25 @@ export const onError: ErrorHandler = (error, c) => {
 		currentStatus === HttpStatusCodes.OK
 			? HttpStatusCodes.INTERNAL_SERVER_ERROR
 			: (currentStatus as ContentfulStatusCode);
+	const logger = c.get("logger");
+	const isServerError = statusCode >= HttpStatusCodes.INTERNAL_SERVER_ERROR;
+
+	if (logger) {
+		logger.error(
+			{
+				error,
+				method: c.req.method,
+				path: c.req.path,
+				statusCode
+			},
+			"Request failed"
+		);
+	}
 
 	return c.json(
 		{
-			message: error.message,
-			stack: Bun.env.NODE_ENV === "production" ? undefined : error.stack
+			message: isServerError ? "Internal server error" : error.message,
+			stack: env.NODE_ENV === "production" ? undefined : error.stack
 		},
 		statusCode as ContentfulStatusCode
 	);

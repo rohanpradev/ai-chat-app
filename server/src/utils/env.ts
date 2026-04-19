@@ -14,7 +14,7 @@ const emptyStringToUndefined = (value: unknown) => {
 const normalizedEnv = {
 	...Bun.env,
 	// Langfuse docs use LANGFUSE_BASE_URL; keep LANGFUSE_BASEURL as a backward-compatible alias.
-	LANGFUSE_BASEURL: Bun.env.LANGFUSE_BASEURL ?? Bun.env.LANGFUSE_BASE_URL
+	LANGFUSE_BASE_URL: Bun.env.LANGFUSE_BASE_URL ?? Bun.env.LANGFUSE_BASEURL
 };
 
 const urlSchema = z.string().url();
@@ -27,10 +27,10 @@ const EnvSchema = z.object({
 	CORS_ORIGINS: z.string().optional(),
 	DB_URL: urlSchema,
 	JWT_SECRET: z.string().min(32),
-	LANGFUSE_BASEURL: z.preprocess(emptyStringToUndefined, urlSchema.optional().default("https://cloud.langfuse.com")),
-	LANGFUSE_PUBLIC_KEY: z.string().optional(),
+	LANGFUSE_BASE_URL: z.preprocess(emptyStringToUndefined, urlSchema.optional().default("https://cloud.langfuse.com")),
+	LANGFUSE_PUBLIC_KEY: z.preprocess(emptyStringToUndefined, z.string().optional()),
 	// Langfuse observability configuration (optional)
-	LANGFUSE_SECRET_KEY: z.string().optional(),
+	LANGFUSE_SECRET_KEY: z.preprocess(emptyStringToUndefined, z.string().optional()),
 	LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 	NODE_ENV: z.string().default("production"),
 	OPENAI_API_KEY: z.string().min(1),
@@ -41,7 +41,7 @@ const EnvSchema = z.object({
 	SERVER_PORT: z.coerce.number().min(1).max(65535).default(3000)
 });
 
-export type Env = z.infer<typeof EnvSchema>;
+type Env = z.infer<typeof EnvSchema>;
 
 // eslint-disable-next-line import/no-mutable-exports
 let env: Env;

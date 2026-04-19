@@ -30,8 +30,8 @@ read_env() {
 
 TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-$(read_env TRAEFIK_CHART_REF || true)}"
 TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-$(read_env TRAEFIK_CHART_VERSION || true)}"
-TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-oci://dhi.io/traefik-chart}"
-TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-37.4.0}"
+TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-oci://ghcr.io/traefik/helm/traefik}"
+TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-39.0.8}"
 
 bash "${ROOT_DIR}/scripts/ensure-k8s-traefik-values.sh"
 bash "${ROOT_DIR}/scripts/ensure-k8s-local-tls.sh"

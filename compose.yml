@@ -1,7 +1,7 @@
 services:
   # Traefik - Modern reverse proxy and load balancer
   traefik:
-    image: ${TRAEFIK_IMAGE:-dhi.io/traefik:3.6.11-debian13@sha256:65bd97431b3a35634cd0d0286062c91ed025ab0c8afe28275897652506f80873}
+    image: ${TRAEFIK_IMAGE:-dhi.io/traefik:3.6.13-debian13@sha256:a6949d480ceb9c02632c56999ecad67526004cde386b0857deb2b31fe2a57e2a}
     container_name: chat-app-traefik
     security_opt:
       - no-new-privileges:true
@@ -103,7 +103,7 @@ services:
 
   # Redis cache with optimizations
   redis:
-    image: ${REDIS_IMAGE:-dhi.io/redis:8.6.1-debian13}
+    image: ${REDIS_IMAGE:-dhi.io/redis:8.6.2-debian13}
     container_name: chat-app-redis
     security_opt:
       - no-new-privileges:true

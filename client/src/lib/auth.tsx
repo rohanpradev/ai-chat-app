@@ -1,5 +1,6 @@
 import type { LoginResponse, RegisterResponse, User } from "@chat-app/shared";
 import type { QueryClient } from "@tanstack/react-query";
+import { ApiRequestError } from "@/composables/useApi";
 import { getCurrentUserQuery } from "@/queries/getCurrentUser";
 
 export interface AuthContext {
@@ -35,6 +36,11 @@ export async function loadUser(queryClient: QueryClient, authContext: AuthContex
       return user;
     }
   } catch (error) {
+    if (error instanceof ApiRequestError && (error.status === 401 || error.status === 403)) {
+      authContext.logout();
+      return null;
+    }
+
     console.error("Failed to load current user:", error);
     authContext.logout();
   }

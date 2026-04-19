@@ -115,7 +115,7 @@ Makefile                Common workflows for local, Docker, and Kubernetes
 
 ### Prerequisites
 
-- Bun `1.3.11+`
+- Bun `1.3.12+`
 - Docker Desktop or OrbStack
 - Kubernetes tooling only if you want the Helm flow: `kubectl` and `helm`
 
@@ -138,7 +138,7 @@ Useful optional values:
 - `SERPER_API_KEY` for live web search
 - `LANGFUSE_PUBLIC_KEY`
 - `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_BASEURL` which defaults to `https://cloud.langfuse.com`
+- `LANGFUSE_BASE_URL` which defaults to `https://cloud.langfuse.com`
 
 Validate before starting:
 
@@ -294,7 +294,7 @@ Set these in `.env`:
 
 - `LANGFUSE_PUBLIC_KEY`
 - `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_BASEURL=https://cloud.langfuse.com`
+- `LANGFUSE_BASE_URL=https://cloud.langfuse.com`
 
 Scope:
 
@@ -337,7 +337,3 @@ Cleanup command reference:
 - `make clean-generated` removes recreatable workspace artifacts and generated files, but keeps `.env` files.
 - `make clean` removes Docker Compose containers, networks, volumes, and local images.
 - `make shutdown-all` tears down local Docker and Kubernetes infrastructure.
-
-## Why It Reads Like a Product, Not a Sample
-
-This codebase has a real boundary between UI, API, shared contracts, infrastructure, and observability. That is the main reason it holds up as a flagship project: the interesting work is not only in generating text, but in making the surrounding system typed, inspectable, deployable, and safe to operate.

@@ -1,4 +1,4 @@
-import { type ToolSet, tool } from "ai";
+import { type ToolSet, tool, zodSchema } from "ai";
 import { z } from "zod";
 
 export type { EnabledRequestToolId } from "@chat-app/shared/tool-ids";
@@ -9,7 +9,7 @@ export {
 
 const urlSchema = z.string().url();
 
-const deepSearchInputSchema = z.object({
+export const deepSearchInputSchema = z.object({
 	maxResults: z.number().optional().describe("Maximum number of results"),
 	query: z.string().describe("Search query"),
 	timeRange: z.string().optional().describe("Time range: day, week, month, year, all"),
@@ -17,7 +17,7 @@ const deepSearchInputSchema = z.object({
 
 type DeepSearchToolInput = z.infer<typeof deepSearchInputSchema>;
 
-const serperInputSchema = z.object({
+export const serperInputSchema = z.object({
 	q: z
 		.string()
 		.min(1)
@@ -91,15 +91,15 @@ const serperInputExamples: Array<{ input: SerperToolInput }> = [
 export const uiMessageToolDefinitions = {
 	deepSearch: {
 		description: "Perform deep web search with advanced filtering and analysis",
-		inputSchema: deepSearchInputSchema,
+		inputSchema: zodSchema(deepSearchInputSchema),
 		strict: true,
 	},
 	serper: {
 		description:
 			"Search the live web for up-to-date factual information. Use this for recent news, current product or company details, changing regulations, or anything that may have changed after training. Returns summarized search results and links, not full page contents.",
 		inputExamples: serperInputExamples,
-		inputSchema: serperInputSchema,
-		outputSchema: serperOutputSchema,
+		inputSchema: zodSchema(serperInputSchema),
+		outputSchema: zodSchema(serperOutputSchema),
 		strict: true,
 		title: "Web Search",
 	},
@@ -108,6 +108,6 @@ export const uiMessageToolDefinitions = {
 // Keep legacy tool shapes available for UI-message validation and old persisted
 // conversations, but only expose production-ready tools to new requests.
 export const uiMessageTools = {
-	deepSearch: tool<DeepSearchToolInput>(uiMessageToolDefinitions.deepSearch),
-	serper: tool<SerperToolInput, SerperToolOutput>(uiMessageToolDefinitions.serper),
+	deepSearch: tool<DeepSearchToolInput, never, Record<string, never>>(uiMessageToolDefinitions.deepSearch),
+	serper: tool<SerperToolInput, SerperToolOutput, Record<string, never>>(uiMessageToolDefinitions.serper),
 } satisfies ToolSet;

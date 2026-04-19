@@ -6,12 +6,13 @@
  */
 
 import { LangfuseSpanProcessor } from "@langfuse/otel";
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import pino from "pino";
 import env from "@/utils/env";
 
 let sdk: NodeSDK | null = null;
+export const isTelemetryEnabled = Boolean(env.LANGFUSE_SECRET_KEY && env.LANGFUSE_PUBLIC_KEY);
+
 const logger = pino({
 	level: env.LOG_LEVEL,
 	name: "telemetry"
@@ -28,9 +29,7 @@ export function initializeTelemetry(): NodeSDK | null {
 		return sdk;
 	}
 
-	const isLangfuseConfigured = env.LANGFUSE_SECRET_KEY && env.LANGFUSE_PUBLIC_KEY;
-
-	if (!isLangfuseConfigured) {
+	if (!isTelemetryEnabled) {
 		logger.info("Skipping initialization: Langfuse credentials not configured");
 		return null;
 	}
@@ -39,14 +38,13 @@ export function initializeTelemetry(): NodeSDK | null {
 
 	try {
 		const langfuseSpanProcessor = new LangfuseSpanProcessor({
-			baseUrl: env.LANGFUSE_BASEURL,
+			baseUrl: env.LANGFUSE_BASE_URL,
 			environment: env.NODE_ENV,
 			publicKey: env.LANGFUSE_PUBLIC_KEY,
 			secretKey: env.LANGFUSE_SECRET_KEY
 		});
 
 		sdk = new NodeSDK({
-			instrumentations: [getNodeAutoInstrumentations()],
 			spanProcessors: [langfuseSpanProcessor]
 		});
 
@@ -54,13 +52,20 @@ export function initializeTelemetry(): NodeSDK | null {
 
 		logger.info("Telemetry initialized successfully");
 
-		process.on("SIGTERM", async () => {
+		const shutdown = async (signal: NodeJS.Signals) => {
 			try {
 				await sdk?.shutdown();
-				logger.info("SDK shut down successfully");
+				logger.info({ signal }, "SDK shut down successfully");
 			} catch (error) {
-				logger.error({ error }, "Error shutting down SDK");
+				logger.error({ error, signal }, "Error shutting down SDK");
 			}
+		};
+
+		process.once("SIGINT", () => {
+			void shutdown("SIGINT");
+		});
+		process.once("SIGTERM", () => {
+			void shutdown("SIGTERM");
 		});
 
 		return sdk;

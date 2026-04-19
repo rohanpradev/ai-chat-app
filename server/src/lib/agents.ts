@@ -4,18 +4,15 @@ import {
 	defaultModelId,
 	type EnabledRequestToolId,
 	enabledRequestToolIds,
-	getAgentModeById,
-	uiMessageTools
+	getAgentModeById
 } from "@chat-app/shared";
 import { stepCountIs, ToolLoopAgent, type ToolSet } from "ai";
 import { z } from "zod";
-import { executableTools, getActiveTools } from "@/lib/tools";
+import { isTelemetryEnabled } from "@/lib/instrumentation";
+import { getActiveTools, tools } from "@/lib/tools";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
-const agentTools = {
-	...uiMessageTools,
-	serper: executableTools.serper
-} satisfies ToolSet;
+const agentTools = tools satisfies ToolSet;
 
 const agentCallOptionsSchema = z.object({
 	conversationId: z.string().optional(),
@@ -63,6 +60,34 @@ const buildToolAvailabilityGuidance = (toolNames: EnabledRequestToolId[]) =>
 const buildAgentInstructions = (baseInstructions: readonly string[], toolNames: EnabledRequestToolId[]) =>
 	[...baseInstructions, buildToolAvailabilityGuidance(toolNames)].join("\n\n");
 
+const buildTelemetrySettings = ({
+	activeTools,
+	functionId,
+	options,
+	resolvedModel
+}: {
+	activeTools: EnabledRequestToolId[];
+	functionId: string;
+	options: AgentCallOptions;
+	resolvedModel: Awaited<ReturnType<typeof resolveModelSelection>>;
+}) =>
+	isTelemetryEnabled
+		? {
+				functionId,
+				isEnabled: true,
+				metadata: {
+					userId: options.userId,
+					...(options.conversationId ? { sessionId: options.conversationId } : {}),
+					model: resolvedModel.id,
+					provider: resolvedModel.provider,
+					requestedModel: options.requestedModel ?? resolvedModel.id,
+					tags: ["chat", "agent", functionId, resolvedModel.id, resolvedModel.provider],
+					toolCount: activeTools.length,
+					...(activeTools.length > 0 ? { tools: activeTools } : {})
+				}
+			}
+		: undefined;
+
 const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentProfile): ChatAgent =>
 	new ToolLoopAgent<AgentCallOptions, typeof agentTools>({
 		callOptionsSchema: agentCallOptionsSchema,
@@ -75,19 +100,7 @@ const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentP
 			return {
 				...settings,
 				activeTools,
-				experimental_telemetry: {
-					functionId,
-					isEnabled: true,
-					metadata: {
-						userId: options.userId,
-						...(options.conversationId ? { sessionId: options.conversationId } : {}),
-						model: resolvedModel.id,
-						requestedModel: options.requestedModel ?? resolvedModel.id,
-						tags: ["chat", "agent", functionId, resolvedModel.id, resolvedModel.provider],
-						toolCount: activeTools.length,
-						...(activeTools.length > 0 ? { tools: activeTools.join(",") } : {})
-					}
-				},
+				experimental_telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel }),
 				instructions: buildAgentInstructions(baseInstructions, activeTools),
 				model: resolveModel(resolvedModel.id)
 			};
@@ -116,5 +129,3 @@ export const getChatAgent = (mode: AgentMode = defaultAgentMode): ChatAgent => {
 	agentCache.set(mode, agent);
 	return agent;
 };
-
-export type { AgentCallOptions };

@@ -22,6 +22,20 @@
 			"trailingCommas": "none"
 		}
 	},
+	"overrides": [
+		{
+			"assist": {
+				"enabled": false
+			},
+			"formatter": {
+				"enabled": false
+			},
+			"includes": ["client/src/components/ai-elements/**"],
+			"linter": {
+				"enabled": false
+			}
+		}
+	],
 	"vcs": {
 		"clientKind": "git",
 		"enabled": true

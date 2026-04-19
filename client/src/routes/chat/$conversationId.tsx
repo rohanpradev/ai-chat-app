@@ -4,7 +4,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
-import { getApiClient } from "@/composables/useApi";
+import { ApiRequestError, getApiClient } from "@/composables/useApi";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
 import { CHAT_QUERY_KEY } from "@/utils/query-key";
@@ -18,7 +18,7 @@ const getConversationQuery = (conversationId: string) => {
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     retry: (failureCount, error) => {
-      const status = (error as Error & { status?: number })?.status;
+      const status = error instanceof ApiRequestError ? error.status : undefined;
       if (status === 404 || status === 403) return false;
       return failureCount < 2;
     },

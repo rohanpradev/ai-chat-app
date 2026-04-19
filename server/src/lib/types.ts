@@ -8,8 +8,10 @@ export interface UserDetails {
 	email: string;
 }
 
+export type SessionUserDetails = UserDetails;
+
 export interface JWTPayload {
-	sub: UserDetails;
+	sub: SessionUserDetails;
 	exp: number;
 	iat?: number;
 }

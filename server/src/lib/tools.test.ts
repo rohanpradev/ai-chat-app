@@ -57,7 +57,7 @@ describe("serper tool", () => {
 			{ q: "latest OpenAI API update" },
 			{
 				abortSignal: undefined,
-				experimental_context: undefined,
+				context: {},
 				messages: [],
 				toolCallId: "tool-1"
 			}
@@ -99,7 +99,7 @@ describe("serper tool", () => {
 				{ q: "status page" },
 				{
 					abortSignal: undefined,
-					experimental_context: undefined,
+					context: {},
 					messages: [],
 					toolCallId: "tool-2"
 				}

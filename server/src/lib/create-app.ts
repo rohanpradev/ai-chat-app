@@ -38,13 +38,21 @@ export function createApp() {
 				.map((origin) => origin.trim())
 				.filter(Boolean)
 		: [env.CLIENT_URL];
+	const allowAnyOrigin = allowedOrigins.includes("*");
+	const isAllowedOrigin = (origin: string) => allowAnyOrigin || allowedOrigins.includes(origin);
 
 	useAppMiddleware(
 		asAppMiddleware(
 			cors({
 				credentials: true,
 				maxAge: 86400,
-				origin: allowedOrigins
+				origin: (origin) => {
+					if (!origin) {
+						return env.CLIENT_URL;
+					}
+
+					return isAllowedOrigin(origin) ? origin : null;
+				}
 			})
 		)
 	);
