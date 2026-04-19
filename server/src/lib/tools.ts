@@ -3,7 +3,7 @@ import {
 	type SerperToolInput,
 	type SerperToolOutput,
 	serperInputSchema,
-	serperOutputSchema,
+	serperOutputSchema
 } from "@chat-app/shared";
 import { tool, zodSchema } from "ai";
 import env from "@/utils/env";
@@ -217,12 +217,9 @@ const buildSerperModelOutput = (output: SerperToolOutput): string => {
 };
 
 export const tools = {
-	serper: tool<SerperToolInput, SerperToolOutput, {}>({
+	serper: tool<SerperToolInput, SerperToolOutput, Record<string, never>>({
 		description:
 			"Search the live web for up-to-date factual information. Use this for recent news, current product or company details, changing regulations, or anything that may have changed after training. Returns summarized search results and links, not full page contents.",
-		inputExamples: [{ input: { q: "latest OpenAI API Responses API docs" } }, { input: { q: "site:kubernetes.io pod disruption budget v1 docs" } }],
-		inputSchema: zodSchema(serperInputSchema),
-		outputSchema: zodSchema(serperOutputSchema),
 		execute: async ({ q }, { abortSignal }) => {
 			const apiKey = env.SERPER_API_KEY;
 			if (!apiKey) {
@@ -245,7 +242,13 @@ export const tools = {
 
 			return normalizeSerperOutput(q, await response.json());
 		},
+		inputExamples: [
+			{ input: { q: "latest OpenAI API Responses API docs" } },
+			{ input: { q: "site:kubernetes.io pod disruption budget v1 docs" } }
+		],
+		inputSchema: zodSchema(serperInputSchema),
 		needsApproval: true,
+		outputSchema: zodSchema(serperOutputSchema),
 		strict: true,
 		title: "Web Search",
 		toModelOutput: async ({ output }) => ({

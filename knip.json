@@ -90,11 +90,11 @@
 			]
 		},
 		"server": {
-			"ignore": ["drizzle.config.ts", "src/utils/db-utils.ts"],
-			"ignoreDependencies": ["dotenv", "drizzle-zod"],
 			"drizzle": {
 				"config": []
-			}
+			},
+			"ignore": ["drizzle.config.ts", "src/utils/db-utils.ts"],
+			"ignoreDependencies": ["dotenv", "drizzle-zod"]
 		},
 		"shared": {}
 	}

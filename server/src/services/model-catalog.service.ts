@@ -209,10 +209,6 @@ const getFallbackModelCatalog = (): AIModelDefinition[] =>
 				}
 			];
 
-const clearAvailableModelCatalogCache = () => {
-	cachedModelCatalog = undefined;
-};
-
 export const getAvailableChatModels = async (): Promise<AIModelDefinition[]> => {
 	const now = Date.now();
 

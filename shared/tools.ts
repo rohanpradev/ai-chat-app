@@ -108,6 +108,6 @@ export const uiMessageToolDefinitions = {
 // Keep legacy tool shapes available for UI-message validation and old persisted
 // conversations, but only expose production-ready tools to new requests.
 export const uiMessageTools = {
-	deepSearch: tool<DeepSearchToolInput, never, {}>(uiMessageToolDefinitions.deepSearch),
-	serper: tool<SerperToolInput, SerperToolOutput, {}>(uiMessageToolDefinitions.serper),
+	deepSearch: tool<DeepSearchToolInput, never, Record<string, never>>(uiMessageToolDefinitions.deepSearch),
+	serper: tool<SerperToolInput, SerperToolOutput, Record<string, never>>(uiMessageToolDefinitions.serper),
 } satisfies ToolSet;
