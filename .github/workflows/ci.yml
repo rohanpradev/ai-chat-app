@@ -1,10 +1,12 @@
 name: CI
 
 on:
+  schedule:
+    - cron: "21 4 * * 1"
   push:
-    branches: [main, develop]
+    branches: [main, develop, next]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, next]
   workflow_dispatch:
 
 permissions:
@@ -39,6 +41,13 @@ jobs:
 
       - name: Run Knip
         run: bun run knip
+
+      - name: Check Drizzle migrations
+        run: |
+          set -euo pipefail
+          cd server
+          DB_URL=postgres://postgres:postgres@localhost:5432/chatapp bun run db:generate
+          git diff --exit-code -- src/db/drizzle
 
       - name: Type check
         run: |
@@ -220,27 +229,27 @@ jobs:
 
       - name: Build server image (DHI)
         if: steps.dhi.outputs.enabled == 'true'
-        run: docker build -t chat-app-server:latest --target server-prod .
+        run: docker build --pull -t chat-app-server:latest --target server-prod .
 
       - name: Build client image (DHI)
         if: steps.dhi.outputs.enabled == 'true'
-        run: docker build -t chat-app-client:latest --target client-prod .
+        run: docker build --pull -t chat-app-client:latest --target client-prod .
 
       - name: Build migrate image (DHI)
         if: steps.dhi.outputs.enabled == 'true'
-        run: docker build -t chat-app-migrate:latest -f server/Dockerfile.migrate .
+        run: docker build --pull -t chat-app-migrate:latest -f server/Dockerfile.migrate .
 
       - name: Build server image (fallback)
         if: steps.dhi.outputs.enabled != 'true'
-        run: docker build -t chat-app-server:latest --target server-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg BUN_RUNTIME_IMAGE=oven/bun:1-alpine .
+        run: docker build --pull -t chat-app-server:latest --target server-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg BUN_RUNTIME_IMAGE=oven/bun:1-alpine .
 
       - name: Build client image (fallback)
         if: steps.dhi.outputs.enabled != 'true'
-        run: docker build -t chat-app-client:latest --target client-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg NGINX_IMAGE=nginx:1.29-alpine .
+        run: docker build --pull -t chat-app-client:latest --target client-prod --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine --build-arg NGINX_IMAGE=nginx:1.29-alpine .
 
       - name: Build migrate image (fallback)
         if: steps.dhi.outputs.enabled != 'true'
-        run: docker build -t chat-app-migrate:latest -f server/Dockerfile.migrate --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine .
+        run: docker build --pull -t chat-app-migrate:latest -f server/Dockerfile.migrate --build-arg BUN_DEV_IMAGE=oven/bun:1-alpine .
 
       - name: Validate Docker Compose
         run: |

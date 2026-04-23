@@ -43,4 +43,4 @@ RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
 WORKDIR /app/server
 USER 65532
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["bun", "run", "db:push"]
+CMD ["bun", "run", "db:migrate"]

@@ -1,7 +1,10 @@
 export interface Message {
+	createdAt?: string;
 	id: string;
+	metadata?: unknown;
 	role: string;
 	parts: unknown[];
+	schemaVersion?: number;
 }
 
 export interface ConversationSummary {

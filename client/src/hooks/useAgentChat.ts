@@ -44,8 +44,8 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
         body: {
           ...body,
           id,
+          ...(trigger === "submit-message" ? { message: messages.at(-1) } : { messages }),
           messageId,
-          messages,
           trigger,
           ...requestBodyRef.current,
         },

@@ -8,7 +8,7 @@ import * as HttpStatusCodes from "@/lib/http-status-codes";
 import { isTelemetryEnabled } from "@/lib/instrumentation";
 import type { AppRouteHandler } from "@/lib/types";
 import type { AIStreamRoute, GetAvailableModelsRoute } from "@/routes/ai/ai.route";
-import { saveConversation } from "@/services/conversation.service";
+import { loadConversationMessages, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
 
 export const getAvailableModels: AppRouteHandler<GetAvailableModelsRoute> = async (c) => {
@@ -24,8 +24,16 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const requestBody = ChatRequestSchema.parse(await c.req.json());
 	const coalescedChatId = requestBody.chatId || requestBody.id || requestBody.conversationId;
 	const { agentMode, model = defaultModelId, tools: toolNames = [] } = requestBody;
-	const uiMessages = requestBody.messages;
-	const validation = await safeValidateMyUIMessages(uiMessages);
+	const userJwt = c.get("jwtPayload").sub;
+	const incomingMessages = requestBody.messages ?? (requestBody.message ? [requestBody.message] : []);
+	if (requestBody.messages && coalescedChatId) {
+		await loadConversationMessages(coalescedChatId, userJwt.id);
+	}
+	const storedMessages = requestBody.messages ? [] : await loadConversationMessages(coalescedChatId, userJwt.id);
+	const candidateMessages = requestBody.messages
+		? incomingMessages
+		: mergeConversationMessages(storedMessages, incomingMessages);
+	const validation = await safeValidateMyUIMessages(candidateMessages);
 
 	if (!validation.success) {
 		throw new HTTPException(HttpStatusCodes.BAD_REQUEST, {
@@ -35,7 +43,6 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 
 	const validatedMessages = validation.data;
 	const normalizedMessages = normalizeMessagesForAgent(validatedMessages);
-	const userJwt = c.get("jwtPayload").sub;
 	const logger = c.get("logger");
 	const selectedAgentMode = resolveAgentMode(agentMode);
 	const modelMessages = await convertToModelMessages(normalizedMessages, {

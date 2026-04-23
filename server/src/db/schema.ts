@@ -30,7 +30,6 @@ export const chats = pgTable(
 		id: varchar("id")
 			.primaryKey()
 			.$defaultFn(() => generateId()),
-		messages: json("messages").notNull().default([]),
 		title: varchar("title", { length: 200 }).notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.$defaultFn(() => new Date())
@@ -76,9 +75,11 @@ export const messages = pgTable(
 			.notNull()
 			.primaryKey()
 			.$defaultFn(() => generateId()),
+		metadata: json("metadata"),
 		order: integer("order").notNull(),
 		parts: json("parts").notNull(),
-		role: varchar("role", { length: 20 }).notNull()
+		role: varchar("role", { length: 20 }).notNull(),
+		schemaVersion: integer("schema_version").notNull().default(1)
 	},
 	(table) => [
 		index("messages_chat_id_idx").on(table.chatId),

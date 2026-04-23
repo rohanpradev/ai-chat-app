@@ -1,5 +1,6 @@
 import type { MyUIMessage } from "@chat-app/shared";
 import type { ChatAddToolApproveResponseFunction } from "ai";
+import { lazy, Suspense } from "react";
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -9,9 +10,13 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from "@/components/ai-elements/confirmation";
-import { MessageResponse } from "@/components/ai-elements/message";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { SerperResults } from "@/components/chat/SerperResults";
+
+const LazyMessageResponse = lazy(async () => {
+  const { MessageResponse } = await import("@/components/ai-elements/message");
+  return { default: MessageResponse };
+});
 
 interface MessagePartProps {
   part: MyUIMessage["parts"][number];
@@ -36,7 +41,11 @@ const getToolApprovalPrompt = (
 export function MessagePart({ part, messageId, index, onToolApprovalResponse }: Readonly<MessagePartProps>) {
   switch (part.type) {
     case "text":
-      return <MessageResponse key={`${messageId}-${index}`}>{part.text}</MessageResponse>;
+      return (
+        <Suspense fallback={<div className="whitespace-pre-wrap">{part.text}</div>} key={`${messageId}-${index}`}>
+          <LazyMessageResponse>{part.text}</LazyMessageResponse>
+        </Suspense>
+      );
     case "file":
       if (part.mediaType?.startsWith("image/")) {
         return <img key={`${messageId}-${index}`} src={part.url} alt="attachment" className="max-w-sm rounded" />;

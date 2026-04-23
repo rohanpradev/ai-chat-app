@@ -15,9 +15,12 @@ export const ConversationSummarySchema = z
 
 const MessageSchema = z
 	.object({
+		createdAt: z.string().optional(),
 		id: z.string(),
+		metadata: z.unknown().optional(),
 		parts: z.array(z.unknown()),
 		role: z.string(),
+		schemaVersion: z.number().int().positive().optional(),
 	})
 	.openapi({
 		description: "Chat message",

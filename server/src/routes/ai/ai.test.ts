@@ -13,6 +13,11 @@ mock.module("@/middlewares/auth-middleware", () => ({
 }));
 
 mock.module("@/services/conversation.service", () => ({
+	loadConversationMessages: mock(async () => []),
+	mergeConversationMessages: <TMessage>(storedMessages: TMessage[], incomingMessages: TMessage[]) => [
+		...storedMessages,
+		...incomingMessages
+	],
 	saveConversation: saveConversationMock
 }));
 
