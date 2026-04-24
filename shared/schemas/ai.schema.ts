@@ -1,6 +1,6 @@
 import { agentModeIds } from "@chat-app/shared/agents";
 import { ModelsArraySchema } from "@chat-app/shared/schemas/common.schema";
-import { UIMessagesArraySchema } from "@chat-app/shared/schemas/ui-message.schema";
+import { UIMessageSchema, UIMessagesArraySchema } from "@chat-app/shared/schemas/ui-message.schema";
 import { enabledRequestToolIds } from "@chat-app/shared/tool-ids";
 import { z } from "@hono/zod-openapi";
 
@@ -44,15 +44,22 @@ export const ChatRequestSchema = z
 		chatId: z.string().optional().describe("Chat ID for persistence"),
 		conversationId: z.string().optional().describe("Alias for chatId used by older clients"),
 		id: z.string().optional().describe("Alias for chatId used by default useChat transport"),
-		// Prefer strong typing for messages
+		message: UIMessageSchema.optional().describe("Latest chat message for persisted conversations"),
+		messageId: z.string().optional().describe("Message ID used by regenerate requests"),
 		messages: UIMessagesArraySchema.min(1, {
 			error: "No messages provided",
-		}).describe("Array of chat messages"),
+		})
+			.optional()
+			.describe("Full chat message history"),
 		model: z.string().min(1).optional().describe("AI model to use"),
 		tools: z.array(z.enum(enabledRequestToolIds)).optional().describe("Approved server-side tools to make available"),
+		trigger: z.enum(["submit-message", "regenerate-message"]).optional().describe("AI SDK transport trigger"),
 	})
 	// Allow unknown props to safely ignore future additions from clients
-	.loose();
+	.loose()
+	.refine((request) => Boolean(request.message || request.messages?.length), {
+		error: "No messages provided",
+	});
 
 export const AvailableModelsResponseSchema = z
 	.object({

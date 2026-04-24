@@ -1,13 +1,13 @@
 import type { MyUIMessage } from "@chat-app/shared";
 import type { ChatAddToolApproveResponseFunction, ChatStatus } from "ai";
 import { FileTextIcon } from "lucide-react";
+import { type HTMLAttributes, lazy, Suspense } from "react";
 
 import { Loader } from "@/components/ai-elements/loader";
-import { Message, MessageContent } from "@/components/ai-elements/message";
-import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { ErrorDisplay } from "@/components/chat/ErrorDisplay";
 import { MessagePart } from "@/components/chat/MessagePart";
+import { cn } from "@/lib/utils";
 
 interface ChatMessagesProps {
   messages: MyUIMessage[];
@@ -21,6 +21,44 @@ interface ChatMessagesProps {
 type ChatMessagePart = MyUIMessage["parts"][number];
 type ReasoningPart = Extract<ChatMessagePart, { type: "reasoning" }>;
 type SourcePart = Extract<ChatMessagePart, { type: "source-document" | "source-url" }>;
+
+const LazyReasoningBlock = lazy(async () => {
+  const { Reasoning, ReasoningContent, ReasoningTrigger } = await import("@/components/ai-elements/reasoning");
+
+  return {
+    default: ({ children, isStreaming }: { children: string; isStreaming: boolean }) => (
+      <Reasoning isStreaming={isStreaming}>
+        <ReasoningTrigger />
+        <ReasoningContent>{children}</ReasoningContent>
+      </Reasoning>
+    ),
+  };
+});
+
+const Message = ({ className, from, ...props }: HTMLAttributes<HTMLDivElement> & { from: MyUIMessage["role"] }) => (
+  <div
+    className={cn(
+      "group flex w-full max-w-[95%] flex-col gap-2",
+      from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
+      className,
+    )}
+    {...props}
+  />
+);
+
+const MessageContent = ({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+      "group-[.is-assistant]:text-foreground",
+      className,
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+);
 
 const isReasoningPart = (part: ChatMessagePart): part is ReasoningPart => part.type === "reasoning";
 
@@ -95,10 +133,11 @@ export function ChatMessages({
           <Message key={message.id} from={message.role}>
             <MessageContent>
               {reasoningText ? (
-                <Reasoning isStreaming={reasoningParts.some((part: ReasoningPart) => part.state !== "done")}>
-                  <ReasoningTrigger />
-                  <ReasoningContent>{reasoningText}</ReasoningContent>
-                </Reasoning>
+                <Suspense fallback={<div className="text-muted-foreground text-sm">{reasoningText}</div>}>
+                  <LazyReasoningBlock isStreaming={reasoningParts.some((part: ReasoningPart) => part.state !== "done")}>
+                    {reasoningText}
+                  </LazyReasoningBlock>
+                </Suspense>
               ) : null}
               {getRenderableParts(message.id, visibleParts).map(({ index, key, part }) => (
                 <MessagePart

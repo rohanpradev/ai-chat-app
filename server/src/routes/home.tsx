@@ -1,564 +1,597 @@
 import type { FC } from "hono/jsx";
 import env from "@/utils/env";
 
-const HonoIcon = () => (
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		fill="none"
-		viewBox="0 0 24 24"
-		id="Hono--Streamline-Svg-Logos"
-		height="24"
-		width="24">
-		<title>Hono Framework</title>
-		<desc>Hono Streamline Icon: https://streamlinehq.com</desc>
-		<path
-			fill="#ff5b11"
-			d="M12.4365 0.2520325c0.062375 -0.0080215 0.11745 0.0077075 0.16515 0.0471875 1.755075 2.142025 3.40665 4.359855 4.954725 6.65348 1.14615 1.725625 2.121325 3.550175 2.92565 5.4738 1.2845 3.426025 0.616 6.40675 -2.005475 8.9421 -2.293725 1.938575 -4.936225 2.693575 -7.927575 2.265025 -3.57555 -0.729025 -6.00575 -2.7974 -7.290525 -6.205225 -0.33465 -1.109425 -0.44475 -2.241925 -0.3303 -3.397525 0.19055 -1.9891 0.662425 -3.9081 1.415625 -5.7569 0.31385 -0.75435 0.722825 -1.4464 1.2269 -2.076275 0.411225 0.4898 0.80445 0.993175 1.179675 1.510025 0.17375 0.181625 0.354625 0.35465 0.542675 0.51905C8.728325 5.378325 10.44285 2.7201 12.4365 0.2520325Z"
-			opacity=".993"
-			stroke-width="0.25"></path>
-		<path
-			fill="#ff9758"
-			d="M12.10625 4.07425c1.73145 2.008325 3.296525 4.1475 4.695175 6.41755 0.438525 0.75115 0.800275 1.537625 1.085325 2.3594 0.593825 2.336175 -0.043225 4.26305 -1.9111 5.7805 -1.80655 1.2712 -3.788425 1.6487 -5.945675 1.132525 -2.326325 -0.721875 -3.671175 -2.286975 -4.034575 -4.6952 -0.088175 -0.7593 -0.009525 -1.4986 0.23595 -2.217825 0.35005 -0.888875 0.774725 -1.73825 1.274075 -2.54815 0.471875 -0.6921 0.94375 -1.38415 1.415625 -2.07625 1.071925 -1.378375 2.13365 -2.762525 3.1852 -4.15255Z"
-			stroke-width="0.25"></path>
-	</svg>
-);
+const apiBasePath = `/${env.BASE_API_SLUG}`;
 
-const DrizzleIcon = () => (
-	<svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} fill={"currentColor"} viewBox="0 0 24 24">
-		<title>Drizzle ORM</title>
+const svgl = {
+	bun: "https://svgl.app/library/bun.svg",
+	docker: "https://svgl.app/library/docker.svg",
+	drizzle: "https://svgl.app/library/drizzle-orm_dark.svg",
+	hono: "https://svgl.app/library/hono.svg",
+	kubernetes: "https://svgl.app/library/kubernetes.svg",
+	openai: "https://svgl.app/library/openai_dark.svg",
+	postgresql: "https://svgl.app/library/postgresql.svg",
+	redis: "https://svgl.app/library/redis.svg",
+	typescript: "https://svgl.app/library/typescript.svg",
+	vercel: "https://svgl.app/library/vercel_dark.svg"
+} as const;
 
-		<path d="M6.13 10.67c.42.24.57.77.33 1.19l-2.82 4.92c-.24.42-.78.57-1.2.33a.87.87 0 0 1-.33-1.19L4.93 11c.24-.42.78-.57 1.2-.33M12.21 6.9c.42.24.57.77.33 1.19l-2.82 4.92c-.24.42-.78.57-1.2.33a.87.87 0 0 1-.33-1.19l2.82-4.92c.24-.42.78-.57 1.2-.33M21.56 6.9c.42.24.57.77.33 1.19l-2.82 4.92c-.24.42-.78.57-1.2.33a.87.87 0 0 1-.33-1.19l2.82-4.92c.24-.42.78-.57 1.2-.33M15.48 10.67c.42.24.57.77.33 1.19l-2.82 4.92c-.24.42-.78.57-1.2.33a.87.87 0 0 1-.33-1.19L14.28 11c.24-.42.78-.57 1.2-.33"></path>
-	</svg>
-);
+const endpoints = [
+	{ label: "Health", method: "GET", path: "/health", tone: "Probe-ready service status" },
+	{ label: "Scalar Docs", method: "GET", path: "/reference", tone: "Interactive API reference" },
+	{ label: "OpenAPI", method: "GET", path: "/doc", tone: "Machine-readable contract" },
+	{ label: "Session", method: "GET", path: `${apiBasePath}/auth/me`, tone: "Authenticated current user" },
+	{ label: "Chat Stream", method: "POST", path: `${apiBasePath}/ai/chat-stream`, tone: "OpenAI + AI SDK streaming" },
+	{ label: "Conversations", method: "GET", path: `${apiBasePath}/conversations`, tone: "Saved chat history" }
+] as const;
 
-const TypeScriptIcon = () => (
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		fill="none"
-		viewBox="0 0 24 24"
-		id="Typescript-Icon--Streamline-Svg-Logos"
-		height="24"
-		width="24">
-		<title>TypeScript</title>
-		<path
-			fill="#3178c6"
-			d="M2.0859375 0.25H21.91405C22.928025 0.25 23.75 1.0719775 23.75 2.0859375V21.91405C23.75 22.928025 22.928025 23.75 21.91405 23.75H2.0859375C1.0719775 23.75 0.25 22.928025 0.25 21.91405V2.0859375C0.25 1.0719775 1.0719775 0.25 2.0859375 0.25Z"
-			stroke-width="0.25"></path>
-		<path
-			fill="#ffffff"
-			d="M14.067075 18.652975v2.535425c0.41235 0.211325 0.900075 0.369775 1.463075 0.475425 0.562975 0.10565 1.15635 0.15845 1.7802 0.15845 0.607875 0 1.185475 -0.058125 1.732575 -0.174325 0.547125 -0.116225 1.02695 -0.3077 1.4392 -0.574375 0.41235 -0.266775 0.738775 -0.6154 0.979375 -1.04595 0.2405 -0.430425 0.360775 -0.962575 0.360775 -1.596425 0 -0.459525 -0.068775 -0.86235 -0.206175 -1.208325 -0.137425 -0.345975 -0.3357 -0.653675 -0.594775 -0.923025 -0.25895 -0.269425 -0.569575 -0.511025 -0.931625 -0.725 -0.36215 -0.2139 -0.77055 -0.415925 -1.225225 -0.60605 -0.333025 -0.137425 -0.63165 -0.2707 -0.896025 -0.40015 -0.264275 -0.129425 -0.489 -0.261425 -0.673975 -0.396175 -0.18505 -0.134675 -0.3278 -0.277325 -0.428225 -0.427875 -0.100425 -0.15055 -0.15065 -0.320825 -0.15065 -0.511025 0 -0.174325 0.0449 -0.3314 0.134775 -0.471375 0.08985 -0.14 0.216825 -0.26015 0.380675 -0.3605 0.16385 -0.100425 0.3647 -0.178275 0.60265 -0.2338 0.237825 -0.05545 0.5022 -0.083175 0.792925 -0.083175 0.2115 0 0.43485 0.015875 0.670025 0.04755 0.235275 0.031675 0.47185 0.0805 0.709775 0.1466 0.23785 0.066 0.4691 0.149175 0.6938 0.2496 0.224625 0.100325 0.432175 0.21655 0.622475 0.34855v-2.369c-0.3859 -0.147875 -0.807525 -0.2575 -1.264775 -0.328825 -0.457225 -0.071325 -0.98195 -0.106925 -1.574025 -0.106925 -0.60265 0 -1.17355 0.0647 -1.71275 0.19415 -0.539225 0.129325 -1.013725 0.331375 -1.4234 0.606025 -0.4097 0.27475 -0.733475 0.624675 -0.9714 1.0499 -0.23785 0.4252 -0.356825 0.933575 -0.356825 1.5252 0 0.7553 0.218025 1.399725 0.65425 1.933225 0.436125 0.53345 1.09815 0.985075 1.9863 1.35485 0.348925 0.14265 0.67405 0.28255 0.975325 0.41995 0.301375 0.13735 0.561725 0.2799 0.7811 0.427775 0.2194 0.1479 0.392525 0.309 0.5194 0.483325 0.12685 0.174325 0.1903 0.372425 0.1903 0.5943 0 0.163675 -0.039675 0.315575 -0.118975 0.455575 -0.079225 0.1399 -0.199575 0.26145 -0.360775 0.364425 -0.161175 0.103 -0.362125 0.183525 -0.602625 0.241625 -0.240525 0.0581 -0.52205 0.0872 -0.84455 0.0872 -0.549775 0 -1.0942 -0.096375 -1.633425 -0.28925 -0.5393 -0.192775 -1.038875 -0.481925 -1.498775 -0.867575ZM9.841125 12.3435h3.260425v-2.08765H4.013675v2.08765h3.244525v9.295175h2.582925V12.3435Z"
-			stroke-width="0.25"></path>
-	</svg>
-);
+const stack = [
+	{ logo: svgl.openai, name: "OpenAI", tone: "model provider" },
+	{ logo: svgl.vercel, name: "AI SDK", tone: "typed streaming" },
+	{ logo: svgl.hono, name: "Hono", tone: "HTTP runtime" },
+	{ logo: svgl.bun, name: "Bun", tone: "server runtime" },
+	{ logo: svgl.typescript, name: "TypeScript", tone: "shared contracts" },
+	{ logo: svgl.drizzle, name: "Drizzle", tone: "schema-first SQL" },
+	{ logo: svgl.postgresql, name: "PostgreSQL", tone: "durable storage" },
+	{ logo: svgl.redis, name: "Redis", tone: "fast cache" },
+	{ logo: svgl.docker, name: "Docker", tone: "hardened images" },
+	{ logo: svgl.kubernetes, name: "Kubernetes", tone: "orchestration" }
+] as const;
 
-const BunIcon = () => (
-	<svg id="Bun" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 80 70">
-		<title>Bun Logo</title>
-		<path
-			id="Shadow"
-			d="M71.09,20.74c-.16-.17-.33-.34-.5-.5s-.33-.34-.5-.5-.33-.34-.5-.5-.33-.34-.5-.5-.33-.34-.5-.5-.33-.34-.5-.5-.33-.34-.5-.5A26.46,26.46,0,0,1,75.5,35.7c0,16.57-16.82,30.05-37.5,30.05-11.58,0-21.94-4.23-28.83-10.86l.5.5.5.5.5.5.5.5.5.5.5.5.5.5C19.55,65.3,30.14,69.75,42,69.75c20.68,0,37.5-13.48,37.5-30C79.5,32.69,76.46,26,71.09,20.74Z"
-		/>
-		<g id="Body">
-			<path
-				id="Background"
-				d="M73,35.7c0,15.21-15.67,27.54-35,27.54S3,50.91,3,35.7C3,26.27,9,17.94,18.22,13S33.18,3,38,3s8.94,4.13,19.78,10C67,17.94,73,26.27,73,35.7Z"
-				style="fill:#fbf0df"
-			/>
-			<path
-				id="Bottom_Shadow"
-				data-name="Bottom Shadow"
-				d="M73,35.7a21.67,21.67,0,0,0-.8-5.78c-2.73,33.3-43.35,34.9-59.32,24.94A40,40,0,0,0,38,63.24C57.3,63.24,73,50.89,73,35.7Z"
-				style="fill:#f6dece"
-			/>
-			<path
-				id="Light_Shine"
-				data-name="Light Shine"
-				d="M24.53,11.17C29,8.49,34.94,3.46,40.78,3.45A9.29,9.29,0,0,0,38,3c-2.42,0-5,1.25-8.25,3.13-1.13.66-2.3,1.39-3.54,2.15-2.33,1.44-5,3.07-8,4.7C8.69,18.13,3,26.62,3,35.7c0,.4,0,.8,0,1.19C9.06,15.48,20.07,13.85,24.53,11.17Z"
-				style="fill:#fffefc"
-			/>
-			<path
-				id="Top"
-				d="M35.12,5.53A16.41,16.41,0,0,1,29.49,18c-.28.25-.06.73.3.59,3.37-1.31,7.92-5.23,6-13.14C35.71,5,35.12,5.12,35.12,5.53Zm2.27,0A16.24,16.24,0,0,1,39,19c-.12.35.31.65.55.36C41.74,16.56,43.65,11,37.93,5,37.64,4.74,37.19,5.14,37.39,5.49Zm2.76-.17A16.42,16.42,0,0,1,47,17.12a.33.33,0,0,0,.65.11c.92-3.49.4-9.44-7.17-12.53C40.08,4.54,39.82,5.08,40.15,5.32ZM21.69,15.76a16.94,16.94,0,0,0,10.47-9c.18-.36.75-.22.66.18-1.73,8-7.52,9.67-11.12,9.45C21.32,16.4,21.33,15.87,21.69,15.76Z"
-				style="fill:#ccbea7;fill-rule:evenodd"
-			/>
-			<path
-				id="Outline"
-				d="M38,65.75C17.32,65.75.5,52.27.5,35.7c0-10,6.18-19.33,16.53-24.92,3-1.6,5.57-3.21,7.86-4.62,1.26-.78,2.45-1.51,3.6-2.19C32,1.89,35,.5,38,.5s5.62,1.2,8.9,3.14c1,.57,2,1.19,3.07,1.87,2.49,1.54,5.3,3.28,9,5.27C69.32,16.37,75.5,25.69,75.5,35.7,75.5,52.27,58.68,65.75,38,65.75ZM38,3c-2.42,0-5,1.25-8.25,3.13-1.13.66-2.3,1.39-3.54,2.15-2.33,1.44-5,3.07-8,4.7C8.69,18.13,3,26.62,3,35.7,3,50.89,18.7,63.25,38,63.25S73,50.89,73,35.7C73,26.62,67.31,18.13,57.78,13,54,11,51.05,9.12,48.66,7.64c-1.09-.67-2.09-1.29-3-1.84C42.63,4,40.42,3,38,3Z"
-			/>
-		</g>
-		<g id="Mouth">
-			<g id="Background-2" data-name="Background">
-				<path
-					d="M45.05,43a8.93,8.93,0,0,1-2.92,4.71,6.81,6.81,0,0,1-4,1.88A6.84,6.84,0,0,1,34,47.71,8.93,8.93,0,0,1,31.12,43a.72.72,0,0,1,.8-.81H44.26A.72.72,0,0,1,45.05,43Z"
-					style="fill:#b71422"
-				/>
-			</g>
-			<g id="Tongue">
-				<path
-					id="Background-3"
-					data-name="Background"
-					d="M34,47.79a6.91,6.91,0,0,0,4.12,1.9,6.91,6.91,0,0,0,4.11-1.9,10.63,10.63,0,0,0,1-1.07,6.83,6.83,0,0,0-4.9-2.31,6.15,6.15,0,0,0-5,2.78C33.56,47.4,33.76,47.6,34,47.79Z"
-					style="fill:#ff6164"
-				/>
-				<path
-					id="Outline-2"
-					data-name="Outline"
-					d="M34.16,47a5.36,5.36,0,0,1,4.19-2.08,6,6,0,0,1,4,1.69c.23-.25.45-.51.66-.77a7,7,0,0,0-4.71-1.93,6.36,6.36,0,0,0-4.89,2.36A9.53,9.53,0,0,0,34.16,47Z"
-				/>
-			</g>
-			<path
-				id="Outline-3"
-				data-name="Outline"
-				d="M38.09,50.19a7.42,7.42,0,0,1-4.45-2,9.52,9.52,0,0,1-3.11-5.05,1.2,1.2,0,0,1,.26-1,1.41,1.41,0,0,1,1.13-.51H44.26a1.44,1.44,0,0,1,1.13.51,1.19,1.19,0,0,1,.25,1h0a9.52,9.52,0,0,1-3.11,5.05A7.42,7.42,0,0,1,38.09,50.19Zm-6.17-7.4c-.16,0-.2.07-.21.09a8.29,8.29,0,0,0,2.73,4.37A6.23,6.23,0,0,0,38.09,49a6.28,6.28,0,0,0,3.65-1.73,8.3,8.3,0,0,0,2.72-4.37.21.21,0,0,0-.2-.09Z"
-			/>
-		</g>
-		<g id="Face">
-			<ellipse id="Right_Blush" data-name="Right Blush" cx="53.22" cy="40.18" rx="5.85" ry="3.44" style="fill:#febbd0" />
-			<ellipse id="Left_Bluch" data-name="Left Bluch" cx="22.95" cy="40.18" rx="5.85" ry="3.44" style="fill:#febbd0" />
-			<path
-				id="Eyes"
-				d="M25.7,38.8a5.51,5.51,0,1,0-5.5-5.51A5.51,5.51,0,0,0,25.7,38.8Zm24.77,0A5.51,5.51,0,1,0,45,33.29,5.5,5.5,0,0,0,50.47,38.8Z"
-				style="fill-rule:evenodd"
-			/>
-			<path
-				id="Iris"
-				d="M24,33.64a2.07,2.07,0,1,0-2.06-2.07A2.07,2.07,0,0,0,24,33.64Zm24.77,0a2.07,2.07,0,1,0-2.06-2.07A2.07,2.07,0,0,0,48.75,33.64Z"
-				style="fill:#fff;fill-rule:evenodd"
-			/>
-		</g>
-	</svg>
-);
-
-const OpenAIIcon = () => (
-	<svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-		<title>OpenAI</title>
-		<path
-			fill-rule="evenodd"
-			clip-rule="evenodd"
-			d="M15.7719 0.910156C16.4309 0.910156 17.0149 1.41935 17.2246 2.13822C17.4343 2.85708 18.6623 7.30507 18.6623 7.30507V16.1411H14.2144L14.3042 0.910156H15.7719Z"
-			fill="url(#paint0_linear_853_3969)"
-		/>
-		<path
-			d="M22.3017 7.81414C22.3017 7.49963 22.0471 7.26001 21.7476 7.26001H19.1267C17.2846 7.26001 15.787 8.75765 15.787 10.5997V16.141H18.962C20.8041 16.141 22.3017 14.6434 22.3017 12.8013V7.81414Z"
-			fill="url(#paint1_linear_853_3969)"
-		/>
-		<path
-			fill-rule="evenodd"
-			clip-rule="evenodd"
-			d="M15.772 0.910156C15.2628 0.910156 14.8584 1.31452 14.8584 1.82371L14.7686 18.6422C14.7686 21.0983 12.7767 23.0902 10.3206 23.0902H2.24833C1.85894 23.0902 1.60435 22.7157 1.72416 22.3563L8.19395 3.89045C8.82295 2.10827 10.5003 0.910156 12.3873 0.910156H15.787H15.772Z"
-			fill="url(#paint2_linear_853_3969)"
-		/>
-		<defs>
-			<linearGradient
-				id="paint0_linear_853_3969"
-				x1="17.629"
-				y1="16.4706"
-				x2="13.8849"
-				y2="1.47926"
-				gradientUnits="userSpaceOnUse">
-				<stop stop-color="#712575" />
-				<stop offset="0.09" stop-color="#9A2884" />
-				<stop offset="0.18" stop-color="#BF2C92" />
-				<stop offset="0.27" stop-color="#DA2E9C" />
-				<stop offset="0.34" stop-color="#EB30A2" />
-				<stop offset="0.4" stop-color="#F131A5" />
-				<stop offset="0.5" stop-color="#EC30A3" />
-				<stop offset="0.61" stop-color="#DF2F9E" />
-				<stop offset="0.72" stop-color="#C92D96" />
-				<stop offset="0.83" stop-color="#AA2A8A" />
-				<stop offset="0.95" stop-color="#83267C" />
-				<stop offset="1" stop-color="#712575" />
-			</linearGradient>
-			<linearGradient
-				id="paint1_linear_853_3969"
-				x1="19.0518"
-				y1="1.22453"
-				x2="19.0518"
-				y2="22.3712"
-				gradientUnits="userSpaceOnUse">
-				<stop stop-color="#DA7ED0" />
-				<stop offset="0.08" stop-color="#B17BD5" />
-				<stop offset="0.19" stop-color="#8778DB" />
-				<stop offset="0.3" stop-color="#6276E1" />
-				<stop offset="0.41" stop-color="#4574E5" />
-				<stop offset="0.54" stop-color="#2E72E8" />
-				<stop offset="0.67" stop-color="#1D71EB" />
-				<stop offset="0.81" stop-color="#1471EC" />
-				<stop offset="1" stop-color="#1171ED" />
-			</linearGradient>
-			<linearGradient
-				id="paint2_linear_853_3969"
-				x1="17.7788"
-				y1="1.7039"
-				x2="3.76094"
-				y2="24.1834"
-				gradientUnits="userSpaceOnUse">
-				<stop stop-color="#DA7ED0" />
-				<stop offset="0.05" stop-color="#B77BD4" />
-				<stop offset="0.11" stop-color="#9079DA" />
-				<stop offset="0.18" stop-color="#6E77DF" />
-				<stop offset="0.25" stop-color="#5175E3" />
-				<stop offset="0.33" stop-color="#3973E7" />
-				<stop offset="0.42" stop-color="#2772E9" />
-				<stop offset="0.54" stop-color="#1A71EB" />
-				<stop offset="0.68" stop-color="#1371EC" />
-				<stop offset="1" stop-color="#1171ED" />
-			</linearGradient>
-		</defs>
-	</svg>
-);
-
-const RedisIcon = () => (
-	<svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width={24} height={24} viewBox="0 0 48 48">
-		<title>Redis Logo</title>
-		<path
-			fill="#b71c1c"
-			d="M45,29.316c0-0.637-1.686-1.153-3.769-1.153c-1.812,0-3.32,0.391-3.683,0.911	c-3.586-1.694-7.173-3.388-10.759-5.083c-1.248-0.59-2.673-0.584-3.918,0.014c-3.818,1.837-7.636,3.674-11.454,5.511	c-0.864-0.126-1.907-0.201-3.032-0.201C5.408,29.316,3,29.832,3,30.469v3.46c0,0.033,0.033,0.064,0.045,0.096	c-0.146,0.555,0.07,1.205,0.649,1.478c5.641,2.665,11.281,5.329,16.922,7.994c1.432,0.677,3.068,0.671,4.496-0.016	c6.442-3.1,12.884-6.199,19.327-9.299c0.484-0.233,0.651-0.786,0.509-1.247C44.971,32.882,45,32.83,45,32.775V29.316z"></path>
-		<path
-			fill="#e53935"
-			d="M20.616,39.158c-5.641-2.522-11.281-5.044-16.922-7.566c-0.922-0.412-0.926-1.727-0.007-2.146	c6.395-2.912,12.789-5.824,19.184-8.736c1.244-0.567,2.67-0.572,3.918-0.014c5.881,2.63,11.763,5.259,17.644,7.889	c0.754,0.337,0.758,1.414,0.006,1.756c-6.442,2.934-12.884,5.868-19.327,8.801C23.684,39.792,22.048,39.798,20.616,39.158z"></path>
-		<path
-			fill="#b71c1c"
-			d="M45,21.675c0-0.637-1.686-1.153-3.769-1.153c-1.812,0-3.32,0.391-3.683,0.911	c-3.586-1.694-7.173-3.388-10.759-5.083c-1.248-0.59-2.673-0.584-3.918,0.014c-3.818,1.837-7.636,3.674-11.454,5.511	c-0.864-0.126-1.907-0.201-3.032-0.201C5.408,21.675,3,22.192,3,22.829v3.46c0,0.033,0.033,0.064,0.045,0.096	c-0.146,0.555,0.07,1.205,0.649,1.478c5.641,2.665,11.281,5.329,16.922,7.994c1.432,0.677,3.068,0.671,4.496-0.016	c6.442-3.1,12.884-6.199,19.327-9.299c0.484-0.233,0.651-0.786,0.509-1.247C44.971,25.242,45,25.19,45,25.135V21.675z"></path>
-		<path
-			fill="#e53935"
-			d="M20.616,31.517c-5.641-2.522-11.281-5.044-16.922-7.566c-0.922-0.412-0.926-1.727-0.007-2.146	c6.395-2.912,12.789-5.824,19.184-8.736c1.244-0.567,2.67-0.572,3.918-0.014c5.881,2.63,11.763,5.259,17.644,7.889	c0.754,0.337,0.758,1.414,0.006,1.756c-6.442,2.934-12.884,5.868-19.327,8.801C23.684,32.152,22.048,32.158,20.616,31.517z"></path>
-		<path
-			fill="#b71c1c"
-			d="M45,14.035c0-0.637-1.686-1.153-3.769-1.153c-1.812,0-3.32,0.391-3.683,0.911	c-3.586-1.694-7.173-3.388-10.759-5.083c-1.248-0.59-2.673-0.584-3.918,0.014c-3.818,1.837-7.636,3.674-11.454,5.511	c-0.864-0.126-1.907-0.201-3.032-0.201C5.408,14.035,3,14.551,3,15.188v3.46c0,0.033,0.033,0.064,0.045,0.096	c-0.146,0.555,0.07,1.205,0.649,1.478c5.641,2.665,11.281,5.329,16.922,7.994c1.432,0.677,3.068,0.671,4.496-0.016	c6.442-3.1,12.884-6.199,19.327-9.299c0.484-0.233,0.651-0.786,0.509-1.247C44.971,17.601,45,17.549,45,17.494V14.035z"></path>
-		<path
-			fill="#e53935"
-			d="M20.616,23.877c-5.641-2.522-11.281-5.044-16.922-7.566c-0.922-0.412-0.926-1.727-0.007-2.146	c6.395-2.912,12.789-5.824,19.184-8.736c1.244-0.567,2.67-0.572,3.918-0.014c5.881,2.63,11.763,5.259,17.644,7.889	c0.754,0.337,0.758,1.414,0.006,1.756c-6.442,2.934-12.884,5.868-19.327,8.801C23.684,24.512,22.048,24.517,20.616,23.877z"></path>
-		<path
-			fill="#fff"
-			d="M18.748,14.741c-0.002,1.042-2.762,2.057-5.093,2.086c-2.419,0.03-5.273-0.993-5.282-2.051	c-0.009-1.061,2.842-2.161,5.311-2.135C16.017,12.665,18.751,13.703,18.748,14.741z"></path>
-		<path
-			fill="#fff"
-			d="M17.038,18.471c2.393,1.022,4.785,2.045,7.178,3.067c1.054-1.56,2.108-3.12,3.162-4.68	C23.931,17.396,20.485,17.934,17.038,18.471z"></path>
-		<path
-			fill="#fff"
-			d="M21.86,9.775c-1.101,0.401-2.203,0.801-3.304,1.202c1.507,0.132,3.015,0.264,4.522,0.395	c0.48,0.796,0.959,1.592,1.439,2.387c0.295-0.722,0.59-1.444,0.885-2.166c1.286-0.1,2.572-0.2,3.858-0.3	c-0.997-0.419-1.994-0.839-2.991-1.259c0.254-0.608,0.508-1.216,0.762-1.825c-0.97,0.29-1.939,0.58-2.909,0.87	c-1.07-0.422-2.14-0.843-3.21-1.265C21.228,8.468,21.544,9.122,21.86,9.775z"></path>
-		<path
-			fill="#b71c1c"
-			d="M27.267,14.619c2.271-0.906,4.543-1.813,6.814-2.719c1.962,0.834,3.924,1.668,5.886,2.502	c-2.202,0.876-4.403,1.752-6.605,2.629C31.331,16.226,29.299,15.423,27.267,14.619z"></path>
-		<path
-			fill="#a01c1c"
-			d="M34.082,11.963c-0.005,1.596-0.01,3.191-0.015,4.787c1.967-0.783,3.934-1.565,5.901-2.348	C38.006,13.589,36.044,12.776,34.082,11.963z"></path>
-	</svg>
-);
-
-const ReactIcon = () => (
-	<svg
-		width="16px"
-		height="16px"
-		viewBox="0 0 569 512"
-		version="1.1"
-		xmlns="http://www.w3.org/2000/svg"
-		xmlns:xlink="http://www.w3.org/1999/xlink">
-		<title>React-Logo-Filled</title>
-		<g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-			<g id="React-Logo-Filled-(1)" fill="#087EA4" fill-rule="nonzero">
-				<path
-					d="M285.5,201 C255.400481,201 231,225.400481 231,255.5 C231,285.599519 255.400481,310 285.5,310 C315.599519,310 340,285.599519 340,255.5 C340,225.400481 315.599519,201 285.5,201"
-					id="Path"></path>
-				<path
-					d="M568.959856,255.99437 C568.959856,213.207656 529.337802,175.68144 466.251623,150.985214 C467.094645,145.423543 467.85738,139.922107 468.399323,134.521063 C474.621631,73.0415145 459.808523,28.6686204 426.709856,9.5541429 C389.677085,-11.8291748 337.36955,3.69129898 284.479928,46.0162134 C231.590306,3.69129898 179.282771,-11.8291748 142.25,9.5541429 C109.151333,28.6686204 94.3382249,73.0415145 100.560533,134.521063 C101.102476,139.922107 101.845139,145.443621 102.708233,151.02537 C97.4493791,153.033193 92.2908847,155.161486 87.3331099,157.39017 C31.0111824,182.708821 0,217.765415 0,255.99437 C0,298.781084 39.6220545,336.307301 102.708233,361.003527 C101.845139,366.565197 101.102476,372.066633 100.560533,377.467678 C94.3382249,438.947226 109.151333,483.32012 142.25,502.434597 C153.629683,508.887578 166.52439,512.186771 179.603923,511.991836 C210.956328,511.991836 247.567589,495.487529 284.479928,465.972527 C321.372196,495.487529 358.003528,511.991836 389.396077,511.991836 C402.475265,512.183856 415.36922,508.884856 426.75,502.434597 C459.848667,483.32012 474.661775,438.947226 468.439467,377.467678 C467.897524,372.066633 467.134789,366.565197 466.291767,361.003527 C529.377946,336.347457 569,298.761006 569,255.99437 M389.155214,27.1025182 C397.565154,26.899606 405.877839,28.9368502 413.241569,33.0055186 C436.223966,46.2772304 446.540955,82.2775015 441.522965,131.770345 C441.181741,135.143488 440.780302,138.556788 440.298575,141.990165 C414.066922,134.08804 387.205771,128.452154 360.010724,125.144528 C343.525021,103.224055 325.192524,82.7564475 305.214266,63.9661533 C336.586743,39.7116483 366.032313,27.1025182 389.135142,27.1025182 M378.356498,310.205598 C368.204912,327.830733 357.150626,344.919965 345.237759,361.405091 C325.045049,363.479997 304.758818,364.51205 284.459856,364.497299 C264.167589,364.51136 243.888075,363.479308 223.702025,361.405091 C211.820914,344.919381 200.80007,327.83006 190.683646,310.205598 C180.532593,292.629285 171.306974,274.534187 163.044553,255.99437 C171.306974,237.454554 180.532593,219.359455 190.683646,201.783142 C200.784121,184.229367 211.770999,167.201087 223.601665,150.764353 C243.824636,148.63809 264.145559,147.579168 284.479928,147.591877 C304.772146,147.579725 325.051559,148.611772 345.237759,150.68404 C357.109048,167.14607 368.136094,184.201112 378.27621,201.783142 C388.419418,219.363718 397.644825,237.458403 405.915303,255.99437 C397.644825,274.530337 388.419418,292.625022 378.27621,310.205598 M419.724813,290.127366 C426.09516,307.503536 431.324985,325.277083 435.380944,343.334682 C417.779633,348.823635 399.836793,353.149774 381.668372,356.285142 C388.573127,345.871232 395.263781,335.035679 401.740334,323.778483 C408.143291,312.655143 414.144807,301.431411 419.805101,290.207679 M246.363271,390.377981 C258.848032,391.140954 271.593728,391.582675 284.5,391.582675 C297.406272,391.582675 310.232256,391.140954 322.737089,390.377981 C310.880643,404.583418 298.10766,417.997563 284.5,430.534446 C270.921643,417.999548 258.18192,404.585125 246.363271,390.377981 Z M187.311556,356.244986 C169.137286,353.123646 151.187726,348.810918 133.578912,343.334682 C137.618549,325.305649 142.828222,307.559058 149.174827,290.207679 C154.754833,301.431411 160.736278,312.655143 167.239594,323.778483 C173.74291,334.901824 180.467017,345.864539 187.311556,356.285142 M149.174827,221.760984 C142.850954,204.473938 137.654787,186.794745 133.619056,168.834762 C151.18418,163.352378 169.085653,159.013101 187.211197,155.844146 C180.346585,166.224592 173.622478,176.986525 167.139234,188.210257 C160.65599,199.433989 154.734761,210.517173 149.074467,221.760984 M322.616657,121.590681 C310.131896,120.827708 297.3862,120.385987 284.379568,120.385987 C271.479987,120.385987 258.767744,120.787552 246.242839,121.590681 C258.061488,107.383537 270.801211,93.9691137 284.379568,81.4342157 C297.99241,93.9658277 310.765727,107.380324 322.616657,121.590681 Z M401.70019,188.210257 C395.196875,176.939676 388.472767,166.09743 381.527868,155.68352 C399.744224,158.819049 417.734224,163.151949 435.380944,168.654058 C431.331963,186.680673 426.122466,204.426664 419.785029,221.781062 C414.205023,210.55733 408.203506,199.333598 401.720262,188.230335 M127.517179,131.790423 C122.438973,82.3176579 132.816178,46.2973086 155.778503,33.0255968 C163.144699,28.9632474 171.455651,26.9264282 179.864858,27.1225964 C202.967687,27.1225964 232.413257,39.7317265 263.785734,63.9862316 C243.794133,82.7898734 225.448298,103.270812 208.949132,125.204763 C181.761691,128.528025 154.90355,134.14313 128.661281,141.990165 C128.199626,138.556788 127.778115,135.163566 127.456963,131.790423 M98.4529773,182.106474 C101.54406,180.767925 104.695358,179.429376 107.906872,178.090828 C114.220532,204.735668 122.781793,230.7969 133.498624,255.99437 C122.761529,281.241316 114.193296,307.357063 107.8868,334.058539 C56.7434387,313.076786 27.0971497,284.003505 27.0971497,255.99437 C27.0971497,229.450947 53.1907013,202.526037 98.4529773,182.106474 Z M155.778503,478.963143 C132.816178,465.691432 122.438973,429.671082 127.517179,380.198317 C127.838331,376.825174 128.259842,373.431953 128.721497,369.978497 C154.953686,377.878517 181.814655,383.514365 209.009348,386.824134 C225.500295,408.752719 243.832321,429.233234 263.805806,448.042665 C220.069,481.834331 180.105722,492.97775 155.838719,478.963143 M441.502893,380.198317 C446.520883,429.691161 436.203894,465.691432 413.221497,478.963143 C388.974566,493.017906 348.991216,481.834331 305.274481,448.042665 C325.241364,429.232737 343.566681,408.752215 360.050868,386.824134 C387.245915,383.516508 414.107066,377.880622 440.338719,369.978497 C440.820446,373.431953 441.221885,376.825174 441.563109,380.198317 M461.193488,334.018382 C454.869166,307.332523 446.294494,281.231049 435.561592,255.99437 C446.289797,230.744081 454.857778,204.629101 461.173416,177.930202 C512.216417,198.911955 541.942994,227.985236 541.942994,255.99437 C541.942994,284.003505 512.296705,313.076786 461.153344,334.058539"
-					id="Shape"></path>
-			</g>
-		</g>
-	</svg>
-);
+const stats = [
+	{ label: "Runtime", value: "Bun" },
+	{ label: "API prefix", value: apiBasePath },
+	{ label: "Docs", value: "Scalar" },
+	{ label: "Status", value: "Online" }
+] as const;
 
 const HomePage: FC = () => {
 	return (
 		<html lang="en">
 			<head>
-				<meta charSet="UTF-8" />
+				<meta charset="UTF-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-				<title>Chat App API - Powered by Modern Tech Stack</title>
+				<title>Chat App Backend</title>
 				<style>{`
+					:root {
+						color-scheme: dark;
+						--bg: #06070a;
+						--card: rgba(255, 255, 255, 0.08);
+						--card-strong: rgba(255, 255, 255, 0.13);
+						--line: rgba(255, 255, 255, 0.14);
+						--line-strong: rgba(255, 255, 255, 0.24);
+						--text: #f8f4ea;
+						--muted: #aaa69d;
+						--dim: #77736b;
+						--accent: #d7ff61;
+						--cyan: #7dd3fc;
+						--green: #8cffb4;
+					}
+
 					* {
-						margin: 0;
-						padding: 0;
 						box-sizing: border-box;
 					}
+
+					html {
+						min-height: 100%;
+						background: var(--bg);
+					}
+
 					body {
-						font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-						background: white;
 						min-height: 100vh;
-						color: #333;
-						line-height: 1.6;
+						margin: 0;
+						overflow-x: hidden;
+						background:
+							radial-gradient(circle at 14% 8%, rgba(215, 255, 97, 0.18), transparent 28rem),
+							radial-gradient(circle at 82% 12%, rgba(125, 211, 252, 0.18), transparent 30rem),
+							linear-gradient(140deg, #06070a 0%, #101215 48%, #17120a 100%);
+						color: var(--text);
+						font-family:
+							Inter,
+							ui-sans-serif,
+							system-ui,
+							-apple-system,
+							BlinkMacSystemFont,
+							"Segoe UI",
+							sans-serif;
 					}
-					.container {
-						width: 100%;
+
+					a {
+						color: inherit;
+						text-decoration: none;
+					}
+
+					.backdrop-grid {
+						position: fixed;
+						inset: 0;
+						pointer-events: none;
+						background-image:
+							linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+							linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+						background-size: 48px 48px;
+						mask-image: radial-gradient(circle at 50% 20%, black, transparent 72%);
+					}
+
+					.shell {
+						position: relative;
+						width: min(1160px, calc(100% - 32px));
 						margin: 0 auto;
+						padding: 28px 0 52px;
 					}
-					.header {
-						background: #f8fafc;
-						border: 1px solid #e2e8f0;
-						border-radius: 12px;
-						padding: 40px 30px;
-						color: #1e293b;
-						margin-bottom: 30px;
-					}
-					.header-content {
-						text-align: center;
-					}
-					.title {
-						font-size: 2.8rem;
-						margin-bottom: 10px;
-						color: #1e293b;
-						font-weight: 700;
-					}
-					.subtitle {
-						font-size: 1.2rem;
-						color: #64748b;
-						margin-bottom: 15px;
-					}
-					.status-badge {
-						display: inline-flex;
-						align-items: center;
-						padding: 6px 12px;
-						background: #dcfce7;
-						border: 1px solid #bbf7d0;
-						border-radius: 20px;
-						font-size: 0.9rem;
-						color: #166534;
-						font-weight: 500;
-					}
-					.status-dot {
-						width: 10px;
-						height: 10px;
-						background: #22c55e;
-						border-radius: 50%;
-						margin-right: 6px;
-						display: inline-block;
-						box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
-					}
-					.content {
-						padding: 30px;
-					}
-					.section {
-						margin-bottom: 30px;
-					}
-					.section-title {
-						font-size: 1.5rem;
-						margin-bottom: 20px;
-						color: #1e293b;
-						font-weight: 600;
-					}
-					.tech-grid {
-						display: grid;
-						grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-						gap: 20px;
-						margin-bottom: 30px;
-					}
-					.tech-item {
+
+					.nav {
 						display: flex;
-						flex-direction: column;
 						align-items: center;
-						padding: 20px;
-						background: #f8fafc;
-						border-radius: 15px;
-						transition: all 0.3s ease;
-						border: 2px solid transparent;
+						justify-content: space-between;
+						gap: 16px;
+						margin-bottom: 44px;
 					}
-					.tech-icon {
-						margin-bottom: 10px;
-						transition: transform 0.3s ease;
+
+					.brand {
+						display: flex;
+						align-items: center;
+						gap: 12px;
+						font-weight: 800;
+						letter-spacing: -0.03em;
 					}
-					.tech-name {
-						font-weight: 600;
-						color: #374151;
-						font-size: 0.9rem;
-						text-align: center;
-					}
-					.features-grid {
+
+					.brand-mark,
+					.logo-tile {
 						display: grid;
-						grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-						gap: 20px;
+						place-items: center;
+						border: 1px solid var(--line);
+						background: rgba(255, 255, 255, 0.08);
+						box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 					}
-					.feature-card {
-						padding: 20px;
-						background: #f8fafc;
-						border-radius: 15px;
-						transition: all 0.3s ease;
-						border: 2px solid transparent;
+
+					.brand-mark {
+						width: 42px;
+						height: 42px;
+						border-radius: 16px;
 					}
-					.feature-title {
-						font-weight: 600;
-						margin-bottom: 8px;
-						color: #1e293b;
-						font-size: 1.1rem;
+
+					.brand-mark img {
+						width: 24px;
+						height: 24px;
+						object-fit: contain;
 					}
-					.feature-desc {
-						color: #64748b;
-						font-size: 0.9rem;
-					}
-					.actions {
+
+					.nav-actions {
 						display: flex;
 						flex-wrap: wrap;
-						gap: 15px;
-						margin: 30px 0;
+						gap: 10px;
 					}
-					.btn {
+
+					.button {
 						display: inline-flex;
 						align-items: center;
 						justify-content: center;
-						padding: 10px 20px;
-						border-radius: 10px;
-						font-weight: 500;
-						transition: all 0.3s ease;
-						text-decoration: none;
-						font-size: 1rem;
+						min-height: 42px;
+						padding: 0 16px;
+						border: 1px solid var(--line);
+						border-radius: 999px;
+						background: rgba(255, 255, 255, 0.08);
+						color: var(--text);
+						font-size: 14px;
+						font-weight: 800;
+						transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 					}
-					.btn-primary {
-						background: #4f46e5;
-						color: white;
+
+					.button:hover {
+						transform: translateY(-2px);
+						border-color: var(--line-strong);
+						background: rgba(255, 255, 255, 0.13);
 					}
-					.btn-secondary {
-						background: #f1f5f9;
-						color: #0f172a;
-						border: 1px solid #e2e8f0;
+
+					.button.primary {
+						border-color: rgba(215, 255, 97, 0.65);
+						background: var(--accent);
+						color: #11140b;
 					}
-					.api-info {
-						background: #f8fafc;
-						border-radius: 15px;
-						padding: 20px;
-						margin-top: 20px;
+
+					.hero {
+						display: grid;
+						grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+						gap: 24px;
+						align-items: stretch;
 					}
-					.api-endpoint {
-						background: #1e293b;
-						color: #38bdf8;
-						font-family: monospace;
-						padding: 15px;
-						border-radius: 8px;
-						font-size: 1rem;
-						margin-bottom: 15px;
-						overflow-x: auto;
+
+					.panel {
+						border: 1px solid var(--line);
+						border-radius: 32px;
+						background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.055));
+						box-shadow: 0 24px 90px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+						backdrop-filter: blur(18px);
 					}
-					@media (max-width: 768px) {
-						.tech-grid {
-							grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-							gap: 15px;
+
+					.hero-main {
+						position: relative;
+						overflow: hidden;
+						padding: clamp(28px, 5vw, 58px);
+					}
+
+					.hero-main:after {
+						position: absolute;
+						right: -90px;
+						bottom: -120px;
+						width: 320px;
+						height: 320px;
+						content: "";
+						border-radius: 999px;
+						background: radial-gradient(circle, rgba(215, 255, 97, 0.26), transparent 68%);
+					}
+
+					.kicker {
+						display: inline-flex;
+						align-items: center;
+						gap: 10px;
+						margin-bottom: 28px;
+						padding: 9px 12px;
+						border: 1px solid rgba(215, 255, 97, 0.28);
+						border-radius: 999px;
+						background: rgba(215, 255, 97, 0.08);
+						color: var(--accent);
+						font-size: 12px;
+						font-weight: 900;
+						letter-spacing: 0.18em;
+						text-transform: uppercase;
+					}
+
+					.pulse {
+						width: 8px;
+						height: 8px;
+						border-radius: 999px;
+						background: var(--accent);
+						box-shadow: 0 0 0 8px rgba(215, 255, 97, 0.12);
+					}
+
+					h1 {
+						max-width: 780px;
+						margin: 0;
+						font-size: clamp(46px, 7vw, 92px);
+						line-height: 0.92;
+						letter-spacing: -0.075em;
+					}
+
+					.lede {
+						max-width: 640px;
+						margin: 24px 0 0;
+						color: var(--muted);
+						font-size: clamp(17px, 2vw, 21px);
+						line-height: 1.65;
+					}
+
+					.hero-actions {
+						display: flex;
+						flex-wrap: wrap;
+						gap: 12px;
+						margin-top: 32px;
+					}
+
+					.stats {
+						display: grid;
+						grid-template-columns: repeat(4, minmax(0, 1fr));
+						gap: 10px;
+						margin-top: 36px;
+					}
+
+					.stat {
+						padding: 14px;
+						border: 1px solid var(--line);
+						border-radius: 18px;
+						background: rgba(0, 0, 0, 0.22);
+					}
+
+					.stat span {
+						display: block;
+						color: var(--dim);
+						font-size: 11px;
+						font-weight: 900;
+						letter-spacing: 0.14em;
+						text-transform: uppercase;
+					}
+
+					.stat strong {
+						display: block;
+						margin-top: 7px;
+						font-size: 15px;
+					}
+
+					.console {
+						display: flex;
+						flex-direction: column;
+						min-height: 100%;
+						overflow: hidden;
+					}
+
+					.console-head {
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+						padding: 18px 20px;
+						border-bottom: 1px solid var(--line);
+					}
+
+					.dots {
+						display: flex;
+						gap: 7px;
+					}
+
+					.dots i {
+						width: 10px;
+						height: 10px;
+						border-radius: 999px;
+						background: var(--line-strong);
+					}
+
+					.console-body {
+						display: grid;
+						gap: 12px;
+						padding: 18px;
+					}
+
+					.endpoint {
+						display: grid;
+						grid-template-columns: 62px minmax(0, 1fr);
+						gap: 12px;
+						align-items: center;
+						padding: 14px;
+						border: 1px solid rgba(255, 255, 255, 0.1);
+						border-radius: 20px;
+						background: rgba(0, 0, 0, 0.2);
+					}
+
+					.method {
+						display: inline-flex;
+						justify-content: center;
+						padding: 6px 0;
+						border-radius: 999px;
+						background: rgba(125, 211, 252, 0.12);
+						color: var(--cyan);
+						font-size: 12px;
+						font-weight: 900;
+					}
+
+					.endpoint strong {
+						display: block;
+						overflow: hidden;
+						font-family: "SFMono-Regular", Consolas, monospace;
+						font-size: 13px;
+						text-overflow: ellipsis;
+						white-space: nowrap;
+					}
+
+					.endpoint span {
+						display: block;
+						margin-top: 5px;
+						color: var(--muted);
+						font-size: 13px;
+					}
+
+					.section {
+						margin-top: 24px;
+					}
+
+					.section-title {
+						display: flex;
+						align-items: end;
+						justify-content: space-between;
+						gap: 16px;
+						margin: 0 0 14px;
+					}
+
+					.section-title h2 {
+						margin: 0;
+						font-size: clamp(26px, 4vw, 42px);
+						letter-spacing: -0.04em;
+					}
+
+					.section-title p {
+						max-width: 460px;
+						margin: 0;
+						color: var(--muted);
+						line-height: 1.6;
+					}
+
+					.stack {
+						display: grid;
+						grid-template-columns: repeat(5, minmax(0, 1fr));
+						gap: 12px;
+					}
+
+					.stack-card {
+						padding: 16px;
+						border: 1px solid var(--line);
+						border-radius: 24px;
+						background: rgba(255, 255, 255, 0.07);
+					}
+
+					.logo-tile {
+						width: 46px;
+						height: 46px;
+						margin-bottom: 22px;
+						border-radius: 18px;
+					}
+
+					.logo-tile img {
+						width: 26px;
+						height: 26px;
+						object-fit: contain;
+					}
+
+					.stack-card strong {
+						display: block;
+						font-size: 16px;
+					}
+
+					.stack-card span {
+						display: block;
+						margin-top: 6px;
+						color: var(--muted);
+						font-size: 13px;
+					}
+
+					.footer {
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+						gap: 12px;
+						margin-top: 24px;
+						padding: 18px 20px;
+						border: 1px solid var(--line);
+						border-radius: 24px;
+						background: rgba(0, 0, 0, 0.18);
+						color: var(--muted);
+						font-size: 13px;
+					}
+
+					.footer code {
+						color: var(--text);
+					}
+
+					@media (max-width: 920px) {
+						.nav,
+						.section-title,
+						.footer {
+							align-items: flex-start;
+							flex-direction: column;
 						}
-						.title {
-							font-size: 2.8rem;
-							margin-bottom: 10px;
-							color: #1e293b;
-							font-weight: 700;
-							display: flex;
-							align-items: center;
-							justify-content: center;
-							gap: 12px;
+
+						.hero {
+							grid-template-columns: 1fr;
 						}
-						.content {
-							padding: 20px;
+
+						.stats {
+							grid-template-columns: repeat(2, minmax(0, 1fr));
+						}
+
+						.stack {
+							grid-template-columns: repeat(2, minmax(0, 1fr));
 						}
 					}
-					`}</style>
+
+					@media (max-width: 560px) {
+						.shell {
+							width: min(100% - 20px, 1160px);
+							padding-top: 16px;
+						}
+
+						.hero-main {
+							padding: 24px;
+						}
+
+						.stats,
+						.stack {
+							grid-template-columns: 1fr;
+						}
+
+						.endpoint {
+							grid-template-columns: 1fr;
+						}
+					}
+				`}</style>
 			</head>
 			<body>
-				<div className="container">
-					<div className="header">
-						<div className="header-content">
-							<h1 className="title">
-								<OpenAIIcon /> ChatFlow API
-							</h1>
-							<p className="subtitle">Modern AI Chat Application Backend</p>
-							<div className="status-badge">
-								<div className="status-dot"></div>
-								Service Running
-							</div>
+				<div class="backdrop-grid" />
+				<main class="shell">
+					<nav class="nav" aria-label="Backend navigation">
+						<div class="brand">
+							<span class="brand-mark">
+								<img src={svgl.openai} alt="OpenAI" loading="eager" />
+							</span>
+							<span>Chat App Backend</span>
 						</div>
-					</div>
+						<div class="nav-actions">
+							<a class="button" href="/doc">
+								OpenAPI JSON
+							</a>
+							<a class="button primary" href="/reference">
+								Scalar Docs
+							</a>
+						</div>
+					</nav>
 
-					<div className="content">
-						<div class="section">
-							<h2 class="section-title">⚡ Powered by Modern Technologies</h2>
-							<div class="tech-grid">
-								<div class="tech-item">
-									<div class="tech-icon">
-										<HonoIcon />
+					<section class="hero">
+						<div class="panel hero-main">
+							<div class="kicker">
+								<span class="pulse" />
+								OpenAI-ready API
+							</div>
+							<h1>Backend control plane for streaming AI chat.</h1>
+							<p class="lede">
+								A Hono API running on Bun with typed contracts, Drizzle persistence, OpenAI model access, and AI SDK streaming
+								endpoints for the React client.
+							</p>
+							<div class="hero-actions">
+								<a class="button primary" href="/reference">
+									Explore API docs
+								</a>
+								<a class="button" href="/health">
+									Check health
+								</a>
+							</div>
+							<div class="stats">
+								{stats.map((stat) => (
+									<div class="stat" key={stat.label}>
+										<span>{stat.label}</span>
+										<strong>{stat.value}</strong>
 									</div>
-									<div class="tech-name">Hono</div>
-								</div>
-								<div class="tech-item">
-									<div class="tech-icon">
-										<TypeScriptIcon />
-									</div>
-									<div class="tech-name">TypeScript</div>
-								</div>
-								<div class="tech-item">
-									<div class="tech-icon">
-										<DrizzleIcon />
-									</div>
-									<div class="tech-name">Drizzle ORM</div>
-								</div>
-								<div class="tech-item">
-									<div class="tech-icon">
-										<BunIcon />
-									</div>
-									<div class="tech-name">Bun</div>
-								</div>
-								<div class="tech-item">
-									<div class="tech-icon">
-										<RedisIcon />
-									</div>
-									<div class="tech-name">Redis</div>
-								</div>
+								))}
 							</div>
 						</div>
 
-						<div class="section">
-							<h2 class="section-title">🌟 Key Features</h2>
-							<div class="features-grid">
-								<div class="feature-card">
-									<div class="feature-title">⚡ Lightning Fast</div>
-									<div class="feature-desc">Built with Bun runtime for maximum performance and efficiency</div>
-								</div>
-								<div class="feature-card">
-									<div class="feature-title">🔐 Type-Safe</div>
-									<div class="feature-desc">Full TypeScript support with end-to-end type safety</div>
-								</div>
-								<div class="feature-card">
-									<div class="feature-title">🗄️ Robust Database</div>
-									<div class="feature-desc">PostgreSQL with Drizzle ORM for reliable data management</div>
-								</div>
-								<div class="feature-card">
-									<div class="feature-title">⚡ Real-time Caching</div>
-									<div class="feature-desc">Redis integration for fast data access and session management</div>
-								</div>
-								<div class="feature-card">
-									<div class="feature-title">🤖 AI-Powered</div>
-									<div class="feature-desc">Integrated AI capabilities for enhanced chat experiences</div>
-								</div>
-								<div class="feature-card">
-									<div class="feature-title">🔄 Auto-Scaling</div>
-									<div class="feature-desc">Docker containerized with load balancing support</div>
+						<aside class="panel console" aria-label="Backend endpoint summary">
+							<div class="console-head">
+								<strong>Routes</strong>
+								<div class="dots" aria-hidden="true">
+									<i />
+									<i />
+									<i />
 								</div>
 							</div>
-						</div>
+							<div class="console-body">
+								{endpoints.map((endpoint) => (
+									<a class="endpoint" href={endpoint.path} key={endpoint.path}>
+										<span class="method">{endpoint.method}</span>
+										<span>
+											<strong>{endpoint.path}</strong>
+											<span>{endpoint.tone}</span>
+										</span>
+									</a>
+								))}
+							</div>
+						</aside>
+					</section>
 
-						<div class="actions">
-							<a href="/reference" class="btn btn-primary">
-								📚 API Documentation
-							</a>
-							<a href="/health" class="btn btn-secondary">
-								💚 Health Check
-							</a>
-							<a href={env.CLIENT_URL} class="btn btn-secondary">
-								<ReactIcon /> &nbsp; Frontend App
-							</a>
+					<section class="section">
+						<div class="section-title">
+							<h2>Built with the production stack.</h2>
+							<p>
+								SVGL-hosted logos keep this backend index aligned with the real services and libraries used by the application.
+							</p>
 						</div>
+						<div class="stack">
+							{stack.map((item) => (
+								<div class="stack-card" key={item.name}>
+									<div class="logo-tile">
+										<img src={item.logo} alt={item.name} loading="lazy" />
+									</div>
+									<strong>{item.name}</strong>
+									<span>{item.tone}</span>
+								</div>
+							))}
+						</div>
+					</section>
 
-						<div class="api-info">
-							<h3 style="margin-bottom: 10px; color: #0f172a;">🔗 API Endpoint</h3>
-							<div class="api-endpoint">GET /health</div>
-							<p style="color: #64748b; font-size: 0.9rem;">Check the service status and health metrics</p>
-						</div>
-					</div>
-				</div>
+					<footer class="footer">
+						<span>
+							Backend index route: <code>GET /</code>
+						</span>
+						<span>
+							API prefix: <code>{apiBasePath}</code>
+						</span>
+					</footer>
+				</main>
 			</body>
 		</html>
 	);

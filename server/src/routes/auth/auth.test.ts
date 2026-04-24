@@ -141,7 +141,10 @@ describe("Auth Routes", () => {
 	describe("POST /auth/logout", () => {
 		it("should handle logout endpoint", async () => {
 			const app = await createAuthApp();
-			const response = await app.request("/auth/logout", { method: "POST" });
+			const response = await app.request("/auth/logout", {
+				headers: { "Sec-Fetch-Site": "same-origin" },
+				method: "POST"
+			});
 
 			// Should return 401 (no auth) or 200 (mocked auth)
 			expect([200, 401].includes(response.status)).toBe(true);

@@ -16,7 +16,7 @@ COPY shared/package.json ./shared/package.json
 # Stage 2: Production dependencies only.
 FROM workspace-manifests AS prod-deps
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-  bun install --frozen-lockfile --production --filter './server' --filter './shared'
+  bun install --frozen-lockfile --production --filter 'chat-app' --filter './server' --filter './shared'
 
 # Stage 3: Build dependencies (includes dev deps).
 FROM workspace-manifests AS build-deps
@@ -24,7 +24,7 @@ COPY tsconfig.json ./
 COPY client/tsconfig.json ./client/tsconfig.json
 COPY shared/tsconfig.json ./shared/tsconfig.json
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-  bun install --frozen-lockfile --filter './client' --filter './shared'
+  bun install --frozen-lockfile --filter 'chat-app' --filter './client' --filter './shared'
 
 # Copy shared source needed by the client build after dependencies are cached.
 COPY shared/ ./shared/

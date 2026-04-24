@@ -1,4 +1,4 @@
-import { type MyUIMessage, validateMyUIMessages } from "@chat-app/shared";
+import { type MyUIMessage, safeValidateMyUIMessages } from "@chat-app/shared";
 import { queryOptions } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
@@ -40,19 +40,17 @@ export const Route = createFileRoute("/chat/$conversationId")({
       }
 
       type MessageRole = "user" | "assistant" | "system";
-      interface StoredMessage {
-        id: string;
-        role: string;
-        parts: unknown[];
-        metadata?: Record<string, unknown>;
-      }
-
       const normalizeRole = (role: string): MessageRole => {
         if (role === "assistant" || role === "system") return role;
         return "user";
       };
 
-      const rawMessages = (conversation.messages || []).map((msg: StoredMessage) => {
+      const toMetadata = (metadata: unknown, createdAt: string | undefined) => {
+        const normalizedMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+        return createdAt ? { ...normalizedMetadata, createdAt } : normalizedMetadata;
+      };
+
+      const rawMessages = (conversation.messages || []).map((msg) => {
         const uiParts = msg.parts.map((part) => {
           if (typeof part === "string") {
             return { type: "text" as const, text: part };
@@ -62,27 +60,36 @@ export const Route = createFileRoute("/chat/$conversationId")({
 
         return {
           id: msg.id,
-          metadata: msg.metadata || {},
+          metadata: toMetadata(msg.metadata, msg.createdAt),
           parts: uiParts,
           role: normalizeRole(msg.role),
         };
       });
 
-      const messages = rawMessages.length > 0 ? await validateMyUIMessages(rawMessages) : [];
+      const validation =
+        rawMessages.length > 0 ? await safeValidateMyUIMessages(rawMessages) : { data: [], success: true };
+
+      if (!validation.success) {
+        throw new Error("Saved conversation messages are no longer compatible with the current chat schema.");
+      }
 
       return {
         chat: conversation,
-        initialMessages: messages,
+        initialMessages: validation.data,
       };
     } catch (error) {
       if (error && typeof error === "object" && "to" in error) {
         throw error;
       }
-      console.error("Failed to load chat:", error);
-      return {
-        chat: { id: params.conversationId, messages: [], title: "New Chat" },
-        initialMessages: [],
-      };
+
+      if (error instanceof ApiRequestError && error.status === 404) {
+        throw redirect({
+          search: { redirect: undefined },
+          to: ChatIndexRoute.to,
+        });
+      }
+
+      throw error;
     }
   },
   component: ConversationChat,

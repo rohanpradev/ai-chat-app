@@ -110,6 +110,11 @@ server:
   podLabels: {}
   nodeSelector: {}
   tolerations: []
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -194,6 +199,11 @@ client:
   podLabels: {}
   nodeSelector: {}
   tolerations: []
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault

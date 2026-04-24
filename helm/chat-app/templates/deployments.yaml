@@ -287,6 +287,15 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.server.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.server.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.server.topologySpreadConstraints.topologyKey | quote }}
+          whenUnsatisfiable: {{ .Values.server.topologySpreadConstraints.whenUnsatisfiable | quote }}
+          labelSelector:
+            matchLabels:
+              {{- include "chat-app.componentLabels" (dict "root" . "component" "server") | nindent 14 }}
+      {{- end }}
       containers:
         - name: server
           image: {{ include "chat-app.image" .Values.images.server | quote }}
@@ -393,6 +402,15 @@ spec:
       {{- with .Values.client.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.client.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.client.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.client.topologySpreadConstraints.topologyKey | quote }}
+          whenUnsatisfiable: {{ .Values.client.topologySpreadConstraints.whenUnsatisfiable | quote }}
+          labelSelector:
+            matchLabels:
+              {{- include "chat-app.componentLabels" (dict "root" . "component" "client") | nindent 14 }}
       {{- end }}
       containers:
         - name: client

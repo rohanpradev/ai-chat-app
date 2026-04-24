@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
+import { csrf } from "hono/csrf";
 import { etag } from "hono/etag";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
@@ -53,6 +54,21 @@ export function createApp() {
 
 					return isAllowedOrigin(origin) ? origin : null;
 				}
+			})
+		)
+	);
+
+	useAppMiddleware(
+		asAppMiddleware(
+			csrf({
+				origin: (origin) => {
+					if (!origin) {
+						return false;
+					}
+
+					return isAllowedOrigin(origin);
+				},
+				secFetchSite: ["same-origin", "same-site", "none"]
 			})
 		)
 	);

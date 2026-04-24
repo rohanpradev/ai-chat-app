@@ -69,9 +69,12 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 		with: {
 			messages: {
 				columns: {
+					createdAt: true,
 					id: true,
+					metadata: true,
 					parts: true,
-					role: true
+					role: true,
+					schemaVersion: true
 				},
 				orderBy: (message, { asc }) => [asc(message.order)]
 			}
@@ -88,9 +91,12 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 	}
 
 	const normalizedMessages = (chat.messages || []).map((message) => ({
+		createdAt: message.createdAt?.toISOString(),
 		id: message.id,
+		metadata: message.metadata ?? undefined,
 		parts: (Array.isArray(message.parts) ? message.parts : []) as unknown[],
-		role: message.role
+		role: message.role,
+		schemaVersion: message.schemaVersion
 	}));
 
 	return c.json(
