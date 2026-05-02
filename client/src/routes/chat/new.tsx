@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useCreateChat } from "@/queries/createChat";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
@@ -11,8 +11,14 @@ export const Route = createFileRoute("/chat/new")({
 function NewChatComponent() {
   const navigate = useNavigate();
   const { mutate: createChat, status, error } = useCreateChat();
+  const hasStartedCreateRef = useRef(false);
 
   useEffect(() => {
+    if (hasStartedCreateRef.current) {
+      return;
+    }
+
+    hasStartedCreateRef.current = true;
     createChat("New Chat", {
       onSuccess: (response) => {
         if (response?.id) {

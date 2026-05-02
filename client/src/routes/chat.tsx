@@ -1,19 +1,15 @@
 import { createFileRoute, Outlet, redirect, useRouter } from "@tanstack/react-router";
 import { Suspense } from "react";
-import { z } from "zod";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useUserLogout } from "@/composables/useLogout";
 import { conversationsQuery } from "@/lib/queries";
+import { redirectSearchValidator } from "@/lib/router-search";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 
-const searchSchema = z.object({
-  redirect: z.string().optional(),
-});
-
 export const Route = createFileRoute("/chat")({
-  validateSearch: searchSchema,
+  validateSearch: redirectSearchValidator,
   beforeLoad: ({ context, location }) => {
     if (!context.auth.isAuthenticated) {
       throw redirect({

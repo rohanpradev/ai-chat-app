@@ -8,15 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserLogin } from "@/composables/useLoginUser";
+import { redirectSearchValidator } from "@/lib/router-search";
 import { Route as RegisterRoute } from "@/routes/(auth)/_auth/register";
 import { Route as IndexRoute } from "@/routes/index";
 
 export const Route = createFileRoute("/(auth)/_auth/login")({
-  validateSearch: (search: Record<string, unknown>) => {
-    return {
-      redirect: (search.redirect as string) || undefined,
-    };
-  },
+  validateSearch: redirectSearchValidator,
   beforeLoad: ({ context, search }) => {
     if (context.auth.isAuthenticated) {
       const redirectTo = search.redirect || IndexRoute.to;

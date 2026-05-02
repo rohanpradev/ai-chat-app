@@ -8,7 +8,7 @@ ARG NGINX_IMAGE=dhi.io/nginx:1.30.0
 FROM ${BUN_DEV_IMAGE} AS workspace-manifests
 WORKDIR /app
 
-COPY package.json bun.lock* ./
+COPY package.json bun.lock* bunfig.toml ./
 COPY client/package.json ./client/package.json
 COPY server/package.json ./server/package.json
 COPY shared/package.json ./shared/package.json
@@ -16,7 +16,7 @@ COPY shared/package.json ./shared/package.json
 # Stage 2: Production dependencies only.
 FROM workspace-manifests AS prod-deps
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-  bun install --frozen-lockfile --production --filter 'chat-app' --filter './server' --filter './shared'
+  bun install --frozen-lockfile --linker isolated --production --filter 'chat-app' --filter './server' --filter './shared'
 
 # Stage 3: Build dependencies (includes dev deps).
 FROM workspace-manifests AS build-deps
@@ -24,7 +24,7 @@ COPY tsconfig.json ./
 COPY client/tsconfig.json ./client/tsconfig.json
 COPY shared/tsconfig.json ./shared/tsconfig.json
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-  bun install --frozen-lockfile --filter 'chat-app' --filter './client' --filter './shared'
+  bun install --frozen-lockfile --linker isolated --filter 'chat-app' --filter './client' --filter './shared'
 
 # Copy shared source needed by the client build after dependencies are cached.
 COPY shared/ ./shared/
@@ -58,8 +58,12 @@ CMD ["-g", "daemon off;"]
 FROM ${BUN_RUNTIME_IMAGE} AS server-prod
 WORKDIR /app
 
-# Copy production dependencies
+# Copy the Bun isolated install layout:
+# - root node_modules contains the shared .bun package store
+# - workspace node_modules contain dependency symlinks for package-local imports
 COPY --from=prod-deps --chown=65532:65532 /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=65532:65532 /app/server/node_modules ./server/node_modules
+COPY --from=prod-deps --chown=65532:65532 /app/shared/node_modules ./shared/node_modules
 COPY --from=prod-deps --chown=65532:65532 /app/package.json ./
 
 # Copy shared package (runtime dependency)

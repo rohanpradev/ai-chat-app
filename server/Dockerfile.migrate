@@ -3,7 +3,7 @@ FROM ${BUN_DEV_IMAGE} AS workspace-manifests
 
 WORKDIR /app
 
-COPY package.json bun.lock* ./
+COPY package.json bun.lock* bunfig.toml ./
 COPY client/package.json ./client/package.json
 COPY server/package.json ./server/package.json
 COPY shared/package.json ./shared/package.json
@@ -14,13 +14,15 @@ WORKDIR /app
 
 # Install the locked workspace dependencies so migrations stay reproducible.
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-  bun install --frozen-lockfile --filter './server' --filter './shared'
+  bun install --frozen-lockfile --linker isolated --filter './server' --filter './shared'
 
 FROM ${BUN_DEV_IMAGE}
 
 WORKDIR /app
 
 COPY --from=migrate-deps --chown=65532:65532 /app/node_modules ./node_modules
+COPY --from=migrate-deps --chown=65532:65532 /app/server/node_modules ./server/node_modules
+COPY --from=migrate-deps --chown=65532:65532 /app/shared/node_modules ./shared/node_modules
 COPY --from=migrate-deps --chown=65532:65532 /app/package.json ./
 COPY --chown=65532:65532 server/package.json ./server/package.json
 COPY --chown=65532:65532 server/drizzle.config.ts ./server/drizzle.config.ts
