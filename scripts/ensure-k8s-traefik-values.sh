@@ -175,7 +175,6 @@ gateway:
         - kind: Secret
           name: local-selfsigned-tls
           group: ""
-          namespace: ${TRAEFIK_NAMESPACE}
 
 logs:
   general:

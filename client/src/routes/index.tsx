@@ -1,14 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { z } from "zod";
+import { redirectSearchValidator } from "@/lib/router-search";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
 
-const searchSchema = z.object({
-  redirect: z.string().optional(),
-});
-
 export const Route = createFileRoute("/")({
-  validateSearch: searchSchema,
+  validateSearch: redirectSearchValidator,
   beforeLoad: ({ context, search }) => {
     const redirectTo = search.redirect || ChatIndexRoute.to;
 

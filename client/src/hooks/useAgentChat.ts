@@ -12,8 +12,8 @@ import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { useEffect, useRef, useState } from "react";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { getApiClient } from "@/composables/useApi";
 import { buildChatRequestBody } from "@/lib/chat-request";
+import { getAiModelsQuery } from "@/queries/getAiModels";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
 interface UseAgentChatOptions {
@@ -22,18 +22,11 @@ interface UseAgentChatOptions {
 }
 
 export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<UseAgentChatOptions>) {
-  const api = getApiClient();
   const [input, setInput] = useState("");
   const [agentMode, setAgentMode] = useState<AgentMode>(defaultAgentMode);
   const [model, setModel] = useState<AIModelId>(defaultModelId);
   const [webSearch, setWebSearch] = useState(false);
-  const availableModelsQuery = useQuery({
-    gcTime: 30 * 60 * 1000,
-    queryFn: () => api.ai.models(),
-    queryKey: ["ai", "models"],
-    retry: 1,
-    staleTime: 5 * 60 * 1000,
-  });
+  const availableModelsQuery = useQuery(getAiModelsQuery());
 
   const requestBodyRef = useRef(buildChatRequestBody({ conversationId, agentMode, model, webSearch }));
   const transportRef = useRef(

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
 import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
@@ -23,91 +24,99 @@ export const Route = createFileRoute("/(auth)/_auth/register")({
 interface RegisterState {
   error?: string;
   success?: boolean;
+  fieldErrors?: {
+    confirmPassword?: string;
+    email?: string;
+    name?: string;
+    password?: string;
+  };
+  values?: {
+    email?: string;
+    name?: string;
+  };
 }
+
+const MIN_NAME_LENGTH = 3;
+const MAX_NAME_LENGTH = 30;
+const MIN_PASSWORD_LENGTH = 6;
+const MAX_PASSWORD_LENGTH = 100;
 
 function RegisterForm() {
   const { mutateAsync } = useUserRegister();
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
   const confirmPasswordId = useId();
 
   const registerAction = async (_prevState: RegisterState, formData: FormData): Promise<RegisterState> => {
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
+    const name = ((formData.get("name") as string | null) ?? "").trim();
+    const email = ((formData.get("email") as string | null) ?? "").trim().toLowerCase();
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
+    const fieldErrors: RegisterState["fieldErrors"] = {};
+    const values = { email, name };
 
-    if (!name?.trim()) {
-      toast.error("Please enter your name");
-      return { error: "Name is required" };
+    if (!name) {
+      fieldErrors.name = "Full name is required";
+    } else if (name.length < MIN_NAME_LENGTH) {
+      fieldErrors.name = `Full name must be at least ${MIN_NAME_LENGTH} characters`;
+    } else if (name.length > MAX_NAME_LENGTH) {
+      fieldErrors.name = `Full name must be ${MAX_NAME_LENGTH} characters or less`;
     }
-    if (!email?.trim()) {
-      toast.error("Please enter your email");
-      return { error: "Email is required" };
+
+    if (!email) {
+      fieldErrors.email = "Email is required";
+    } else if (!EMAIL_REGEX.test(email)) {
+      fieldErrors.email = "Please enter a valid email address";
     }
-    if (!EMAIL_REGEX.test(email)) {
-      toast.error("Please enter a valid email address");
-      return { error: "Invalid email format" };
-    }
+
     if (!password) {
-      toast.error("Please enter a password");
-      return { error: "Password is required" };
+      fieldErrors.password = "Password is required";
+    } else if (password.length < MIN_PASSWORD_LENGTH) {
+      fieldErrors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+    } else if (password.length > MAX_PASSWORD_LENGTH) {
+      fieldErrors.password = `Password must be ${MAX_PASSWORD_LENGTH} characters or less`;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return { error: "Password too short" };
-    }
+
     if (!confirmPassword) {
-      toast.error("Please confirm your password");
-      return { error: "Password confirmation is required" };
+      fieldErrors.confirmPassword = "Please confirm your password";
+    } else if (password && password !== confirmPassword) {
+      fieldErrors.confirmPassword = "Passwords do not match";
     }
-    if (password !== confirmPassword) {
-      toast.error("Passwords don't match");
-      return { error: "Passwords don't match" };
+
+    if (Object.keys(fieldErrors).length > 0) {
+      const firstError = Object.values(fieldErrors)[0];
+      toast.error(firstError);
+      return { error: "Validation failed", fieldErrors, values };
     }
 
     try {
       await mutateAsync({
-        name: name.trim(),
-        email: email.trim(),
+        name,
+        email,
         password,
         confirmPassword,
         profileImage,
       });
-      toast.success("Account created successfully!");
       return { success: true };
     } catch (error) {
       console.error("Registration error:", error);
       const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again.";
-      toast.error(errorMessage);
-      return { error: errorMessage };
+      return { error: errorMessage, values };
     }
   };
 
-  const [_state, formAction, isPending] = useActionState(registerAction, {});
+  const [state, formAction, isPending] = useActionState(registerAction, {});
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <div className="flex justify-center mb-4">
           <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-blue-600 rounded-xl flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-label="User registration icon"
-            >
-              <title>User registration icon</title>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-              />
-            </svg>
+            <UserPlus className="w-6 h-6 text-white" />
           </div>
         </div>
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Create your account</h2>
@@ -137,9 +146,15 @@ function RegisterForm() {
                 type="text"
                 placeholder="Enter your full name"
                 disabled={isPending}
+                className={`transition-colors ${
+                  state?.fieldErrors?.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                }`}
                 autoComplete="name"
+                defaultValue={state?.values?.name}
+                aria-invalid={Boolean(state?.fieldErrors?.name)}
                 required
               />
+              {state?.fieldErrors?.name && <p className="text-sm text-red-600">{state.fieldErrors.name}</p>}
             </div>
 
             <div className="space-y-2">
@@ -152,40 +167,85 @@ function RegisterForm() {
                 type="email"
                 placeholder="Enter your email address"
                 disabled={isPending}
+                className={`transition-colors ${
+                  state?.fieldErrors?.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                }`}
                 autoComplete="email"
+                defaultValue={state?.values?.email}
+                aria-invalid={Boolean(state?.fieldErrors?.email)}
                 required
               />
+              {state?.fieldErrors?.email && <p className="text-sm text-red-600">{state.fieldErrors.email}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor={passwordId} className="text-sm font-medium">
                 Password
               </Label>
-              <Input
-                id={passwordId}
-                name="password"
-                type="password"
-                placeholder="Create a password (min. 6 characters)"
-                disabled={isPending}
-                autoComplete="new-password"
-                required
-              />
-              <p className="text-xs text-muted-foreground">Password must be at least 6 characters long</p>
+              <div className="relative">
+                <Input
+                  id={passwordId}
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a password"
+                  disabled={isPending}
+                  className={`pr-10 transition-colors ${
+                    state?.fieldErrors?.password ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                  }`}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(state?.fieldErrors?.password)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isPending}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {state?.fieldErrors?.password ? (
+                <p className="text-sm text-red-600">{state.fieldErrors.password}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Use {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor={confirmPasswordId} className="text-sm font-medium">
                 Confirm Password
               </Label>
-              <Input
-                id={confirmPasswordId}
-                name="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                disabled={isPending}
-                autoComplete="new-password"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id={confirmPasswordId}
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  disabled={isPending}
+                  className={`pr-10 transition-colors ${
+                    state?.fieldErrors?.confirmPassword ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                  }`}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(state?.fieldErrors?.confirmPassword)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={isPending}
+                  aria-label={showConfirmPassword ? "Hide confirmed password" : "Show confirmed password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {state?.fieldErrors?.confirmPassword && (
+                <p className="text-sm text-red-600">{state.fieldErrors.confirmPassword}</p>
+              )}
             </div>
 
             <div className="rounded-md bg-muted p-4">
@@ -197,27 +257,7 @@ function RegisterForm() {
             <Button type="submit" className="w-full h-11 text-base font-medium" disabled={isPending}>
               {isPending ? (
                 <>
-                  <svg
-                    className="mr-2 h-4 w-4 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-label="Loading spinner"
-                  >
-                    <title>Loading spinner</title>
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating account...
                 </>
               ) : (

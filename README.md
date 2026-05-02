@@ -1,8 +1,6 @@
 # Chat App
 
-Production-minded AI chat application built with Bun, React, Hono, PostgreSQL, Redis, and the AI SDK.
-
-This repository is intentionally broader than a chat demo. It covers the parts that usually get skipped in prototypes: typed contracts between client and server, approval-gated tool usage, persistent conversations, observability, and two realistic deployment paths for local infrastructure.
+AI chat application built with Bun, React, Hono, PostgreSQL, Redis, and the AI SDK.
 
 ![Biome](https://img.shields.io/badge/biome-%2360A5FA.svg?style=for-the-badge&logo=biome&logoColor=white)
 ![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)
@@ -12,181 +10,120 @@ This repository is intentionally broader than a chat demo. It covers the parts t
 ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
-![TraefikProxy](https://img.shields.io/badge/Traefik-%252300314b.svg?style=for-the-badge&logo=traefikproxy&logoColor=white)
+![Traefik](https://img.shields.io/badge/Traefik-%2300314b.svg?style=for-the-badge&logo=traefikproxy&logoColor=white)
 ![Zod](https://img.shields.io/badge/zod-%233068b7.svg?style=for-the-badge&logo=zod&logoColor=white)
 
-## Why This Repo Exists
+The repo is a Bun workspace with three app packages:
 
-- It shows how to ship an AI feature as part of a complete product, not as an isolated prompt box.
-- It keeps the frontend, API, shared schemas, and deployment tooling aligned through one codebase.
-- It treats tool usage as a UX and safety problem, not only an SDK integration problem.
-- It keeps the local story strong: Docker for the fastest end-to-end loop, Kubernetes for a more production-shaped deployment.
+- `client/` - React app
+- `server/` - Hono API
+- `shared/` - shared schemas, model metadata, tool definitions, and UI message types
 
-## What It Does
+It can run locally with Docker Compose or through the Helm chart under `helm/chat-app/`.
 
-- Streams assistant responses in real time with the AI SDK.
-- Supports multiple OpenAI models, with `gpt-5-mini` as the default and `gpt-4.1-mini`, `gpt-4o-mini`, and `gpt-4o` also available.
-- Persists conversations and message parts in PostgreSQL.
-- Uses JWT cookie auth for registration, login, logout, and current-user checks.
-- Adds approval-gated live web search through Serper, rendered inline in the chat UI.
-- Handles attachments in chat input, including images, PDFs, and common text/code file types.
-- Streams reasoning and sources into the interface when the provider returns them.
-- Emits telemetry to Langfuse Cloud when keys are configured.
-- Runs cleanly through Docker Compose or a Helm-based Kubernetes workflow.
+## Features
 
-## Product Highlights
-
-- Human-in-the-loop tool execution. Web search is not fire-and-forget. The server marks the tool as approval-required, the UI surfaces an explicit approval state, and the conversation resumes automatically after the response.
-- Typed boundaries across the stack. The `shared/` workspace carries schemas, model metadata, tool definitions, and UI message validation so the client and server are not freehanding payloads.
-- Persistent chat state. Conversations are owned per user, stored in PostgreSQL, and restored back into validated UI messages when a thread is reopened.
-- Deployment parity where it matters. The same app can run behind Traefik locally in Docker or behind a Traefik Gateway setup in Kubernetes, with the repo-root `.env` remaining the source of truth.
-- Observability that matches the product. Langfuse is wired into the streaming server path, so model choice, tool usage, and session-level telemetry are part of the default story rather than a later add-on.
-
-## Architecture
-
-```text
-Browser
-  -> Traefik
-  -> React client
-  -> Hono API on Bun
-  -> PostgreSQL
-  -> Redis
-  -> OpenAI
-  -> Serper
-  -> Langfuse Cloud
-```
-
-Runtime notes:
-
-- In Docker, Traefik terminates TLS and routes to the client container and API container.
-- In Kubernetes gateway mode, Traefik is installed through Helm and routes hostname-based traffic to the app Helm release.
-- The `shared/` package is the contract layer used by both the React app and the API.
+- Streaming chat responses through the AI SDK
+- Cookie-based auth for register, login, logout, and current user
+- Persistent conversations in PostgreSQL
+- Redis-backed runtime/cache support
+- Shared Zod schemas and TypeScript types across client and server
+- Approval-gated web search with Serper
+- File attachments in chat input
+- Mermaid rendering loaded lazily for markdown diagrams
+- Optional Langfuse telemetry through OpenTelemetry
+- Docker Compose and local Kubernetes workflows
 
 ## Stack
 
-- Frontend: React 19, TanStack Router, TanStack Query, Vite, Tailwind CSS, AI Elements-inspired UI primitives
-- Backend: Hono, Bun, Drizzle ORM, Zod, OpenAPI generation
-- AI: OpenAI via the AI SDK, streaming UI messages, approval-aware tool calls
-- Data: PostgreSQL for persistence, Redis for cache/runtime support
-- Observability: Langfuse Cloud via OpenTelemetry exporter
-- Infra: Docker Compose, Helm, Kubernetes Gateway API, Traefik
+- Runtime/package manager: Bun
+- Frontend: React 19, Vite, TanStack Router, TanStack Query, Tailwind CSS
+- Backend: Hono, Drizzle ORM, Zod, OpenAPI metadata
+- AI: AI SDK, OpenAI provider, Langfuse telemetry
+- Data: PostgreSQL, Redis
+- Infra: Docker, Nginx, Traefik, Helm, Kubernetes Gateway API
 
 ## Repository Layout
 
 ```text
-client/                 React application
-server/                 Hono API, routes, middleware, DB access
-shared/                 Shared schemas, models, tool definitions, UI message types
-helm/chat-app/          Helm chart for the application
-scripts/                Deployment, migration, and env sync helpers
-compose.yml             Local Docker stack
-Makefile                Common workflows for local, Docker, and Kubernetes
+client/                 React client
+server/                 Hono API and database code
+shared/                 Shared contracts and AI/tool definitions
+helm/chat-app/          Helm chart
+scripts/                Local deployment and setup helpers
+compose.yml             Docker Compose stack
+Dockerfile              Client and server production images
+Makefile                Common local, Docker, and Kubernetes commands
 ```
 
-## Key Implementation Areas
-
-### Frontend
-
-- Chat interface built around `useChat`, with approval-aware resume behavior.
-- Conversation sidebar with thread creation and navigation.
-- Attachment-capable prompt input with model selection and web-search toggle.
-- Message rendering that understands text, attachments, reasoning, sources, and tool states.
-
-### Backend
-
-- Hono routes for auth, profile, conversations, and AI streaming.
-- Shared request and response validation via Zod.
-- Streaming route built on `streamText(...)` with telemetry, source streaming, and message persistence on completion.
-- Approval-gated Serper integration normalized into a stable UI/message shape.
-
-### Data Model
-
-- `users` for identity and profile data.
-- `chat` for conversation ownership and metadata.
-- `message` for ordered persisted message parts per conversation.
-
-### Contracts
-
-- Shared model catalog exposed to the client for model selection.
-- Shared tool definitions reused for UI message validation and server execution.
-- Shared route payload types used by the client API layer.
-
-## Quick Start
-
-### Prerequisites
+## Prerequisites
 
 - Bun `1.3.12+`
 - Docker Desktop or OrbStack
-- Kubernetes tooling only if you want the Helm flow: `kubectl` and `helm`
+- `kubectl` and `helm` for Kubernetes
+- OpenAI API key
 
-### First-Time Setup
+Optional:
+
+- Serper API key for web search
+- Langfuse keys for telemetry
+
+## Setup
+
+Create a local `.env`:
 
 ```bash
 make setup
 ```
 
-Then edit `.env`.
+Then edit `.env`. At minimum set:
 
-Required values:
+```text
+OPENAI_API_KEY=
+JWT_SECRET=
+DB_PASSWORD=
+```
 
-- `OPENAI_API_KEY`
-- `JWT_SECRET`
-- `DB_PASSWORD`
+For web search:
 
-Useful optional values:
+```text
+SERPER_API_KEY=
+```
 
-- `SERPER_API_KEY` for live web search
-- `LANGFUSE_PUBLIC_KEY`
-- `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_BASE_URL` which defaults to `https://cloud.langfuse.com`
+For Langfuse:
 
-Validate before starting:
+```text
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+```
+
+Validate the required values:
 
 ```bash
 make validate
 ```
 
-## Docker Workflow
+## Local Development
 
-Start the full local stack:
-
-```bash
-make start
-```
-
-This brings up:
-
-- Traefik
-- PostgreSQL
-- Redis
-- migration job
-- API server
-- client application
-
-Useful URLs:
-
-- App: `https://localhost`
-- API health: `https://localhost/health`
-- Traefik dashboard: `http://localhost:8080/dashboard/`
-- Langfuse Cloud: `https://cloud.langfuse.com`
-
-Notes:
-
-- Local Docker uses Docker Hardened Images for Traefik.
-- Traefik health uses `traefik healthcheck --ping`, which works with the hardened runtime image.
-- Langfuse is hosted, not self-hosted inside this stack.
-- To fully stop local Docker and Kubernetes resources and free machine capacity, run `make shutdown-all`.
-
-## Local Workspace Development
-
-If you want to run the workspaces directly:
+Install dependencies:
 
 ```bash
 bun install --frozen-lockfile
+```
+
+Run client and server directly:
+
+```bash
 make local
 ```
 
-Recommended checks:
+Default local URLs:
+
+- Client: `http://localhost:5173`
+- Server: `http://localhost:3000`
+
+Useful checks:
 
 ```bash
 bun run lint
@@ -195,60 +132,60 @@ bun run test
 bun run build
 ```
 
-Or run the combined quality gate:
+Or run the combined check:
 
 ```bash
 bun run check
 ```
 
-If you want to reset only recreatable workspace artifacts without touching environment files:
+## Docker
+
+Start the full local stack:
 
 ```bash
-make clean-generated
+make start
 ```
 
-This removes local build outputs and generated files such as:
+This starts Traefik, PostgreSQL, Redis, the migration job, API server, and client.
 
-- root and workspace `node_modules/`
-- workspace `dist/`, `coverage/`, `.vite/`, and `*.tsbuildinfo`
-- generated files like `client/src/routeTree.gen.ts`
-- generated Helm and Traefik local values files
+URLs:
 
-It does not remove `.env`, `.env.local`, or lockfiles.
+- App: `https://localhost`
+- API health: `https://localhost/health`
+- Langfuse Cloud: `https://cloud.langfuse.com`
 
-## Kubernetes Workflow
-
-The Kubernetes path is driven by the Helm chart in `helm/chat-app`.
-
-There are two practical local modes.
-
-### 1. App-Only Mode
-
-This is the fastest Kubernetes path if you only want the app running.
+Stop the stack:
 
 ```bash
-make kubernetes
+make stop
 ```
 
-Local URLs:
-
-- App: `http://localhost:30080`
-- API: `http://localhost:30001`
-- Health: `http://localhost:30001/health`
-
-### 2. Gateway Mode
-
-This is the more production-shaped setup for local Kubernetes.
+Remove Compose containers, volumes, and local images:
 
 ```bash
-# set K8S_GATEWAY_ENABLED=true in .env first
+make clean
+```
+
+## Kubernetes
+
+The Kubernetes flow uses Helm and values generated from the repo-root `.env`.
+
+For the full local Gateway setup with Traefik:
+
+```bash
+# K8S_GATEWAY_ENABLED=true in .env
 make k8s-full-stack
 ```
 
-This installs:
+This will:
 
-- Traefik in namespace `traefik`
-- the chat app in namespace `default`
+1. Install or upgrade Traefik
+2. Generate local Helm values
+3. Build the server, client, and migration images
+4. Deploy the app chart
+5. Run database migrations
+6. Run a smoke test
+7. Print status and URLs
 
 Gateway URLs:
 
@@ -256,84 +193,81 @@ Gateway URLs:
 - Health: `https://app.docker.localhost:30001/health`
 - Traefik dashboard: `https://traefik.docker.localhost:30001`
 
-Important details:
+Check status:
 
-- `helm/chat-app/values.local.yaml` is generated from the repo-root `.env`.
-- In gateway mode, the app services switch to `ClusterIP` and Traefik owns TLS termination and hostname routing.
-- Database migration is run explicitly as part of the Kubernetes workflow.
+```bash
+make k8s-status
+```
 
-## AI, Tools, and Observability
+Show logs:
 
-### Models
+```bash
+make k8s-logs
+```
 
-Current model catalog:
+Remove the app release:
 
-- `gpt-5-mini`
-- `gpt-4.1-mini`
-- `gpt-4o-mini`
-- `gpt-4o`
+```bash
+make k8s-cleanup
+```
 
-### Tooling
+Stop local infrastructure more broadly:
 
-The production tool exposed to requests is:
+```bash
+make shutdown-all
+```
 
-- `serper` for live web search
+## Bun Workspaces
 
-Behavior:
+Dependency versions shared across workspaces are defined in the root `catalog` field and referenced with `catalog:` from package manifests.
 
-- The tool is approval-gated.
-- The client requests it only when web search is enabled.
-- Results are normalized server-side and rendered as structured cards in the chat UI.
-- Tool approval state is persisted through the AI SDK UI message flow.
+The repo uses Bun's isolated linker:
 
-### Langfuse
+```toml
+[install]
+linker = "isolated"
+```
 
-The server initializes telemetry only when Langfuse credentials are present.
+This matters for Docker. The production images copy:
 
-Set these in `.env`:
+- root `node_modules`, which contains Bun's `.bun` package store
+- workspace `node_modules`, which contain the package-local dependency links
 
-- `LANGFUSE_PUBLIC_KEY`
-- `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_BASE_URL=https://cloud.langfuse.com`
+Without both parts, imports from `/app/server` or `/app/shared` can fail at runtime.
 
-Scope:
+## AI and Tools
 
-- Langfuse covers model and tool telemetry for the app.
-- Container and cluster logs still come from `docker compose logs` and `kubectl logs`.
+The server uses the AI SDK for streaming responses. The model catalog lives in `shared/models.ts`.
 
-## API Surface
+Web search is exposed through the `serper` tool. It is approval-gated, so the UI must explicitly approve a tool call before the server continues the stream.
 
-The API is mounted under `/${BASE_API_SLUG}`.
+Langfuse telemetry is initialized only when credentials are present. AI SDK telemetry is enabled on server-side model calls and is exported through Langfuse's OpenTelemetry span processor.
 
-Main areas:
+## Common Commands
 
-- Auth: register, login, logout, current user
-- Profile
-- Conversations: create, list, fetch, rename
-- AI streaming: `/ai/text-stream`
+```bash
+make setup             # create .env from .env.example
+make validate          # check required env vars
+make local             # run client and server directly
+make start             # Docker Compose stack
+make stop              # stop Docker Compose stack
+make k8s-full-stack    # full local Kubernetes + Traefik run
+make k8s-status        # Kubernetes status and URLs
+make clean-generated   # remove generated local artifacts
+bun run check          # lint, typecheck, and tests
+```
 
-The server also generates OpenAPI metadata for documented routes and ships a Scalar reference configuration in the API layer.
+## Generated Files
 
-## Quality and Maintenance
+Some files are generated by local workflows and should not be edited by hand unless you know why:
 
-The repo already includes tests around:
+- `client/src/routeTree.gen.ts`
+- `helm/chat-app/values.local.yaml`
+- `k8s/traefik-values.generated.yaml`
+- workspace `dist/`, `.vite/`, `coverage/`, and `*.tsbuildinfo`
 
-- auth flows
-- AI route behavior
-- tool normalization and execution
-- Redis cache middleware
-- prompt/message transformation utilities
+To remove only recreatable generated files:
 
-Commands worth keeping in your normal loop:
-
-- `bun run check`
-- `bun run test`
-- `make clean-generated`
-- `make status`
-- `make k8s-status`
-
-Cleanup command reference:
-
-- `make clean-generated` removes recreatable workspace artifacts and generated files, but keeps `.env` files.
-- `make clean` removes Docker Compose containers, networks, volumes, and local images.
-- `make shutdown-all` tears down local Docker and Kubernetes infrastructure.
+```bash
+make clean-generated
+```

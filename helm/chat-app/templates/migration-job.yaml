@@ -29,6 +29,7 @@ spec:
         {{- end }}
     spec:
       automountServiceAccountToken: false
+      enableServiceLinks: false
       restartPolicy: Never
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

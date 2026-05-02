@@ -1,6 +1,11 @@
 {
 	"dependencies": {
-		"@hono/zod-openapi": "^1.2.4"
+		"@hono/zod-openapi": "catalog:",
+		"ai": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:"
 	},
 	"exports": {
 		".": "./index.ts",

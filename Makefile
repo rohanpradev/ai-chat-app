@@ -131,7 +131,7 @@ health: ## Test application health
 
 build: ## Build all images
 	@echo "🔨 Building Docker images..."
-	@docker compose build
+	@docker compose build --pull
 
 clean: ## Stop services and remove containers, networks, and volumes
 	@echo "🧹 Cleaning up..."
@@ -230,9 +230,9 @@ k8s-full-stack: ## Alias for the one-command full local Kubernetes bootstrap
 
 k8s-build: ## Build and load images for Kubernetes
 	@echo "Building images for Kubernetes..."
-	@docker build $(K8S_BUILD_ARGS) -t $(K8S_SERVER_IMAGE) --target server-prod .
-	@docker build $(K8S_BUILD_ARGS) -t $(K8S_CLIENT_IMAGE) --target client-prod .
-	@docker build $(K8S_BUILD_ARGS) -t $(K8S_MIGRATE_IMAGE) -f server/Dockerfile.migrate .
+	@docker build --pull $(K8S_BUILD_ARGS) -t $(K8S_SERVER_IMAGE) --target server-prod .
+	@docker build --pull $(K8S_BUILD_ARGS) -t $(K8S_CLIENT_IMAGE) --target client-prod .
+	@docker build --pull $(K8S_BUILD_ARGS) -t $(K8S_MIGRATE_IMAGE) -f server/Dockerfile.migrate .
 	@if command -v minikube >/dev/null 2>&1 && [ "$$(kubectl config current-context 2>/dev/null || true)" = "minikube" ]; then \
 		minikube image load $(K8S_SERVER_IMAGE); \
 		minikube image load $(K8S_CLIENT_IMAGE); \

@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LoadingSpinner } from "@/components/ui/loading";
@@ -39,8 +39,14 @@ declare module "@tanstack/react-router" {
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
+  const hasLoadedUserRef = useRef(false);
 
   useEffect(() => {
+    if (hasLoadedUserRef.current) {
+      return;
+    }
+
+    hasLoadedUserRef.current = true;
     loadUser(queryClient, auth).finally(() => {
       setIsLoading(false);
     });

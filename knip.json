@@ -72,7 +72,8 @@
 				"src/queries/getProfile.ts",
 				"src/components/errors/ChatNotFound.tsx",
 				"src/components/chat/ChatApp.tsx",
-				"src/components/chat/ToolCallDisplay.tsx"
+				"src/components/chat/ToolCallDisplay.tsx",
+				"src/lib/browser-node-shims/diagnostics-channel.ts"
 			],
 			"ignoreDependencies": [
 				"@rive-app/react-webgl2",

@@ -32,7 +32,6 @@ spec:
         certificateRefs:
           - kind: Secret
             name: {{ .Values.exposure.gateway.tls.secretName }}
-            namespace: {{ .Values.exposure.gateway.namespace }}
       {{- end }}
 ---
 {{- end }}
