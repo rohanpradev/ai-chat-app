@@ -28,6 +28,7 @@ spec:
         {{- end }}
     spec:
       automountServiceAccountToken: false
+      enableServiceLinks: false
       terminationGracePeriodSeconds: {{ .Values.db.terminationGracePeriodSeconds }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -141,6 +142,7 @@ spec:
         {{- include "chat-app.componentLabels" (dict "root" . "component" "redis") | nindent 8 }}
     spec:
       automountServiceAccountToken: false
+      enableServiceLinks: false
       terminationGracePeriodSeconds: {{ .Values.redis.terminationGracePeriodSeconds }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -263,6 +265,7 @@ spec:
         {{- end }}
     spec:
       automountServiceAccountToken: false
+      enableServiceLinks: false
       terminationGracePeriodSeconds: {{ .Values.server.terminationGracePeriodSeconds }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -379,6 +382,7 @@ spec:
         {{- end }}
     spec:
       automountServiceAccountToken: false
+      enableServiceLinks: false
       terminationGracePeriodSeconds: {{ .Values.client.terminationGracePeriodSeconds }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
