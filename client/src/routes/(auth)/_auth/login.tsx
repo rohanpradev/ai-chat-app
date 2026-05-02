@@ -69,7 +69,6 @@ function LoginComponent() {
     try {
       await mutateAsync({ email: email.trim(), password });
       setLoginAttempts(0);
-      toast.success("Welcome back!");
       return { success: true };
     } catch (error: unknown) {
       const newAttempts = loginAttempts + 1;

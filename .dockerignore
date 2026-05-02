@@ -29,6 +29,7 @@
 **/.git
 **/.gitignore
 **/.gitattributes
+**/.github
 
 # --- System & IDE files ---
 **/.DS_Store
@@ -88,6 +89,7 @@ server/*.test.*
 **/docs
 # Keep README for documentation
 !README.md
+!server/docker-entrypoint.migrate.sh
 
 # --- CI/CD ---
 **/secrets.dev.yaml
