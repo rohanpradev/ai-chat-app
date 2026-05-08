@@ -30,6 +30,7 @@
 **/.gitignore
 **/.gitattributes
 **/.github
+**/.docker-cache
 
 # --- System & IDE files ---
 **/.DS_Store
@@ -87,14 +88,13 @@ server/*.test.*
 **/*.sh
 **/scripts
 **/docs
-# Keep README for documentation
-!README.md
 !server/docker-entrypoint.migrate.sh
 
 # --- CI/CD ---
 **/secrets.dev.yaml
 **/values.dev.yaml
 **/*.tgz
+helm/
 k8s/
 monitoring/
 deploy-aks.ps1

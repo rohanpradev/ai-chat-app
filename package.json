@@ -4,15 +4,16 @@
 	},
 	"catalog": {
 		"@hono/zod-openapi": "^1.3.0",
-		"@types/node": "^25.6.0",
+		"@types/node": "^25.6.2",
 		"ai": "7.0.0-beta.116",
-		"hono": "^4.12.16",
-		"zod": "^4.4.2"
+		"hono": "^4.12.18",
+		"zod": "^4.4.3"
 	},
 	"description": "A chat application built with Bun, React, and Zod.",
 	"devDependencies": {
 		"@biomejs/biome": "2.4.14",
-		"knip": "^6.10.0",
+		"@typescript/native-preview": "7.0.0-dev.20260421.2",
+		"knip": "^6.12.1",
 		"rimraf": "^6.1.3"
 	},
 	"name": "chat-app",
@@ -26,18 +27,19 @@
 		"check": "bun run lint && bun run typecheck && bun run test",
 		"clean": "rimraf node_modules bun.lock",
 		"dev": "bun run --filter '*' dev",
-		"format": "bunx --bun biome format . --write",
+		"format": "bunx --no-install --bun biome format . --write",
 		"k8s:deploy": "bash scripts/deploy-k8s.sh",
 		"k8s:prepare": "bash scripts/ensure-k8s-secrets.sh",
 		"k8s:status": "kubectl get all -n default",
-		"k8s:validate": "bun run k8s:prepare && helm lint helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml && helm template chat-app helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml > /dev/null",
+		"k8s:validate": "bun run k8s:prepare && helm lint --strict helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml && helm template chat-app helm/chat-app --kube-version 1.33.0 --api-versions gateway.networking.k8s.io/v1 --api-versions traefik.io/v1alpha1/Middleware -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml > /dev/null",
 		"knip": "knip",
 		"knip:production": "knip --production",
-		"lint": "bunx --bun biome check .",
-		"lint:fix": "bunx --bun biome check . --write --unsafe",
+		"lint": "bunx --no-install --bun biome check .",
+		"lint:fix": "bunx --no-install --bun biome check . --write --unsafe",
 		"start": "bun run dev",
 		"test": "bun run --filter '*' test",
-		"typecheck": "bun run --filter '*' typecheck"
+		"typecheck": "bun run typecheck:tsgo",
+		"typecheck:tsgo": "bun run --filter '*' typecheck:tsgo"
 	},
 	"type": "module",
 	"workspaces": [

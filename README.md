@@ -58,7 +58,7 @@ Makefile                Common local, Docker, and Kubernetes commands
 
 ## Prerequisites
 
-- Bun `1.3.12+`
+- Bun `1.3.13+`
 - Docker Desktop or OrbStack
 - `kubectl` and `helm` for Kubernetes
 - OpenAI API key
@@ -174,7 +174,7 @@ For the full local Gateway setup with Traefik:
 
 ```bash
 # K8S_GATEWAY_ENABLED=true in .env
-make k8s-full-stack
+make kubernetes
 ```
 
 This will:
@@ -221,6 +221,12 @@ make shutdown-all
 
 Dependency versions shared across workspaces are defined in the root `catalog` field and referenced with `catalog:` from package manifests.
 
+TypeScript checks run through the official TypeScript native preview (`tsgo`) from `@typescript/native-preview`:
+
+```bash
+bun run typecheck
+```
+
 The repo uses Bun's isolated linker:
 
 ```toml
@@ -255,6 +261,8 @@ make k8s-full-stack    # full local Kubernetes + Traefik run
 make k8s-status        # Kubernetes status and URLs
 make clean-generated   # remove generated local artifacts
 bun run check          # lint, typecheck, and tests
+bun run k8s:validate   # strict Helm lint and Gateway-aware template render
+docker compose config --quiet
 ```
 
 ## Generated Files

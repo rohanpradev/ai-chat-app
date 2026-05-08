@@ -1,6 +1,6 @@
-import { ChatRequestSchema, defaultModelId, type MyUIMessage, safeValidateMyUIMessages } from "@chat-app/shared";
+import { ChatRequestSchema, defaultModelId, safeValidateMyUIMessages } from "@chat-app/shared";
 import { propagateAttributes } from "@langfuse/tracing";
-import { consumeStream, convertToModelMessages, createIdGenerator, smoothStream } from "ai";
+import { consumeStream, createAgentUIStreamResponse, createIdGenerator, smoothStream } from "ai";
 import { HTTPException } from "hono/http-exception";
 import { normalizeMessagesForAgent } from "@/lib/agent-message-normalizer";
 import { getChatAgent, resolveAgentMode } from "@/lib/agents";
@@ -10,6 +10,16 @@ import type { AppRouteHandler } from "@/lib/types";
 import type { AIStreamRoute, GetAvailableModelsRoute } from "@/routes/ai/ai.route";
 import { loadConversationMessages, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
+
+const agentStreamTimeout = {
+	chunkMs: 20_000,
+	stepMs: 45_000,
+	toolMs: 30_000,
+	tools: {
+		serperMs: 20_000
+	},
+	totalMs: 120_000
+} as const;
 
 export const getAvailableModels: AppRouteHandler<GetAvailableModelsRoute> = async (c) => {
 	const availableModels = await getAvailableChatModels();
@@ -45,27 +55,75 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const normalizedMessages = normalizeMessagesForAgent(validatedMessages);
 	const logger = c.get("logger");
 	const selectedAgentMode = resolveAgentMode(agentMode);
-	const modelMessages = await convertToModelMessages(normalizedMessages, {
-		ignoreIncompleteToolCalls: true
-	});
+	const responseCreatedAt = new Date().toISOString();
 	const telemetryMetadata = {
 		agentMode: selectedAgentMode,
 		requestedModel: model
 	};
+	const messageMetadata = {
+		...(coalescedChatId ? { conversationId: coalescedChatId } : {}),
+		createdAt: responseCreatedAt,
+		model
+	};
 	const runAgentStream = () =>
-		getChatAgent(selectedAgentMode).stream({
+		createAgentUIStreamResponse({
 			abortSignal: c.req.raw.signal,
+			agent: getChatAgent(selectedAgentMode),
+			consumeSseStream: consumeStream,
 			experimental_transform: smoothStream(),
-			messages: modelMessages,
+			generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
+			messageMetadata: ({ part }) => {
+				if (part.type === "start") {
+					return messageMetadata;
+				}
+
+				if (part.type === "finish") {
+					return {
+						...messageMetadata,
+						finishReason: part.finishReason,
+						totalTokens: part.totalUsage.totalTokens
+					};
+				}
+
+				return undefined;
+			},
+			onError: (error: unknown) => {
+				logger.error({ error, selectedAgentMode }, "AI agent stream failed");
+				return "The assistant request failed. Please retry.";
+			},
+			onFinish: async ({ isAborted, messages: finalMessages }) => {
+				if (isAborted) {
+					return;
+				}
+
+				await saveConversation(coalescedChatId, finalMessages, userJwt.id);
+			},
+			onStepFinish: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
+				logger.debug(
+					{
+						finishReason,
+						stepNumber,
+						toolCallCount: toolCalls.length,
+						toolResultCount: toolResults.length,
+						totalTokens: usage.totalTokens,
+						warningCount: warnings?.length ?? 0
+					},
+					"AI agent step finished"
+				);
+			},
 			options: {
 				conversationId: coalescedChatId,
 				requestedModel: model,
 				toolNames,
 				userId: userJwt.id
-			}
+			},
+			sendReasoning: true,
+			sendSources: true,
+			timeout: agentStreamTimeout,
+			uiMessages: normalizedMessages
 		});
 
-	const result = isTelemetryEnabled
+	return isTelemetryEnabled
 		? await propagateAttributes(
 				{
 					metadata: telemetryMetadata,
@@ -78,23 +136,4 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 				runAgentStream
 			)
 		: await runAgentStream();
-
-	return result.toUIMessageStreamResponse<MyUIMessage>({
-		consumeSseStream: consumeStream,
-		generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
-		onError: (error: unknown) => {
-			logger.error({ error, selectedAgentMode }, "AI agent stream failed");
-			return "The assistant request failed. Please retry.";
-		},
-		onFinish: async ({ isAborted, messages: finalMessages }) => {
-			if (isAborted) {
-				return;
-			}
-
-			await saveConversation(coalescedChatId, finalMessages, userJwt.id);
-		},
-		originalMessages: validatedMessages,
-		sendReasoning: true,
-		sendSources: true
-	});
 };

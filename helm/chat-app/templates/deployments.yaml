@@ -243,6 +243,8 @@ metadata:
 spec:
   replicas: {{ .Values.server.replicaCount }}
   revisionHistoryLimit: {{ .Values.server.revisionHistoryLimit }}
+  minReadySeconds: {{ .Values.server.minReadySeconds }}
+  progressDeadlineSeconds: {{ .Values.server.progressDeadlineSeconds }}
   strategy:
     {{- toYaml .Values.server.strategy | nindent 4 }}
   selector:
@@ -341,17 +343,17 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}-uploads
           {{- else }}
-          emptyDir: {}
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.server.persistence.uploads.emptyDirSizeLimit) | nindent 10 }}
           {{- end }}
         - name: logs
           {{- if .Values.server.persistence.logs.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}-logs
           {{- else }}
-          emptyDir: {}
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.server.persistence.logs.emptyDirSizeLimit) | nindent 10 }}
           {{- end }}
         - name: tmp
-          emptyDir: {}
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.server.tmp.sizeLimit) | nindent 10 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -363,6 +365,8 @@ metadata:
 spec:
   replicas: {{ .Values.client.replicaCount }}
   revisionHistoryLimit: {{ .Values.client.revisionHistoryLimit }}
+  minReadySeconds: {{ .Values.client.minReadySeconds }}
+  progressDeadlineSeconds: {{ .Values.client.progressDeadlineSeconds }}
   strategy:
     {{- toYaml .Values.client.strategy | nindent 4 }}
   selector:
@@ -420,6 +424,8 @@ spec:
         - name: client
           image: {{ include "chat-app.image" .Values.images.client | quote }}
           imagePullPolicy: {{ .Values.images.client.pullPolicy }}
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
           envFrom:
             - configMapRef:
                 name: {{ $configMapName }}
@@ -450,16 +456,20 @@ spec:
               mountPath: /etc/nginx/conf.d/default.conf
               subPath: default.conf
             - name: nginx-run
+              mountPath: /run
+            - name: nginx-run-dir
               mountPath: /run/nginx
             - name: tmp
               mountPath: /tmp
       volumes:
         - name: nginx-cache
-          emptyDir: {}
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.client.nginxCache.sizeLimit) | nindent 10 }}
         - name: nginx-conf
           configMap:
             name: {{ $clientNginxConfigMapName }}
         - name: nginx-run
-          emptyDir: {}
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.client.nginxRun.sizeLimit) | nindent 10 }}
+        - name: nginx-run-dir
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.client.nginxRunDir.sizeLimit) | nindent 10 }}
         - name: tmp
-          emptyDir: {}
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.client.tmp.sizeLimit) | nindent 10 }}

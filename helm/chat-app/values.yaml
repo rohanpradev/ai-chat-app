@@ -105,6 +105,8 @@ networkPolicy:
 server:
   replicaCount: 2
   revisionHistoryLimit: 3
+  minReadySeconds: 5
+  progressDeadlineSeconds: 300
   terminationGracePeriodSeconds: 30
   podAnnotations: {}
   podLabels: {}
@@ -116,11 +118,14 @@ server:
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: ScheduleAnyway
   podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
   securityContext:
-    runAsNonRoot: true
-    runAsUser: 1001
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
     capabilities:
@@ -170,16 +175,20 @@ server:
   persistence:
     uploads:
       enabled: true
+      emptyDirSizeLimit: 1Gi
       storageClassName: ""
       accessModes:
         - ReadWriteOnce
       size: 1Gi
     logs:
       enabled: false
+      emptyDirSizeLimit: 256Mi
       storageClassName: ""
       accessModes:
         - ReadWriteOnce
       size: 256Mi
+  tmp:
+    sizeLimit: 256Mi
   hpa:
     enabled: true
     minReplicas: 2
@@ -194,6 +203,8 @@ server:
 client:
   replicaCount: 2
   revisionHistoryLimit: 3
+  minReadySeconds: 5
+  progressDeadlineSeconds: 300
   terminationGracePeriodSeconds: 30
   podAnnotations: {}
   podLabels: {}
@@ -205,11 +216,14 @@ client:
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: ScheduleAnyway
   podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
   securityContext:
-    runAsNonRoot: true
-    runAsUser: 65532
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
     capabilities:
@@ -256,6 +270,14 @@ client:
       cpu: 500m
       ephemeralStorage: 512Mi
       memory: 256Mi
+  nginxCache:
+    sizeLimit: 64Mi
+  nginxRun:
+    sizeLimit: 16Mi
+  nginxRunDir:
+    sizeLimit: 16Mi
+  tmp:
+    sizeLimit: 64Mi
   hpa:
     enabled: true
     minReplicas: 2
@@ -331,11 +353,14 @@ migration:
   activeDeadlineSeconds: 300
   ttlSecondsAfterFinished: 600
   podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
   securityContext:
-    runAsNonRoot: true
-    runAsUser: 65532
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
     capabilities:
@@ -350,3 +375,5 @@ migration:
       cpu: 500m
       ephemeralStorage: 512Mi
       memory: 512Mi
+  tmp:
+    sizeLimit: 128Mi

@@ -62,5 +62,5 @@ spec:
               mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.migration.tmp.sizeLimit) | nindent 10 }}
 {{- end }}

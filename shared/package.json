@@ -31,7 +31,8 @@
 	"name": "@chat-app/shared",
 	"private": true,
 	"scripts": {
-		"typecheck": "bunx tsc --noEmit -p tsconfig.json"
+		"typecheck": "bun run typecheck:tsgo",
+		"typecheck:tsgo": "bunx --no-install --package @typescript/native-preview tsgo --noEmit --project tsconfig.json"
 	},
 	"sideEffects": false,
 	"type": "module",

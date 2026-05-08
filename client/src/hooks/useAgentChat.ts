@@ -7,6 +7,7 @@ import {
   defaultModelId,
   models as fallbackModels,
   type MyUIMessage,
+  myUIMessageMetadataSchema,
 } from "@chat-app/shared";
 import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
@@ -55,6 +56,7 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
 
   const chat = useChat<MyUIMessage>({
     ...(conversationId ? { id: conversationId } : {}),
+    messageMetadataSchema: myUIMessageMetadataSchema,
     messages: initialMessages,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     transport: transportRef.current,
