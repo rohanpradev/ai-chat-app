@@ -60,7 +60,7 @@ WORKDIR /app
 # Shell-less nginx images (e.g. distroless) cannot execute RUN instructions.
 # Copy build output directly instead of cleaning defaults via /bin/sh.
 COPY --link --from=client-build --chown=65532:65532 --chmod=0555 /app/client/dist/ /app/static/
-COPY --link --from=client-build --chown=65532:65532 --chmod=0444 /app/client/nginx.conf /etc/nginx/templates/default.conf.template
+COPY --link --from=client-build --chown=65532:65532 --chmod=0555 /app/client/nginx.conf /etc/nginx/templates/default.conf.template
 
 USER 65532
 EXPOSE 80

@@ -22,6 +22,7 @@
 {{- define "chat-app.labels" -}}
 helm.sh/chart: {{ include "chat-app.chart" . }}
 {{ include "chat-app.selectorLabels" . }}
+app.kubernetes.io/part-of: {{ include "chat-app.name" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -41,6 +42,15 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{ include "chat-app.selectorLabels" .root }}
 app.kubernetes.io/component: {{ .component }}
 app.kubernetes.io/part-of: {{ include "chat-app.name" .root }}
+{{- end -}}
+
+{{- define "chat-app.emptyDir" -}}
+{{- if .sizeLimit -}}
+emptyDir:
+  sizeLimit: {{ .sizeLimit | quote }}
+{{- else -}}
+emptyDir: {}
+{{- end -}}
 {{- end -}}
 
 {{- define "chat-app.image" -}}

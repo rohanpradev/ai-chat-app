@@ -51,6 +51,7 @@ export {
 	type MyMetadata,
 	type MyTools,
 	type MyUIMessage,
+	myUIMessageMetadataSchema,
 	type SerperUITool,
 	safeValidateMyUIMessages,
 	tools,

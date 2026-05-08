@@ -93,7 +93,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /api
+            value: /{{ .Values.config.env.BASE_API_SLUG }}
       {{- if and .Values.exposure.gateway.createMiddlewares $middlewareCRDAvailable }}
       filters:
         - type: ExtensionRef

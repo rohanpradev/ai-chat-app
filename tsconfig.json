@@ -1,22 +1,29 @@
 {
 	"compilerOptions": {
-		"baseUrl": ".",
+		"allowImportingTsExtensions": true,
+		"erasableSyntaxOnly": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
 		"ignoreDeprecations": "6.0",
+		"isolatedModules": true,
 		"jsx": "react-jsx",
 		"module": "ESNext",
+		"moduleDetection": "force",
 		"moduleResolution": "bundler",
+		"noEmit": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedSideEffectImports": true,
 		"paths": {
-			"@chat-app/shared": ["shared/index.ts"],
-			"@chat-app/shared/*": ["shared/*"],
-			"@client/*": ["client/*"],
-			"@server/*": ["server/*"],
-			"@shared/*": ["shared/*"]
+			"@chat-app/shared": ["./shared/index.ts"],
+			"@chat-app/shared/*": ["./shared/*"],
+			"@client/*": ["./client/*"],
+			"@server/*": ["./server/*"],
+			"@shared/*": ["./shared/*"]
 		},
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"strict": true,
-		"target": "ESNext"
+		"target": "ESNext",
+		"verbatimModuleSyntax": true
 	}
 }
