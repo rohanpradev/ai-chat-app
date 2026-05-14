@@ -236,6 +236,7 @@ services:
 
       # Compression middleware
       - "traefik.http.middlewares.app-compress.compress=true"
+      - "traefik.http.middlewares.app-compress.compress.excludedcontenttypes=text/event-stream"
 
       # Security headers middleware
       - "traefik.http.middlewares.security-headers.headers.framedeny=true"
@@ -350,6 +351,7 @@ services:
 
       # Compression middleware
       - "traefik.http.middlewares.api-compress.compress=true"
+      - "traefik.http.middlewares.api-compress.compress.excludedcontenttypes=text/event-stream"
 
       # Security headers middleware (shared with client)
       - "traefik.http.middlewares.security-headers.headers.framedeny=true"

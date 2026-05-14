@@ -74,7 +74,7 @@ export function createApp() {
 	);
 
 	useAppMiddleware(asAppMiddleware(etag()));
-	useAppMiddleware(asAppMiddleware(timeout(30000)));
+	useAppMiddleware(asAppMiddleware(timeout(180_000)));
 
 	app.get("/health", (c) => c.json({ status: "ok" }));
 

@@ -1,7 +1,7 @@
 import type { Chat } from "@chat-app/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { MessageSquare, Plus } from "lucide-react";
+import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
+import { Database, MessageSquare, Plus } from "lucide-react";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,7 @@ import {
 import { useCreateChat } from "@/queries/createChat";
 import { getChatsQuery } from "@/queries/getChats";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
+import { Route as EmbeddingsRoute } from "@/routes/chat/embeddings";
 
 export function ConversationSidebar() {
   const params = useParams({ strict: false });
@@ -37,6 +38,7 @@ export function ConversationSidebar() {
   const [title, setTitle] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const currentConversationId = params.conversationId;
+  const currentPath = useRouterState({ select: (state) => state.location.pathname });
   const { data: chats } = useSuspenseQuery(getChatsQuery());
   const { mutate: createChat, status } = useCreateChat();
 
@@ -102,6 +104,26 @@ export function ConversationSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Knowledge</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={currentPath === EmbeddingsRoute.to}
+                  className="w-full justify-start gap-2"
+                >
+                  <Link to={EmbeddingsRoute.to} search={{ redirect: undefined }}>
+                    <Database className="h-4 w-4" />
+                    <span className="truncate">Embedding</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel>Chats</SidebarGroupLabel>
           <SidebarGroupContent>

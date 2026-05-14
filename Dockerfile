@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_VERSION=1.3.13
+ARG BUN_VERSION=1.3.14
 ARG BUN_DISTRO=debian13
 ARG BUN_DEV_IMAGE=dhi.io/bun:${BUN_VERSION}-${BUN_DISTRO}-dev
 ARG BUN_RUNTIME_IMAGE=dhi.io/bun:${BUN_VERSION}-${BUN_DISTRO}
-ARG NGINX_IMAGE=dhi.io/nginx:1.30.0-debian13
+ARG NGINX_IMAGE=dhi.io/nginx:1.30-debian13
 
 # Stage 1: Workspace manifests only.
 FROM ${BUN_DEV_IMAGE} AS workspace-manifests
@@ -64,7 +64,7 @@ COPY --link --from=client-build --chown=65532:65532 --chmod=0555 /app/client/ngi
 
 USER 65532
 EXPOSE 80
-CMD ["-g", "daemon off;"]
+CMD ["nginx", "-g", "daemon off;"]
 
 # Stage 6: Server production.
 FROM ${BUN_RUNTIME_IMAGE} AS server-prod

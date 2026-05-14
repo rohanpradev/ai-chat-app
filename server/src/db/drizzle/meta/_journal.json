@@ -8,6 +8,13 @@
       "when": 1776920969502,
       "tag": "0000_living_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778723298359,
+      "tag": "0001_early_talos",
+      "breakpoints": true
     }
   ]
 }

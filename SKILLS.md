@@ -114,3 +114,12 @@ These are the most useful external skill patterns for this project. Use them as 
 - CI should install with the lockfile, run Biome, Knip, Drizzle migration diff checks, `tsgo`, tests, client build, Helm validation, Docker builds, and Docker Compose config validation.
 - Update README when commands, ports, environment variables, deployment URLs, or generated files change.
 - Add focused tests for behavior changes. For pure config or docs changes, run the closest validation command and state any command that could not be run.
+
+---
+## Handoff
+- Compact the current conversation into a handoff document for another agent to pick up.
+- Write a handoff document summarising the current conversation so a fresh agent can continue the work.
+- Save it to a path produced by `mktemp -t handoff-XXXXXX.md` (read the file before you write to it).
+- Suggest the skills to be used, if any, by the next session.
+- Do not duplicate content already captured in other artifacts (PRDs, plans, ADRs, issues, commits, diffs). Reference them by path or URL instead.
+- If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.

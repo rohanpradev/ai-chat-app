@@ -11,6 +11,14 @@ import type { AIStreamRoute, GetAvailableModelsRoute } from "@/routes/ai/ai.rout
 import { loadConversationMessages, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
 
+const applyStreamingProxyHeaders = async (response: Promise<Response>) => {
+	const resolvedResponse = await response;
+
+	resolvedResponse.headers.set("Cache-Control", "no-cache, no-transform");
+	resolvedResponse.headers.set("X-Accel-Buffering", "no");
+	return resolvedResponse;
+};
+
 const agentStreamTimeout = {
 	chunkMs: 20_000,
 	stepMs: 45_000,
@@ -66,62 +74,64 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 		model
 	};
 	const runAgentStream = () =>
-		createAgentUIStreamResponse({
-			abortSignal: c.req.raw.signal,
-			agent: getChatAgent(selectedAgentMode),
-			consumeSseStream: consumeStream,
-			experimental_transform: smoothStream(),
-			generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
-			messageMetadata: ({ part }) => {
-				if (part.type === "start") {
-					return messageMetadata;
-				}
+		applyStreamingProxyHeaders(
+			createAgentUIStreamResponse({
+				abortSignal: c.req.raw.signal,
+				agent: getChatAgent(selectedAgentMode),
+				consumeSseStream: consumeStream,
+				experimental_transform: smoothStream(),
+				generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
+				messageMetadata: ({ part }) => {
+					if (part.type === "start") {
+						return messageMetadata;
+					}
 
-				if (part.type === "finish") {
-					return {
-						...messageMetadata,
-						finishReason: part.finishReason,
-						totalTokens: part.totalUsage.totalTokens
-					};
-				}
+					if (part.type === "finish") {
+						return {
+							...messageMetadata,
+							finishReason: part.finishReason,
+							totalTokens: part.totalUsage.totalTokens
+						};
+					}
 
-				return undefined;
-			},
-			onError: (error: unknown) => {
-				logger.error({ error, selectedAgentMode }, "AI agent stream failed");
-				return "The assistant request failed. Please retry.";
-			},
-			onFinish: async ({ isAborted, messages: finalMessages }) => {
-				if (isAborted) {
-					return;
-				}
+					return undefined;
+				},
+				onError: (error: unknown) => {
+					logger.error({ error, selectedAgentMode }, "AI agent stream failed");
+					return "The assistant request failed. Please retry.";
+				},
+				onFinish: async ({ isAborted, messages: finalMessages }) => {
+					if (isAborted) {
+						return;
+					}
 
-				await saveConversation(coalescedChatId, finalMessages, userJwt.id);
-			},
-			onStepFinish: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
-				logger.debug(
-					{
-						finishReason,
-						stepNumber,
-						toolCallCount: toolCalls.length,
-						toolResultCount: toolResults.length,
-						totalTokens: usage.totalTokens,
-						warningCount: warnings?.length ?? 0
-					},
-					"AI agent step finished"
-				);
-			},
-			options: {
-				conversationId: coalescedChatId,
-				requestedModel: model,
-				toolNames,
-				userId: userJwt.id
-			},
-			sendReasoning: true,
-			sendSources: true,
-			timeout: agentStreamTimeout,
-			uiMessages: normalizedMessages
-		});
+					await saveConversation(coalescedChatId, finalMessages, userJwt.id);
+				},
+				onStepFinish: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
+					logger.debug(
+						{
+							finishReason,
+							stepNumber,
+							toolCallCount: toolCalls.length,
+							toolResultCount: toolResults.length,
+							totalTokens: usage.totalTokens,
+							warningCount: warnings?.length ?? 0
+						},
+						"AI agent step finished"
+					);
+				},
+				options: {
+					conversationId: coalescedChatId,
+					requestedModel: model,
+					toolNames,
+					userId: userJwt.id
+				},
+				sendReasoning: true,
+				sendSources: true,
+				timeout: agentStreamTimeout,
+				uiMessages: normalizedMessages
+			})
+		);
 
 	return isTelemetryEnabled
 		? await propagateAttributes(

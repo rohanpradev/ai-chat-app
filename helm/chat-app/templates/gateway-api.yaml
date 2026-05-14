@@ -148,7 +148,9 @@ metadata:
   labels:
     {{- include "chat-app.labels" . | nindent 4 }}
 spec:
-  compress: {}
+  compress:
+    excludedContentTypes:
+      - text/event-stream
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

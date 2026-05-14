@@ -94,10 +94,14 @@ data:
             proxy_pass_header Set-Cookie;
             proxy_pass_header Cookie;
             proxy_set_header Cookie $http_cookie;
+            proxy_set_header Accept-Encoding "";
             proxy_buffering off;
             proxy_request_buffering off;
             proxy_set_header Connection "";
             proxy_cache off;
+            proxy_no_cache 1;
+            proxy_cache_bypass 1;
+            proxy_intercept_errors off;
             proxy_read_timeout 1h;
             proxy_send_timeout 1h;
         }

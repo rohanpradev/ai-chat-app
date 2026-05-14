@@ -24,3 +24,10 @@ export const AUTH_QUERY_KEY = {
 export const AI_QUERY_KEY = {
   models: ["ai", "models"] as const,
 };
+
+export const EMBEDDING_QUERY_KEY = {
+  documents: ["embeddings", "documents"] as const,
+  rag: ["embeddings", "rag"] as const,
+  search: ["embeddings", "search"] as const,
+  upload: ["embeddings", "upload"] as const,
+};
