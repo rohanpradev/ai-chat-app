@@ -133,13 +133,17 @@ spec:
   headers:
     frameDeny: true
     sslRedirect: true
-    browserXssFilter: true
     contentTypeNosniff: true
     stsIncludeSubdomains: true
     stsPreload: true
     stsSeconds: 31536000
     referrerPolicy: strict-origin-when-cross-origin
     permissionsPolicy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+    customResponseHeaders:
+      X-XSS-Protection: "0"
+      X-Permitted-Cross-Domain-Policies: none
+      Cross-Origin-Opener-Policy: same-origin
+      Cross-Origin-Resource-Policy: same-origin
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -160,14 +164,16 @@ metadata:
     {{- include "chat-app.labels" . | nindent 4 }}
 spec:
   headers:
-    accessControlAllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    accessControlAllowHeaders: ["*"]
+    accessControlAllowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    accessControlAllowHeaders: ["Accept", "Authorization", "Content-Type", "Origin", "X-Requested-With", "X-Request-ID", "Sentry-Trace", "Baggage"]
+    accessControlExposeHeaders: ["Content-Length", "Content-Type", "X-Request-ID"]
     accessControlAllowOriginList:
       {{- range .Values.exposure.gateway.cors.allowOrigins }}
       - {{ . | quote }}
       {{- end }}
     accessControlAllowCredentials: true
     accessControlMaxAge: 86400
+    addVaryHeader: true
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

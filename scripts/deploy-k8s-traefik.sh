@@ -30,8 +30,10 @@ read_env() {
 
 TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-$(read_env TRAEFIK_CHART_REF || true)}"
 TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-$(read_env TRAEFIK_CHART_VERSION || true)}"
+GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-$(read_env GATEWAY_API_VERSION || true)}"
 TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-oci://ghcr.io/traefik/helm/traefik}"
-TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-39.0.8}"
+TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-40.2.0}"
+GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.5.1}"
 
 bash "${ROOT_DIR}/scripts/ensure-k8s-traefik-values.sh"
 bash "${ROOT_DIR}/scripts/ensure-k8s-local-tls.sh"
@@ -41,6 +43,13 @@ if [[ "${TRAEFIK_CHART_REF}" == traefik/* ]]; then
   helm repo add traefik https://traefik.github.io/charts >/dev/null 2>&1 || true
   helm repo update >/dev/null
 fi
+
+GATEWAY_API_CRDS_URL="https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml"
+GATEWAY_API_CRDS_FILE="$(mktemp)"
+trap 'rm -f "${GATEWAY_API_CRDS_FILE}"' EXIT
+
+curl -sSL "${GATEWAY_API_CRDS_URL}" -o "${GATEWAY_API_CRDS_FILE}"
+kubectl apply --server-side --force-conflicts -f "${GATEWAY_API_CRDS_FILE}"
 
 CRD_ARGS=(
   show
@@ -64,6 +73,7 @@ HELM_ARGS=(
   --skip-crds
   --wait
   --timeout 10m
+  --hide-notes
   -f "${VALUES_FILE}"
 )
 

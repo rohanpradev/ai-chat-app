@@ -4,6 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_AVATAR_TYPES = ["image/gif", "image/jpeg", "image/png", "image/webp"] as const;
+
 interface AvatarUploadProps {
   value?: string;
   onChange: (value: string | undefined) => void;
@@ -20,14 +23,16 @@ export function AvatarUpload({ value, onChange, className, disabled }: AvatarUpl
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type as (typeof ACCEPTED_AVATAR_TYPES)[number])) {
+      alert("Please select a GIF, JPEG, PNG, or WebP image");
+      event.target.value = "";
       return;
     }
 
     // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size <= 0 || file.size > MAX_AVATAR_BYTES) {
       alert("Image size must be less than 5MB");
+      event.target.value = "";
       return;
     }
 
@@ -36,6 +41,10 @@ export function AvatarUpload({ value, onChange, className, disabled }: AvatarUpl
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
       onChange(base64);
+    };
+    reader.onerror = () => {
+      alert("Unable to read this image");
+      event.target.value = "";
     };
     reader.readAsDataURL(file);
   };
@@ -102,7 +111,7 @@ export function AvatarUpload({ value, onChange, className, disabled }: AvatarUpl
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept={ACCEPTED_AVATAR_TYPES.join(",")}
         onChange={handleFileSelect}
         className="hidden"
         disabled={disabled}

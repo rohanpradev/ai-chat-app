@@ -34,6 +34,7 @@
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/sdk-node": "^0.218.0",
     "@scalar/hono-api-reference": "^0.10.14",
+    "@sentry/bun": "^10.53.1",
     "ai": "catalog:",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",

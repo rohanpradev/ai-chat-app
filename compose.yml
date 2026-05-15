@@ -1,6 +1,7 @@
 x-bun-build-args: &bun-build-args
-  BUN_VERSION: ${BUN_VERSION:-1.3.13}
-  BUN_DISTRO: ${BUN_DISTRO:-debian13}
+  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-dhi.io/bun:1.3-dev}
+  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-dhi.io/bun:1.3}
+  NGINX_IMAGE: ${NGINX_IMAGE:-dhi.io/nginx:1}
 
 x-security-defaults: &security-defaults
   security_opt:
@@ -19,16 +20,19 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${TRAEFIK_IMAGE:-dhi.io/traefik:3.6.13-debian13@sha256:a6949d480ceb9c02632c56999ecad67526004cde386b0857deb2b31fe2a57e2a}
+    image: ${TRAEFIK_IMAGE:-dhi.io/traefik:3}
+    pull_policy: always
     container_name: chat-app-traefik
     command:
       # API and Dashboard
+      - --api.insecure=false
       - --api.dashboard=true
 
       # Docker provider
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=chat-app-internal
+      - --providers.docker.network=chat-app-edge
+      - "--providers.docker.constraints=Label(`traefik.constraint-label`,`chat-app`)"
 
       # Entrypoints
       - --entrypoints.web.address=:80
@@ -56,14 +60,18 @@ services:
       - traefik_logs:/var/log/traefik
     labels:
       - "traefik.enable=true"
+      - "traefik.constraint-label=chat-app"
       # Dashboard router (HTTPS only)
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN:-localhost}`)"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.tls=true"
-      # Dashboard security (optional - uncomment and configure if needed)
-      # - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
-      # - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$..."
+      - "traefik.http.routers.dashboard.middlewares=dashboard-ipallowlist,dashboard-security-headers"
+      - "traefik.http.middlewares.dashboard-ipallowlist.ipallowlist.sourcerange=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      - "traefik.http.middlewares.dashboard-security-headers.headers.framedeny=true"
+      - "traefik.http.middlewares.dashboard-security-headers.headers.contenttypenosniff=true"
+      - "traefik.http.middlewares.dashboard-security-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.dashboard-security-headers.headers.customresponseheaders.X-XSS-Protection=0"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
@@ -72,13 +80,14 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - chat-app-network
+      - chat-app-edge
 
   db:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${POSTGRES_IMAGE:-dhi.io/postgres:18.3-debian13}
+    image: ${POSTGRES_IMAGE:-dhi.io/postgres:18}
+    pull_policy: always
     container_name: chat-app-db
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -88,7 +97,7 @@ services:
     expose:
       - "5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - postgres_backups:/backups
     restart: unless-stopped
     healthcheck:
@@ -109,14 +118,15 @@ services:
       -c work_mem=8MB
       -c max_connections=100
     networks:
-      - chat-app-network
+      - chat-app-backend
 
   # Redis cache with optimizations
   redis:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${REDIS_IMAGE:-dhi.io/redis:8.6.2-debian13}
+    image: ${REDIS_IMAGE:-dhi.io/redis:8}
+    pull_policy: always
     container_name: chat-app-redis
     environment:
       REDISCLI_AUTH: ${REDIS_AUTH:-redis_password}
@@ -145,7 +155,7 @@ services:
       --timeout 0
       --save 900 1 300 10 60 10000
     networks:
-      - chat-app-network
+      - chat-app-backend
 
   # Database migration service
   migrate:
@@ -171,7 +181,7 @@ services:
         condition: service_healthy
     restart: "no"
     networks:
-      - chat-app-network
+      - chat-app-backend
     logging:
       driver: "json-file"
       options:
@@ -193,13 +203,25 @@ services:
         VITE_APP_NAME: ${VITE_APP_NAME:-Chat App}
         VITE_APP_VERSION: ${VITE_APP_VERSION:-1.0.0}
         VITE_DEV_MODE: ${VITE_DEV_MODE:-false}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_SENTRY_ENVIRONMENT: ${VITE_SENTRY_ENVIRONMENT:-production}
+        VITE_SENTRY_RELEASE: ${VITE_SENTRY_RELEASE:-${SENTRY_RELEASE:-}}
+        VITE_SENTRY_TRACES_SAMPLE_RATE: ${VITE_SENTRY_TRACES_SAMPLE_RATE:-0.1}
+        VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE: ${VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE:-0}
+        VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE: ${VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE:-0.1}
+        SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
+        SENTRY_ORG: ${SENTRY_ORG:-}
+        SENTRY_PROJECT: ${SENTRY_PROJECT:-}
+        SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+        BASE_API_SLUG: ${BASE_API_SLUG:-api}
+        SERVER_HOST: server
+        SERVER_PORT: ${SERVER_PORT:-3000}
     container_name: chat-app-client
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
       - /run:size=16m,mode=0777
       - /run/nginx:size=16m,mode=0777
-      - /etc/nginx/conf.d:size=16m,mode=0777
       - /var/cache/nginx:size=64m,mode=0777
     environment:
       - NODE_ENV=production
@@ -207,7 +229,7 @@ services:
       - SERVER_HOST=server
       - SERVER_PORT=${SERVER_PORT:-3000}
     expose:
-      - "80"
+      - "8080"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "nginx", "-t"]
@@ -221,16 +243,17 @@ services:
     labels:
       # Traefik configuration
       - "traefik.enable=true"
-      - "traefik.docker.network=chat-app-internal"
+      - "traefik.constraint-label=chat-app"
+      - "traefik.docker.network=chat-app-edge"
 
       # HTTPS router (primary)
       - "traefik.http.routers.app-secure.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.app-secure.entrypoints=websecure"
       - "traefik.http.routers.app-secure.tls=true"
-      - "traefik.http.routers.app-secure.middlewares=app-compress,security-headers"
+      - "traefik.http.routers.app-secure.middlewares=app-ratelimit,app-compress,security-headers"
 
       # Service configuration
-      - "traefik.http.services.app.loadbalancer.server.port=80"
+      - "traefik.http.services.app.loadbalancer.server.port=8080"
       - "traefik.http.services.app.loadbalancer.healthcheck.path=/"
       - "traefik.http.services.app.loadbalancer.healthcheck.interval=30s"
 
@@ -238,17 +261,25 @@ services:
       - "traefik.http.middlewares.app-compress.compress=true"
       - "traefik.http.middlewares.app-compress.compress.excludedcontenttypes=text/event-stream"
 
+      # Rate limiting middleware
+      - "traefik.http.middlewares.app-ratelimit.ratelimit.average=300"
+      - "traefik.http.middlewares.app-ratelimit.ratelimit.burst=600"
+      - "traefik.http.middlewares.app-ratelimit.ratelimit.period=1m"
+
       # Security headers middleware
       - "traefik.http.middlewares.security-headers.headers.framedeny=true"
-      - "traefik.http.middlewares.security-headers.headers.browserxssfilter=true"
       - "traefik.http.middlewares.security-headers.headers.contenttypenosniff=true"
       - "traefik.http.middlewares.security-headers.headers.stsincludesubdomains=true"
       - "traefik.http.middlewares.security-headers.headers.stspreload=true"
       - "traefik.http.middlewares.security-headers.headers.stsseconds=31536000"
       - "traefik.http.middlewares.security-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
       - "traefik.http.middlewares.security-headers.headers.permissionspolicy=camera=(), microphone=(), geolocation=(), interest-cohort=()"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-XSS-Protection=0"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-Permitted-Cross-Domain-Policies=none"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.Cross-Origin-Opener-Policy=same-origin"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.Cross-Origin-Resource-Policy=same-origin"
     networks:
-      - chat-app-network
+      - chat-app-edge
     deploy:
       resources:
         limits:
@@ -290,6 +321,11 @@ services:
       - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-${LANGFUSE_BASEURL:-https://cloud.langfuse.com}}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      - SENTRY_SEND_DEFAULT_PII=${SENTRY_SEND_DEFAULT_PII:-false}
     expose:
       - "${SERVER_PORT:-3000}"
     volumes:
@@ -318,7 +354,8 @@ services:
     labels:
       # Traefik configuration
       - "traefik.enable=true"
-      - "traefik.docker.network=chat-app-internal"
+      - "traefik.constraint-label=chat-app"
+      - "traefik.docker.network=chat-app-edge"
 
       # HTTPS router (primary)
       - "traefik.http.routers.api-secure.rule=Host(`${DOMAIN}`) && PathPrefix(`/${BASE_API_SLUG}`)"
@@ -338,11 +375,13 @@ services:
       - "traefik.http.services.api.loadbalancer.sticky.cookie.httpOnly=true"
 
       # CORS middleware
-      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
-      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolallowheaders=Accept,Authorization,Content-Type,Origin,X-Requested-With,X-Request-ID,Sentry-Trace,Baggage"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolexposeheaders=Content-Length,Content-Type,X-Request-ID"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=https://${DOMAIN},${CLIENT_URL}"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolmaxage=86400"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.api-cors.headers.addvaryheader=true"
 
       # Rate limiting middleware
       - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
@@ -355,15 +394,19 @@ services:
 
       # Security headers middleware (shared with client)
       - "traefik.http.middlewares.security-headers.headers.framedeny=true"
-      - "traefik.http.middlewares.security-headers.headers.browserxssfilter=true"
       - "traefik.http.middlewares.security-headers.headers.contenttypenosniff=true"
       - "traefik.http.middlewares.security-headers.headers.stsincludesubdomains=true"
       - "traefik.http.middlewares.security-headers.headers.stspreload=true"
       - "traefik.http.middlewares.security-headers.headers.stsseconds=31536000"
       - "traefik.http.middlewares.security-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
       - "traefik.http.middlewares.security-headers.headers.permissionspolicy=camera=(), microphone=(), geolocation=(), interest-cohort=()"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-XSS-Protection=0"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.X-Permitted-Cross-Domain-Policies=none"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.Cross-Origin-Opener-Policy=same-origin"
+      - "traefik.http.middlewares.security-headers.headers.customresponseheaders.Cross-Origin-Resource-Policy=same-origin"
     networks:
-      - chat-app-network
+      - chat-app-edge
+      - chat-app-backend
     logging:
       driver: "json-file"
       options:
@@ -379,14 +422,22 @@ services:
           cpus: "0.5"
 
 networks:
-  # Internal network for application services
-  chat-app-network:
-    name: chat-app-internal
+  # Public-facing edge network used only by Traefik, the client, and the API.
+  chat-app-edge:
+    name: chat-app-edge
     driver: bridge
     internal: false
     ipam:
       config:
         - subnet: 172.20.0.0/16
+  # Backend-only network for stateful services and API dependencies.
+  chat-app-backend:
+    name: chat-app-backend
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
 
 volumes:
   # Database volumes

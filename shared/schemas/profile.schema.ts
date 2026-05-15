@@ -15,7 +15,7 @@ export const BasicUserProfileDataSchema = z.object({
 });
 
 export const UpdateProfileRequestSchema = z.object({
-	name: z.string().describe("The new name of the user"),
+	name: z.string().min(3).max(30).describe("The new name of the user"),
 	profileImage: z
 		.instanceof(File)
 		.optional()

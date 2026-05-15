@@ -4,11 +4,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Database, FileText, Loader2, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
+import { MessageResponse } from "@/components/ai-elements/message";
+import { Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   getEmbeddingDocumentsQuery,
@@ -31,6 +35,10 @@ const numberFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 3,
   minimumFractionDigits: 3,
 });
+
+const TOP_MATCH_LIMIT = 3;
+
+const scoreToPercent = (score: number) => Math.max(0, Math.min(100, ((score + 1) / 2) * 100));
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -72,7 +80,7 @@ function EmbeddingsPage() {
     () => ({
       documentId: documentId || undefined,
       includeContent: true,
-      limit: 8,
+      limit: TOP_MATCH_LIMIT,
       minScore: 0,
       query: query.trim(),
     }),
@@ -167,7 +175,7 @@ function EmbeddingsPage() {
 
     ragMutation.mutate({
       documentId: documentId || undefined,
-      limit: 6,
+      limit: TOP_MATCH_LIMIT,
       minScore: 0,
       model,
       query: searchPayload.query,
@@ -373,19 +381,22 @@ function EmbeddingsPage() {
                 <form className="grid gap-3" onSubmit={handleSearch}>
                   <div className="grid gap-2">
                     <Label htmlFor="embedding-document-filter">Scope</Label>
-                    <select
-                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                      id="embedding-document-filter"
-                      onChange={(event) => setDocumentId(event.target.value)}
-                      value={documentId}
+                    <Select
+                      onValueChange={(value) => setDocumentId(value === "all" ? "" : value)}
+                      value={documentId || "all"}
                     >
-                      <option value="">All documents</option>
-                      {documents.map((document) => (
-                        <option key={document.id} value={document.id}>
-                          {document.title}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full" id="embedding-document-filter">
+                        <SelectValue placeholder="All documents" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All documents</SelectItem>
+                        {documents.map((document) => (
+                          <SelectItem key={document.id} value={document.id}>
+                            {document.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="grid gap-2">
@@ -400,19 +411,23 @@ function EmbeddingsPage() {
                   </div>
 
                   <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
-                    <select
+                    <Select
                       aria-label="RAG model"
-                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                       disabled={modelsQuery.isLoading}
-                      onChange={(event) => setModel(event.target.value)}
+                      onValueChange={setModel}
                       value={model}
                     >
-                      {availableModels.map((modelOption) => (
-                        <option key={modelOption.id} value={modelOption.id}>
-                          {modelOption.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableModels.map((modelOption) => (
+                          <SelectItem key={modelOption.id} value={modelOption.id}>
+                            {modelOption.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
                     <Button disabled={!query.trim() || isSearching || isVectorizing} type="submit" variant="outline">
                       {isSearching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
@@ -450,19 +465,37 @@ function EmbeddingsPage() {
                   <CardDescription>{ragMutation.data.model}</CardDescription>
                 </CardHeader>
 
-                <CardContent className="grid min-h-0 gap-3">
-                  <div className="max-h-96 overflow-y-auto rounded-md bg-muted/40 p-3">
-                    <p className="whitespace-pre-wrap break-words text-sm leading-6">{ragMutation.data.answer}</p>
+                <CardContent className="grid min-h-0 gap-4">
+                  <div className="max-h-96 overflow-y-auto rounded-md border bg-muted/25 p-4">
+                    <MessageResponse className="prose prose-sm dark:prose-invert max-w-none break-words text-sm leading-6">
+                      {ragMutation.data.answer}
+                    </MessageResponse>
                   </div>
 
                   {ragMutation.data.sources.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {ragMutation.data.sources.map((source, index) => (
-                        <Badge className="max-w-full truncate rounded-md" key={source.chunkId} variant="outline">
-                          [{index + 1}] {source.title}
-                        </Badge>
-                      ))}
-                    </div>
+                    <Sources className="mb-0">
+                      <SourcesTrigger count={ragMutation.data.sources.length}>
+                        <span className="font-medium">Retrieved {ragMutation.data.sources.length} sources</span>
+                      </SourcesTrigger>
+                      <SourcesContent className="w-full">
+                        <div className="grid gap-2">
+                          {ragMutation.data.sources.map((source, index) => (
+                            <div
+                              className="flex min-w-0 items-center gap-2 rounded-md border bg-background px-3 py-2"
+                              key={source.chunkId}
+                            >
+                              <Badge className="rounded-md" variant="secondary">
+                                {index + 1}
+                              </Badge>
+                              <span className="min-w-0 flex-1 truncate text-sm font-medium">{source.title}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {numberFormatter.format(source.score)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </SourcesContent>
+                    </Sources>
                   ) : null}
                 </CardContent>
               </Card>
@@ -473,7 +506,7 @@ function EmbeddingsPage() {
                 <CardHeader className="shrink-0">
                   <CardTitle className="text-base">Matches</CardTitle>
                   <CardDescription>
-                    {searchMutation.data ? `${searchMutation.data.results.length} results` : "No search run"}
+                    {searchMutation.data ? `Top ${searchMutation.data.results.length} matches` : "No search run"}
                   </CardDescription>
                 </CardHeader>
 
@@ -486,26 +519,44 @@ function EmbeddingsPage() {
                       </div>
                     ) : null}
 
-                    {searchMutation.data?.results.map((result) => (
-                      <article className="min-w-0 rounded-lg border p-3" key={result.chunkId}>
-                        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{result.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Chunk {result.chunkIndex + 1} · score {numberFormatter.format(result.score)}
-                            </p>
+                    {searchMutation.data?.results.map((result, index) => (
+                      <article className="min-w-0 rounded-lg border bg-card p-3 shadow-xs" key={result.chunkId}>
+                        <div className="grid gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <Badge className="mt-0.5 rounded-md" variant="secondary">
+                              {index + 1}
+                            </Badge>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium">{result.title}</p>
+                                  <p className="text-xs text-muted-foreground">Chunk {result.chunkIndex + 1}</p>
+                                </div>
+
+                                <Badge className="max-w-full truncate rounded-md" variant="outline">
+                                  {result.sourceName ?? "content"}
+                                </Badge>
+                              </div>
+
+                              <div className="mt-3 grid gap-1.5">
+                                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                                  <span>Similarity</span>
+                                  <span>{numberFormatter.format(result.score)}</span>
+                                </div>
+                                <Progress className="h-1.5 bg-muted" value={scoreToPercent(result.score)} />
+                              </div>
+                            </div>
                           </div>
 
-                          <Badge className="max-w-full truncate rounded-md" variant="secondary">
-                            {result.sourceName ?? "content"}
-                          </Badge>
+                          {result.content ? (
+                            <div className="max-h-56 overflow-y-auto rounded-md bg-muted/30 p-3">
+                              <MessageResponse className="prose prose-sm dark:prose-invert max-w-none break-words text-sm leading-6">
+                                {result.content}
+                              </MessageResponse>
+                            </div>
+                          ) : null}
                         </div>
-
-                        {result.content ? (
-                          <div className="mt-3 max-h-56 overflow-y-auto rounded-md bg-muted/40 p-3">
-                            <p className="whitespace-pre-wrap break-words text-sm leading-6">{result.content}</p>
-                          </div>
-                        ) : null}
                       </article>
                     ))}
 

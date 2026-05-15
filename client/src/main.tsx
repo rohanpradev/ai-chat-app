@@ -3,8 +3,10 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { createAuthContext, loadUser } from "@/lib/auth";
+import { initializeSentry, SentryErrorBoundary } from "@/lib/sentry";
 import { installVitePreloadErrorHandler } from "@/lib/vite-preload";
 import { routeTree } from "@/routeTree.gen";
 import "./styles.css";
@@ -31,10 +33,26 @@ const router = createRouter({
   },
 });
 
+initializeSentry(router);
+
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }
+}
+
+function RootErrorFallback({ resetError }: Readonly<{ resetError: () => void }>) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+      <div className="grid max-w-md gap-3 text-center">
+        <h1 className="text-xl font-semibold tracking-normal">Something went wrong</h1>
+        <p className="text-sm text-muted-foreground">The app hit an unexpected error.</p>
+        <Button className="mx-auto" onClick={resetError} type="button" variant="outline">
+          Try again
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -69,6 +87,8 @@ if (!rootElement) throw new Error("Root element not found");
 const root = createRoot(rootElement);
 root.render(
   <StrictMode>
-    <App />
+    <SentryErrorBoundary fallback={({ resetError }) => <RootErrorFallback resetError={resetError} />}>
+      <App />
+    </SentryErrorBoundary>
   </StrictMode>,
 );
