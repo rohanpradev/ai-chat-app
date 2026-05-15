@@ -1,6 +1,10 @@
-import { OpenTelemetry } from "@ai-sdk/otel";
-import { registerTelemetry } from "ai";
-import { initializeTelemetry, isTelemetryEnabled } from "@/lib/instrumentation";
+import { initializeSentry } from "@/lib/sentry";
+
+initializeSentry();
+
+const { OpenTelemetry } = await import("@ai-sdk/otel");
+const { registerTelemetry } = await import("ai");
+const { initializeTelemetry, isTelemetryEnabled } = await import("@/lib/instrumentation");
 
 if (isTelemetryEnabled) {
 	registerTelemetry(new OpenTelemetry());

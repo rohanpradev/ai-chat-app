@@ -1,4 +1,5 @@
 import tailwindcss from "@tailwindcss/vite";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { dirname, resolve } from "node:path";
@@ -88,6 +89,8 @@ const vendorChunkGroups = [
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const isProduction = mode === "production";
+  const sentryRelease = env.SENTRY_RELEASE || env.VITE_SENTRY_RELEASE || undefined;
+  const shouldUploadSentrySourceMaps = Boolean(env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT);
 
   return {
     plugins: [
@@ -97,6 +100,18 @@ export default defineConfig(({ mode }) => {
       }),
       viteReact(),
       tailwindcss(),
+      shouldUploadSentrySourceMaps
+        ? sentryVitePlugin({
+            authToken: env.SENTRY_AUTH_TOKEN,
+            org: env.SENTRY_ORG,
+            project: env.SENTRY_PROJECT,
+            release: sentryRelease ? { name: sentryRelease } : undefined,
+            sourcemaps: {
+              filesToDeleteAfterUpload: ["./dist/**/*.map"],
+            },
+            telemetry: false,
+          })
+        : null,
     ],
     resolve: {
       alias: {
@@ -106,6 +121,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      sourcemap: shouldUploadSentrySourceMaps,
       rolldownOptions: {
         output: {
           codeSplitting: {

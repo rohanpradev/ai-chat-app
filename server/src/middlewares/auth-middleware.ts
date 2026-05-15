@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/bun";
 import { jwt } from "hono/jwt";
 
 import { asAppMiddleware } from "@/lib/hono-compat";
@@ -18,6 +19,9 @@ export const authMiddleware: AppMiddleware = async (c, next) => {
 
 		if (user) {
 			c.set("user", user);
+			Sentry.setUser({ id: user.id });
+		} else {
+			Sentry.setUser(null);
 		}
 
 		await next();

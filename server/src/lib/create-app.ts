@@ -1,14 +1,16 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { etag } from "hono/etag";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { asAppErrorHandler, asAppMiddleware, asAppNotFoundHandler } from "@/lib/hono-compat";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
 import { defaultHook } from "@/lib/openapi";
+import { setupSentryForHono } from "@/lib/sentry";
 import type { AppBindings } from "@/lib/types";
-
 import { notFound, onError, serveEmojiFavicon } from "@/middlewares/app-defaults";
 import { pinoLogger } from "@/middlewares/pino-logger";
 import env from "@/utils/env";
@@ -21,9 +23,20 @@ export function createApp() {
 	const app = createRouter();
 	const useAppMiddleware = (middleware: MiddlewareHandler<AppBindings, "*">) => app.use("*", middleware);
 
+	setupSentryForHono(app);
+
 	useAppMiddleware(asAppMiddleware(serveEmojiFavicon("🔥")));
 
 	useAppMiddleware(pinoLogger());
+
+	useAppMiddleware(
+		asAppMiddleware(
+			bodyLimit({
+				maxSize: 25 * 1024 * 1024,
+				onError: (c) => c.json({ message: "Request body must be 25MB or smaller" }, HttpStatusCodes.PAYLOAD_TOO_LARGE)
+			})
+		)
+	);
 
 	useAppMiddleware(
 		asAppMiddleware(
@@ -74,7 +87,7 @@ export function createApp() {
 	);
 
 	useAppMiddleware(asAppMiddleware(etag()));
-	useAppMiddleware(asAppMiddleware(timeout(30000)));
+	useAppMiddleware(asAppMiddleware(timeout(180_000)));
 
 	app.get("/health", (c) => c.json({ status: "ok" }));
 

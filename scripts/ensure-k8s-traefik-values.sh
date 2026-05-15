@@ -52,7 +52,7 @@ TRAEFIK_DASHBOARD_USER="${TRAEFIK_DASHBOARD_USER:-admin}"
 TRAEFIK_DASHBOARD_PASSWORD="${TRAEFIK_DASHBOARD_PASSWORD:-change-me}"
 TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-dhi.io}"
 TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-traefik}"
-TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.6.13-debian13}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.7.1}"
 
 if [ -n "${TRAEFIK_IMAGE_DIGEST:-}" ]; then
   IMAGE_TAG="${TRAEFIK_IMAGE_TAG}@${TRAEFIK_IMAGE_DIGEST}"
@@ -84,7 +84,7 @@ image:
   registry: ${TRAEFIK_IMAGE_REGISTRY}
   repository: ${TRAEFIK_IMAGE_REPOSITORY}
   tag: ${IMAGE_TAG}
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 EOF
 )
 
@@ -150,10 +150,19 @@ ingressClass:
   enabled: false
 
 providers:
+  kubernetesCRD:
+    enabled: true
+    allowEmptyServices: true
+    crossProviderNamespaces:
+      - default
+      - ${TRAEFIK_NAMESPACE}
   kubernetesIngress:
     enabled: false
   kubernetesGateway:
     enabled: true
+    crossProviderNamespaces:
+      - default
+      - ${TRAEFIK_NAMESPACE}
 
 gateway:
   enabled: true

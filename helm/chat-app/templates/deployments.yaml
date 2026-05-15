@@ -109,7 +109,7 @@ spec:
             {{- toYaml .Values.db.securityContext | nindent 12 }}
           volumeMounts:
             - name: data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
       volumes:
         - name: data
           {{- if .Values.db.persistence.enabled }}
@@ -138,6 +138,8 @@ spec:
       {{- include "chat-app.componentLabels" (dict "root" . "component" "redis") | nindent 6 }}
   template:
     metadata:
+      annotations:
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
       labels:
         {{- include "chat-app.componentLabels" (dict "root" . "component" "redis") | nindent 8 }}
     spec:

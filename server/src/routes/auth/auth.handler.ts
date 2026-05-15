@@ -114,11 +114,9 @@ export const loginUser: AppRouteHandler<LoginRoute> = async (c) => {
 export const logoutUser: AppRouteHandler<LogoutRoute> = async (c) => {
 	deleteCookie(c, env.AUTH_COOKIE_NAME, {
 		httpOnly: true,
+		path: "/",
 		sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
-		secure: env.NODE_ENV === "production",
-		...(env.NODE_ENV === "production" && {
-			domain: new URL(env.CLIENT_URL).hostname
-		})
+		secure: env.NODE_ENV === "production"
 	});
 
 	return c.json(

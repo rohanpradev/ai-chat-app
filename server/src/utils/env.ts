@@ -11,6 +11,28 @@ const emptyStringToUndefined = (value: unknown) => {
 	return value;
 };
 
+const booleanStringToBoolean = (value: unknown) => {
+	if (typeof value !== "string") {
+		return value;
+	}
+
+	if (value.trim() === "") {
+		return undefined;
+	}
+
+	if (value.toLowerCase() === "true") {
+		return true;
+	}
+
+	if (value.toLowerCase() === "false") {
+		return false;
+	}
+
+	return value;
+};
+
+const sampleRateSchema = z.preprocess(emptyStringToUndefined, z.coerce.number().min(0).max(1).optional().default(0.1));
+
 const normalizedEnv = {
 	...Bun.env,
 	// Langfuse docs use LANGFUSE_BASE_URL; keep LANGFUSE_BASEURL as a backward-compatible alias.
@@ -37,6 +59,11 @@ const EnvSchema = z.object({
 	// Optional comma-separated list of account-specific model ids to expose in the selector.
 	OPENAI_MODEL_OVERRIDES: z.string().optional(),
 	REDIS_URL: urlSchema,
+	SENTRY_DSN: z.preprocess(emptyStringToUndefined, urlSchema.optional()),
+	SENTRY_ENVIRONMENT: z.preprocess(emptyStringToUndefined, z.string().optional()),
+	SENTRY_RELEASE: z.preprocess(emptyStringToUndefined, z.string().optional()),
+	SENTRY_SEND_DEFAULT_PII: z.preprocess(booleanStringToBoolean, z.boolean().default(false)),
+	SENTRY_TRACES_SAMPLE_RATE: sampleRateSchema,
 	SERPER_API_KEY: z.string().optional(),
 	SERVER_PORT: z.coerce.number().min(1).max(65535).default(3000)
 });

@@ -24,11 +24,9 @@ export class Auth {
 		setCookie(c, env.AUTH_COOKIE_NAME, token, {
 			httpOnly: true,
 			maxAge: TOKEN_EXPIRY_SECONDS,
+			path: "/",
 			sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
-			secure: env.NODE_ENV === "production",
-			...(env.NODE_ENV === "production" && {
-				domain: new URL(env.CLIENT_URL).hostname
-			})
+			secure: env.NODE_ENV === "production"
 		});
 	}
 }

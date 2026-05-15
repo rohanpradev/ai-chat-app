@@ -8,6 +8,10 @@ import type {
 	CommonNotFoundResponseSchema,
 	CommonUnauthorizedResponseSchema,
 	CreateConversationResponseSchema,
+	EmbeddingDeleteResponseSchema,
+	EmbeddingDocumentsResponseSchema,
+	EmbeddingIngestResponseSchema,
+	EmbeddingSearchResponseSchema,
 	ErrorResponseSchema,
 	// Chat schemas
 	GetConversationResponseSchema,
@@ -19,6 +23,7 @@ import type {
 	LogoutResponseSchema,
 	MeResponseSchema,
 	ProfileErrorResponseSchema,
+	RagResponseSchema,
 	RegisterResponseSchema,
 	UnauthorizedResponseSchema,
 	UpdateConversationResponseSchema,
@@ -37,6 +42,13 @@ export type GetConversationResponse = z.infer<typeof GetConversationResponseSche
 export type GetConversationsResponse = z.infer<typeof GetConversationsResponseSchema>;
 export type CreateConversationResponse = z.infer<typeof CreateConversationResponseSchema>;
 export type UpdateConversationResponse = z.infer<typeof UpdateConversationResponseSchema>;
+
+// Embedding API Types
+export type EmbeddingIngestResponse = z.infer<typeof EmbeddingIngestResponseSchema>;
+export type EmbeddingSearchResponse = z.infer<typeof EmbeddingSearchResponseSchema>;
+export type EmbeddingDocumentsResponse = z.infer<typeof EmbeddingDocumentsResponseSchema>;
+export type EmbeddingDeleteResponse = z.infer<typeof EmbeddingDeleteResponseSchema>;
+export type RagResponse = z.infer<typeof RagResponseSchema>;
 
 // Profile API Types
 export type GetProfileResponse = z.infer<typeof GetProfileResponseSchema>;

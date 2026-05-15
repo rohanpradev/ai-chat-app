@@ -3,11 +3,19 @@ import type {
   AvailableModelsResponse,
   CreateConversationRequest,
   CreateConversationResponse,
+  EmbeddingDeleteResponse,
+  EmbeddingDocumentsResponse,
+  EmbeddingIngestResponse,
+  EmbeddingIngestTextRequest,
+  EmbeddingSearchRequest,
+  EmbeddingSearchResponse,
   GetConversationResponse,
   GetConversationsResponse,
   GetProfileResponse,
   LoginResponse,
   LoginUserRequest,
+  RagRequest,
+  RagResponse,
   RegisterResponse,
   RegisterUserRequest,
 } from "@chat-app/shared";
@@ -30,6 +38,17 @@ export const apiContract = new Hono()
   )
   .get<"/conversations/:id", { in: { param: { id: string } } }>("/conversations/:id", (c) =>
     c.json({} as GetConversationResponse, 200),
-  );
+  )
+  .get("/embeddings/documents", (c) => c.json({} as EmbeddingDocumentsResponse, 200))
+  .delete<"/embeddings/documents/:id", { in: { param: { id: string } } }>("/embeddings/documents/:id", (c) =>
+    c.json({} as EmbeddingDeleteResponse, 200),
+  )
+  .post<"/embeddings/ingest", { in: { json: EmbeddingIngestTextRequest } }>("/embeddings/ingest", (c) =>
+    c.json({} as EmbeddingIngestResponse, 201),
+  )
+  .post<"/embeddings/search", { in: { json: EmbeddingSearchRequest } }>("/embeddings/search", (c) =>
+    c.json({} as EmbeddingSearchResponse, 200),
+  )
+  .post<"/embeddings/rag", { in: { json: RagRequest } }>("/embeddings/rag", (c) => c.json({} as RagResponse, 200));
 
 export type ApiContract = typeof apiContract;

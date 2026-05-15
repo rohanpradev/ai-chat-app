@@ -88,6 +88,8 @@ describe("AI Routes", () => {
 		});
 
 		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("no-cache, no-transform");
+		expect(response.headers.get("X-Accel-Buffering")).toBe("no");
 		const streamText = await response.text();
 		expect(streamText).toContain('"delta":"Hello "');
 		expect(streamText).toContain('"delta":"from "');

@@ -24,6 +24,7 @@ K8S_GATEWAY_HEALTH_URL ?= $(K8S_GATEWAY_URL)/health
 K8S_TRAEFIK_DASHBOARD_URL ?= https://$(K8S_TRAEFIK_DASHBOARD_HOSTNAME):30001
 DOCKER_TRAEFIK_DASHBOARD_URL ?= https://traefik.$(DOMAIN)
 K8S_BUILD_ARGS ?=
+
 RECREATABLE_DIRS := \
 	.turbo \
 	.vite \
@@ -42,12 +43,13 @@ RECREATABLE_DIRS := \
 	shared/coverage \
 	shared/dist \
 	shared/node_modules
+
 RECREATABLE_FILES := \
 	client/src/routeTree.gen.ts \
 	helm/chat-app/values.local.yaml \
 	k8s/traefik-values.generated.yaml
 
-.PHONY: help setup validate start stop restart status logs clean clean-generated build dev health local local-stop docker docker-stop shutdown-all kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
+.PHONY: help setup validate start stop restart status logs clean clean-k8s clean-docker clean-local clean-runtime clean-generated build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
 
 # Default target
 help: ## Show this help message
@@ -105,37 +107,77 @@ start: validate ## Start all services and show application URLs
 	@echo "✅ Chat App is ready!"
 	@echo "🔗 Open https://localhost in your browser to get started"
 
-stop: ## Stop all services
+stop: ## Stop Docker Compose services
 	@echo "🛑 Stopping Chat App..."
 	@docker compose down
 
-restart: ## Restart all services
+restart: ## Restart Docker Compose services
 	@echo "🔄 Restarting Chat App..."
 	@docker compose down
 	@docker compose up -d
 	@make --no-print-directory status
 
-status: ## Show service status and URLs
+status: ## Show Docker Compose service status and URLs
 	@echo "📊 Service Status:"
 	@echo "=================="
 	@docker compose ps
 	@echo ""
 	@make --no-print-directory _show-urls
 
-logs: ## Show logs from all services
+logs: ## Show logs from all Docker Compose services
 	@docker compose logs -f
 
 health: ## Test application health
 	@echo "🔍 Testing API health..."
 	@curl -f -k https://localhost/health 2>/dev/null && echo "✅ API is healthy" || echo "❌ API is not responding"
 
-build: ## Build all images
+build: ## Build Docker images
 	@echo "🔨 Building Docker images..."
 	@docker compose build --pull
 
-clean: ## Stop services and remove containers, networks, and volumes
-	@echo "🧹 Cleaning up..."
-	@docker compose down -v --remove-orphans --rmi local
+clean: clean-k8s clean-docker clean-local ## Clean project resources without stopping OrbStack/Minikube runtime
+	@echo "✅ Project cleanup complete. Kubernetes runtime was left running."
+	@echo "💡 To stop OrbStack/Minikube Kubernetes too, run 'make clean-runtime'."
+
+clean-k8s: ## Clean Kubernetes app resources without stopping the cluster runtime
+	@echo "🧹 Cleaning Kubernetes app resources..."
+	@if command -v helm >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1; then \
+		helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
+		helm uninstall $(TRAEFIK_RELEASE) -n $(TRAEFIK_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
+		kubectl delete namespace $(TRAEFIK_NAMESPACE) --ignore-not-found=true --wait=false >/dev/null 2>&1 || true; \
+	else \
+		echo "kubectl or helm not found. Skipping Kubernetes cleanup."; \
+	fi
+	@echo "✅ Kubernetes app resources cleaned."
+
+clean-docker: ## Remove Docker Compose resources and local app images
+	@echo "🐳 Cleaning Docker Compose resources..."
+	@if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then \
+		docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; \
+		for image in $(K8S_SERVER_IMAGE) $(K8S_CLIENT_IMAGE) $(K8S_MIGRATE_IMAGE); do \
+			docker image rm -f "$$image" >/dev/null 2>&1 || true; \
+		done; \
+	else \
+		echo "Docker is not available. Skipping Docker cleanup."; \
+	fi
+	@echo "✅ Docker resources cleaned."
+
+clean-local: ## Stop local Bun development processes
+	@echo "🛠️  Stopping local development services..."
+	@pkill -f "bun run dev" || true
+	@echo "✅ Local development services stopped."
+
+clean-runtime: ## Stop local Kubernetes runtime explicitly
+	@echo "🛑 Stopping local Kubernetes runtime..."
+	@if command -v orb >/dev/null 2>&1; then \
+		orb stop k8s >/dev/null 2>&1 || true; \
+	elif command -v orbctl >/dev/null 2>&1; then \
+		orbctl stop k8s >/dev/null 2>&1 || true; \
+	fi
+	@if command -v minikube >/dev/null 2>&1; then \
+		minikube stop >/dev/null 2>&1 || true; \
+	fi
+	@echo "✅ Local Kubernetes runtime stopped."
 
 clean-generated: ## Remove recreatable workspace artifacts without touching .env files
 	@echo "🧽 Removing recreatable workspace artifacts..."
@@ -143,30 +185,6 @@ clean-generated: ## Remove recreatable workspace artifacts without touching .env
 	@rm -f $(RECREATABLE_FILES)
 	@find . -type f -name '*.tsbuildinfo' -delete
 	@echo "✅ Removed generated workspace files. .env files were left untouched."
-
-shutdown-all: ## Stop local Kubernetes, remove Docker resources, and stop the local runtime
-	@echo "🛑 Shutting down local infrastructure..."
-	@if command -v helm >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1; then \
-		helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
-		helm uninstall $(TRAEFIK_RELEASE) -n $(TRAEFIK_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
-		kubectl delete namespace $(TRAEFIK_NAMESPACE) --ignore-not-found=true --wait=false >/dev/null 2>&1 || true; \
-	fi
-	@if command -v orbctl >/dev/null 2>&1; then \
-		orbctl stop k8s >/dev/null 2>&1 || true; \
-	fi
-	@if command -v minikube >/dev/null 2>&1; then \
-		minikube stop >/dev/null 2>&1 || true; \
-	fi
-	@if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then \
-		docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; \
-		for image in $(K8S_SERVER_IMAGE) $(K8S_CLIENT_IMAGE) $(K8S_MIGRATE_IMAGE); do \
-			docker image rm -f "$$image" >/dev/null 2>&1 || true; \
-		done; \
-	fi
-	@if command -v orbctl >/dev/null 2>&1; then \
-		orbctl stop >/dev/null 2>&1 || true; \
-	fi
-	@echo "✅ Local Docker and Kubernetes resources have been stopped."
 
 dev: ## Start development environment
 	@echo "🛠️  Starting development environment..."
@@ -182,7 +200,7 @@ _show-urls:
 	@echo "⚙️  Traefik Dashboard:  $(DOCKER_TRAEFIK_DASHBOARD_URL)"
 	@echo "================================"
 
-local: ## Start local development (uses cloud services from .env.local)
+local: ## Start local development using cloud services from .env.local
 	@echo "🛠️  Starting local development environment..."
 	@echo "☁️  Using cloud services (database/Redis from .env.local)"
 	@echo "🌐 Starting client and server..."
@@ -193,9 +211,7 @@ local: ## Start local development (uses cloud services from .env.local)
 	(cd client && bun run dev) & \
 	wait
 
-local-stop: ## Stop local development services
-	@echo "🛑 Stopping local development..."
-	@pkill -f "bun run dev" || true
+local-stop: clean-local ## Stop local development services
 
 # Docker aliases
 docker: start ## Alias for Docker Compose start
@@ -215,7 +231,8 @@ kubernetes: ## Complete local Kubernetes setup and deployment
 	@$(MAKE) --no-print-directory k8s-migrate
 	@$(MAKE) --no-print-directory k8s-test
 	@$(MAKE) --no-print-directory k8s-status
-kubernetes-stop: k8s-cleanup k8s-stop ## Stop and clean up Kubernetes
+
+kubernetes-stop: clean-k8s clean-runtime ## Clean Kubernetes app resources and stop local Kubernetes runtime
 
 k8s-setup: ## Create Helm local values override from template
 	@echo "Preparing Helm values..."
@@ -295,7 +312,7 @@ k8s-scale-status: ## Show horizontal scaling status
 	@echo "🛡️  Pod Disruption Budgets:"
 	@kubectl get pdb -n $(K8S_NAMESPACE)
 
-k8s-scale-disable: ## Disable horizontal scaling (set to 1 replica)
+k8s-scale-disable: ## Disable horizontal scaling and set replicas to 1
 	@echo "🔒 Disabling horizontal scaling..."
 	@helm upgrade --install $(K8S_RELEASE) helm/chat-app -n $(K8S_NAMESPACE) --create-namespace --wait -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml --set server.hpa.enabled=false --set client.hpa.enabled=false --set server.replicaCount=1 --set client.replicaCount=1
 
@@ -303,18 +320,9 @@ k8s-scale-enable: ## Enable horizontal scaling
 	@echo "🚀 Enabling horizontal scaling..."
 	@helm upgrade --install $(K8S_RELEASE) helm/chat-app -n $(K8S_NAMESPACE) --create-namespace --wait -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml --set server.hpa.enabled=true --set client.hpa.enabled=true
 
-k8s-cleanup: ## Clean up Kubernetes resources managed by chart
-	@echo "🧹 Cleaning up Kubernetes resources..."
-	@helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found
-	@echo "Kubernetes chart resources cleaned up"
+k8s-cleanup: clean-k8s ## Clean up Kubernetes resources managed by chart
 
-k8s-stop: ## Stop Minikube
-	@echo "🛑 Stopping Minikube..."
-	@if command -v minikube >/dev/null 2>&1; then \
-		minikube stop; \
-	else \
-		echo "Minikube not found. Nothing to stop."; \
-	fi
+k8s-stop: clean-runtime ## Stop local Kubernetes runtime
 
 _show-k8s-urls:
 	@echo "Application URLs:"

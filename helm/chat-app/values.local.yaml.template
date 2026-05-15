@@ -15,6 +15,16 @@ config:
     DOMAIN: localhost
     NODE_ENV: production
     VITE_DEV_MODE: "false"
+    VITE_SENTRY_DSN: ""
+    VITE_SENTRY_ENVIRONMENT: production
+    VITE_SENTRY_RELEASE: ""
+    VITE_SENTRY_TRACES_SAMPLE_RATE: "0.1"
+    VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE: "0"
+    VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE: "0.1"
+    SENTRY_ENVIRONMENT: production
+    SENTRY_RELEASE: ""
+    SENTRY_TRACES_SAMPLE_RATE: "0.1"
+    SENTRY_SEND_DEFAULT_PII: "false"
     CORS_ORIGINS: http://localhost:5173,http://localhost:30080
 
 secrets:
@@ -30,6 +40,7 @@ secrets:
       LANGFUSE_PUBLIC_KEY: ""
       LANGFUSE_SECRET_KEY: ""
       LANGFUSE_BASEURL: https://cloud.langfuse.com
+      SENTRY_DSN: ""
 
 networkPolicy:
   enabled: false

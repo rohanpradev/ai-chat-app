@@ -3,10 +3,15 @@ import type {
   AuthResponse,
   AvailableModelsResponse,
   CreateConversationResponse,
+  EmbeddingDeleteResponse,
+  EmbeddingDocumentsResponse,
+  EmbeddingIngestResponse,
+  EmbeddingSearchResponse,
   GetConversationResponse,
   GetConversationsResponse,
   GetProfileResponse,
   LoginResponse,
+  RagResponse,
   RegisterResponse,
 } from "@chat-app/shared";
 import { hc, type InferRequestType } from "hono/client";
@@ -111,6 +116,63 @@ export const getApiClient = () => {
       list: async (): Promise<GetConversationsResponse["data"]> => {
         const response = await apiClient.conversations.$get();
         const result = await parseResponse<GetConversationsResponse>(response);
+        return result.data;
+      },
+    },
+    embeddings: {
+      delete: async (id: string): Promise<EmbeddingDeleteResponse["data"]> => {
+        const response = await apiClient.embeddings.documents[":id"].$delete({
+          param: { id },
+        });
+        const result = await parseResponse<EmbeddingDeleteResponse>(response);
+        return result.data;
+      },
+      ingestText: async (
+        payload: InferRequestType<typeof apiClient.embeddings.ingest.$post>["json"],
+      ): Promise<EmbeddingIngestResponse["data"]> => {
+        const response = await apiClient.embeddings.ingest.$post({ json: payload });
+        const result = await parseResponse<EmbeddingIngestResponse>(response);
+        return result.data;
+      },
+      list: async (): Promise<EmbeddingDocumentsResponse["data"]> => {
+        const response = await apiClient.embeddings.documents.$get();
+        const result = await parseResponse<EmbeddingDocumentsResponse>(response);
+        return result.data;
+      },
+      rag: async (
+        payload: InferRequestType<typeof apiClient.embeddings.rag.$post>["json"],
+      ): Promise<RagResponse["data"]> => {
+        const response = await apiClient.embeddings.rag.$post({ json: payload });
+        const result = await parseResponse<RagResponse>(response);
+        return result.data;
+      },
+      search: async (
+        payload: InferRequestType<typeof apiClient.embeddings.search.$post>["json"],
+      ): Promise<EmbeddingSearchResponse["data"]> => {
+        const response = await apiClient.embeddings.search.$post({ json: payload });
+        const result = await parseResponse<EmbeddingSearchResponse>(response);
+        return result.data;
+      },
+      upload: async (payload: {
+        file: File;
+        metadata?: Record<string, unknown>;
+        title?: string;
+      }): Promise<EmbeddingIngestResponse["data"]> => {
+        const formData = new FormData();
+        formData.append("file", payload.file);
+        if (payload.title) {
+          formData.append("title", payload.title);
+        }
+        if (payload.metadata) {
+          formData.append("metadata", JSON.stringify(payload.metadata));
+        }
+
+        const response = await fetch("/api/embeddings/upload", {
+          body: formData,
+          credentials: "include",
+          method: "POST",
+        });
+        const result = await parseResponse<EmbeddingIngestResponse>(response);
         return result.data;
       },
     },

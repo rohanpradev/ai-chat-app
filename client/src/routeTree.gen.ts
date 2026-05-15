@@ -13,6 +13,7 @@ import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as ChatNewRouteImport } from './routes/chat/new'
+import { Route as ChatEmbeddingsRouteImport } from './routes/chat/embeddings'
 import { Route as ChatConversationIdRouteImport } from './routes/chat/$conversationId'
 import { Route as userProfileRouteImport } from './routes/(user)/profile'
 import { Route as authAuthRouteRouteImport } from './routes/(auth)/_auth/route'
@@ -37,6 +38,11 @@ const ChatIndexRoute = ChatIndexRouteImport.update({
 const ChatNewRoute = ChatNewRouteImport.update({
   id: '/new',
   path: '/new',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatEmbeddingsRoute = ChatEmbeddingsRouteImport.update({
+  id: '/embeddings',
+  path: '/embeddings',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRouteWithChildren
   '/profile': typeof userProfileRoute
   '/chat/$conversationId': typeof ChatConversationIdRoute
+  '/chat/embeddings': typeof ChatEmbeddingsRoute
   '/chat/new': typeof ChatNewRoute
   '/chat/': typeof ChatIndexRoute
   '/login': typeof authAuthLoginRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/profile': typeof userProfileRoute
   '/chat/$conversationId': typeof ChatConversationIdRoute
+  '/chat/embeddings': typeof ChatEmbeddingsRoute
   '/chat/new': typeof ChatNewRoute
   '/chat': typeof ChatIndexRoute
   '/login': typeof authAuthLoginRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/(auth)/_auth': typeof authAuthRouteRouteWithChildren
   '/(user)/profile': typeof userProfileRoute
   '/chat/$conversationId': typeof ChatConversationIdRoute
+  '/chat/embeddings': typeof ChatEmbeddingsRoute
   '/chat/new': typeof ChatNewRoute
   '/chat/': typeof ChatIndexRoute
   '/(auth)/_auth/login': typeof authAuthLoginRoute
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/profile'
     | '/chat/$conversationId'
+    | '/chat/embeddings'
     | '/chat/new'
     | '/chat/'
     | '/login'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/'
     | '/profile'
     | '/chat/$conversationId'
+    | '/chat/embeddings'
     | '/chat/new'
     | '/chat'
     | '/login'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/(auth)/_auth'
     | '/(user)/profile'
     | '/chat/$conversationId'
+    | '/chat/embeddings'
     | '/chat/new'
     | '/chat/'
     | '/(auth)/_auth/login'
@@ -165,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatNewRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/chat/embeddings': {
+      id: '/chat/embeddings'
+      path: '/embeddings'
+      fullPath: '/chat/embeddings'
+      preLoaderRoute: typeof ChatEmbeddingsRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/chat/$conversationId': {
       id: '/chat/$conversationId'
       path: '/$conversationId'
@@ -205,12 +224,14 @@ declare module '@tanstack/react-router' {
 
 interface ChatRouteChildren {
   ChatConversationIdRoute: typeof ChatConversationIdRoute
+  ChatEmbeddingsRoute: typeof ChatEmbeddingsRoute
   ChatNewRoute: typeof ChatNewRoute
   ChatIndexRoute: typeof ChatIndexRoute
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
   ChatConversationIdRoute: ChatConversationIdRoute,
+  ChatEmbeddingsRoute: ChatEmbeddingsRoute,
   ChatNewRoute: ChatNewRoute,
   ChatIndexRoute: ChatIndexRoute,
 }

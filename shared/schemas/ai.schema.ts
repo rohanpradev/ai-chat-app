@@ -7,7 +7,7 @@ import { z } from "@hono/zod-openapi";
 export const AIStreamResponseHeaders = {
 	"Cache-Control": {
 		schema: {
-			example: "no-cache",
+			example: "no-cache, no-transform",
 			type: "string",
 		},
 	},
@@ -26,6 +26,12 @@ export const AIStreamResponseHeaders = {
 	"Transfer-Encoding": {
 		schema: {
 			example: "chunked",
+			type: "string",
+		},
+	},
+	"X-Accel-Buffering": {
+		schema: {
+			example: "no",
 			type: "string",
 		},
 	},

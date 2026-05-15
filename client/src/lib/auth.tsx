@@ -1,6 +1,7 @@
 import type { LoginResponse, RegisterResponse, User } from "@chat-app/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { ApiRequestError } from "@/composables/useApi";
+import { captureSentryException, setSentryUser } from "@/lib/sentry";
 import { getCurrentUserQuery } from "@/queries/getCurrentUser";
 
 export interface AuthContext {
@@ -17,11 +18,13 @@ export function createAuthContext(queryClient: QueryClient): AuthContext {
     login: (response: LoginResponse | RegisterResponse) => {
       authContext.isAuthenticated = true;
       authContext.user = response.data;
+      setSentryUser({ id: response.data.id });
       queryClient.setQueryData(getCurrentUserQuery().queryKey, response.data);
     },
     logout: () => {
       authContext.isAuthenticated = false;
       authContext.user = null;
+      setSentryUser(null);
       queryClient.removeQueries({ queryKey: getCurrentUserQuery().queryKey });
     },
   };
@@ -42,6 +45,7 @@ export async function loadUser(queryClient: QueryClient, authContext: AuthContex
     }
 
     console.error("Failed to load current user:", error);
+    captureSentryException(error);
     authContext.logout();
   }
   return null;
