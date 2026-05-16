@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import configureOpenAPI from "@/lib/configure-open-api";
 import { createApp } from "@/lib/create-app";
+import env from "@/utils/env";
 
 describe("App Creation", () => {
 	it("should create app successfully", () => {
@@ -56,6 +57,21 @@ describe("App Creation", () => {
 		});
 
 		expect(response.headers.get("access-control-allow-origin")).toBeNull();
+	});
+
+	it("rejects wildcard credentialed CORS in production", () => {
+		const originalNodeEnv = env.NODE_ENV;
+		const originalCorsOrigins = env.CORS_ORIGINS;
+
+		env.NODE_ENV = "production";
+		env.CORS_ORIGINS = "*";
+
+		try {
+			expect(() => createApp()).toThrow("CORS_ORIGINS cannot include '*'");
+		} finally {
+			env.NODE_ENV = originalNodeEnv;
+			env.CORS_ORIGINS = originalCorsOrigins;
+		}
 	});
 
 	it("should serve the OpenAPI document", async () => {

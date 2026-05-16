@@ -13,10 +13,12 @@ import { asRouteMiddleware } from "@/lib/hono-compat";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 import { jsonContent } from "@/lib/openapi";
 import { authMiddleware } from "@/middlewares/auth-middleware";
+import { authRateLimit } from "@/middlewares/rate-limit";
 import { redisCache } from "@/middlewares/redis-cache-middleware";
 
 const tags = ["Auth"];
 const authenticated = asRouteMiddleware(authMiddleware);
+const authLimiter = asRouteMiddleware(authRateLimit);
 const cachedMe = redisCache({
 	key: (c) => {
 		const jwtPayload = c.get("jwtPayload") as { sub?: { id?: string } } | undefined;
@@ -29,6 +31,7 @@ const cachedMe = redisCache({
 export const registerUser = createRoute({
 	description: "Register a new user",
 	method: "post",
+	middleware: [authLimiter],
 	path: "/auth/register",
 	request: {
 		body: {
@@ -48,6 +51,14 @@ export const registerUser = createRoute({
 				}
 			},
 			description: "User already exists"
+		},
+		[HttpStatusCodes.TOO_MANY_REQUESTS]: {
+			content: {
+				"application/json": {
+					schema: ErrorResponseSchema
+				}
+			},
+			description: "Too many authentication attempts"
 		}
 	},
 	summary: "Register a new user",
@@ -57,6 +68,7 @@ export const registerUser = createRoute({
 export const loginUser = createRoute({
 	description: "Login for existing users",
 	method: "post",
+	middleware: [authLimiter],
 	path: "/auth/login",
 	request: {
 		body: {
@@ -76,6 +88,14 @@ export const loginUser = createRoute({
 				}
 			},
 			description: "User doesnt exists"
+		},
+		[HttpStatusCodes.TOO_MANY_REQUESTS]: {
+			content: {
+				"application/json": {
+					schema: ErrorResponseSchema
+				}
+			},
+			description: "Too many authentication attempts"
 		}
 	},
 	summary: "login user",

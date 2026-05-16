@@ -1,4 +1,10 @@
-import { ChatRequestSchema, defaultModelId, safeValidateMyUIMessages } from "@chat-app/shared";
+import {
+	AIEvaluationRequestSchema,
+	AIPlanRequestSchema,
+	ChatRequestSchema,
+	defaultModelId,
+	safeValidateMyUIMessages
+} from "@chat-app/shared";
 import { propagateAttributes } from "@langfuse/tracing";
 import { consumeStream, createAgentUIStreamResponse, createIdGenerator, smoothStream } from "ai";
 import { HTTPException } from "hono/http-exception";
@@ -7,7 +13,13 @@ import { getChatAgent, resolveAgentMode } from "@/lib/agents";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 import { isTelemetryEnabled } from "@/lib/instrumentation";
 import type { AppRouteHandler } from "@/lib/types";
-import type { AIStreamRoute, GetAvailableModelsRoute } from "@/routes/ai/ai.route";
+import type {
+	AIStreamRoute,
+	EvaluateOutputRoute,
+	GeneratePlanRoute,
+	GetAvailableModelsRoute
+} from "@/routes/ai/ai.route";
+import { evaluateAIOutput, generateStructuredPlan } from "@/services/ai-structured.service";
 import { loadConversationMessages, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
 
@@ -35,6 +47,30 @@ export const getAvailableModels: AppRouteHandler<GetAvailableModelsRoute> = asyn
 	return c.json({
 		data: availableModels,
 		message: "Available AI models retrieved successfully"
+	});
+};
+
+export const generatePlan: AppRouteHandler<GeneratePlanRoute> = async (c) => {
+	const requestBody = AIPlanRequestSchema.parse(await c.req.json());
+	const userJwt = c.get("jwtPayload").sub;
+	const result = await generateStructuredPlan(requestBody, userJwt.id, c.req.raw.signal);
+
+	return c.json({
+		data: result.data,
+		message: "Structured AI plan generated successfully",
+		metadata: result.metadata
+	});
+};
+
+export const evaluateOutput: AppRouteHandler<EvaluateOutputRoute> = async (c) => {
+	const requestBody = AIEvaluationRequestSchema.parse(await c.req.json());
+	const userJwt = c.get("jwtPayload").sub;
+	const result = await evaluateAIOutput(requestBody, userJwt.id, c.req.raw.signal);
+
+	return c.json({
+		data: result.data,
+		message: "AI output evaluated successfully",
+		metadata: result.metadata
 	});
 };
 

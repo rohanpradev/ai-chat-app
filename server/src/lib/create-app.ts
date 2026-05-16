@@ -53,6 +53,10 @@ export function createApp() {
 				.filter(Boolean)
 		: [env.CLIENT_URL];
 	const allowAnyOrigin = allowedOrigins.includes("*");
+	if (env.NODE_ENV === "production" && allowAnyOrigin) {
+		throw new Error("CORS_ORIGINS cannot include '*' in production when credentialed cookies are enabled");
+	}
+
 	const isAllowedOrigin = (origin: string) => allowAnyOrigin || allowedOrigins.includes(origin);
 
 	useAppMiddleware(

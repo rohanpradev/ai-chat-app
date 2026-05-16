@@ -1,0 +1,37 @@
+# Chat App
+
+AI chat application built with Bun, React, Hono, PostgreSQL, Redis, Kubernetes, and the AI SDK.
+
+## Canonical Docs
+
+- [README](./README.md): Setup, local development, Docker, Kubernetes, and common commands.
+- [Security Policy](./SECURITY.md): Vulnerability reporting, release blockers, and incident response.
+- [Security Hardening](./docs/security.md): Runtime, proxy, container, Kubernetes, and production controls.
+- [Supply-Chain Policy](./docs/supply-chain.md): Bun install policy, dependency updates, Shai-Hulud response.
+- [AI Architecture](./docs/ai-architecture.md): Agents, tools, streaming, observability, and safety boundaries.
+- [Model Policy](./docs/model-policy.md): Model catalog, upgrade rules, and AI SDK channel policy.
+- [Eval Checklist](./docs/evals.md): Required checks before AI behavior changes.
+
+## Important Source Files
+
+- `shared/models.ts`: Fallback model catalog and default model.
+- `shared/tool-ids.ts`: Allowlisted tool IDs.
+- `shared/schemas/ai.schema.ts`: AI chat, structured planning, and evaluation contracts.
+- `server/src/lib/agents.ts`: Agent mode definitions and instructions.
+- `server/src/lib/tools.ts`: Server-side tool implementations.
+- `server/src/routes/ai/ai.handler.ts`: Streaming chat, planning, and evaluation handlers.
+- `server/src/services/ai-structured.service.ts`: AI SDK structured output planning and LLM-as-judge service.
+- `server/src/services/embedding.service.ts`: Document ingestion, chunking, embeddings, and RAG.
+- `client/nginx.conf`: Production client and API proxy configuration.
+- `compose.yml`: Local Docker and Traefik stack.
+- `helm/chat-app/`: Kubernetes chart.
+
+## Operational Commands
+
+```bash
+bun install --frozen-lockfile
+bun run security:check
+bun run check
+bun run build
+bun run k8s:validate
+```

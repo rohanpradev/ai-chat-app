@@ -74,7 +74,6 @@ const buildTelemetrySettings = ({
 	isTelemetryEnabled
 		? {
 				functionId,
-				isEnabled: true,
 				metadata: {
 					userId: options.userId,
 					...(options.conversationId ? { sessionId: options.conversationId } : {}),
@@ -100,9 +99,9 @@ const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentP
 			return {
 				...settings,
 				activeTools,
-				experimental_telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel }),
 				instructions: buildAgentInstructions(baseInstructions, activeTools),
-				model: resolveModel(resolvedModel.id)
+				model: resolveModel(resolvedModel.id),
+				telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel })
 			};
 		},
 		stopWhen: stepCountIs(stepLimit),

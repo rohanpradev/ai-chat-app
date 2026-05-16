@@ -22,11 +22,12 @@ RUN --mount=type=cache,target=/root/.bun/install/cache,sharing=locked \
 FROM workspace-manifests AS build-deps
 COPY --link tsconfig.json ./
 COPY --link client/tsconfig.json ./client/tsconfig.json
+COPY --link server/tsconfig.json ./server/tsconfig.json
 COPY --link shared/tsconfig.json ./shared/tsconfig.json
 RUN --mount=type=cache,target=/root/.bun/install/cache,sharing=locked \
-  bun install --frozen-lockfile --linker isolated --filter 'chat-app' --filter './client' --filter './shared'
+  bun install --frozen-lockfile --linker isolated --filter 'chat-app' --filter './client' --filter './server' --filter './shared'
 
-# Copy shared source needed by the client build after dependencies are cached.
+# Copy shared source needed by the client and server builds after dependencies are cached.
 COPY --link shared/ ./shared/
 
 # Stage 4: Client build.
@@ -74,7 +75,16 @@ WORKDIR /app/client
 RUN bun -e 'const fs = require("node:fs"); const replacements = { BASE_API_SLUG: process.env.BASE_API_SLUG ?? "api", SERVER_HOST: process.env.SERVER_HOST ?? "server", SERVER_PORT: process.env.SERVER_PORT ?? "3000" }; let config = fs.readFileSync("nginx.conf", "utf8"); for (const [key, value] of Object.entries(replacements)) config = config.replaceAll("${" + key + "}", value); fs.writeFileSync("nginx.generated.conf", config);'
 RUN bun run build
 
-# Stage 5: Client production.
+# Stage 5: Server build.
+FROM build-deps AS server-build
+WORKDIR /app
+
+COPY --link server/ ./server/
+
+WORKDIR /app/server
+RUN bun run build
+
+# Stage 6: Client production.
 FROM ${NGINX_IMAGE} AS client-prod
 USER 0
 WORKDIR /app
@@ -89,7 +99,7 @@ EXPOSE 8080
 ENTRYPOINT ["nginx"]
 CMD ["-g", "daemon off;"]
 
-# Stage 6: Server production.
+# Stage 7: Server production.
 FROM ${BUN_RUNTIME_IMAGE} AS server-prod
 WORKDIR /app
 
@@ -108,8 +118,7 @@ COPY --link --chown=65532:65532 shared/ ./shared/
 
 # Copy only runtime server files to keep the final image lean.
 COPY --link --chown=65532:65532 server/package.json ./server/package.json
-COPY --link --chown=65532:65532 server/tsconfig.json ./server/tsconfig.json
-COPY --link --chown=65532:65532 server/src ./server/src
+COPY --link --from=server-build --chown=65532:65532 /app/server/dist ./server/dist
 
 WORKDIR /app/server
 
@@ -119,4 +128,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=2 \
   CMD bun -e "fetch('http://localhost:'+(process.env.SERVER_PORT||'3000')+'/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "dist/index.js"]
