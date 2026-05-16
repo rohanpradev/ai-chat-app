@@ -29,6 +29,7 @@
 	"scripts": {
 		"app:health": "make health",
 		"app:start": "make start",
+		"audit": "bun audit",
 		"build": "bun run --filter @chat-app/client build",
 		"build:report": "bun run --filter @chat-app/client build:report",
 		"check": "bun run lint && bun run typecheck && bun run test",
@@ -43,6 +44,8 @@
 		"knip:production": "knip --production",
 		"lint": "bunx --no-install --bun biome check .",
 		"lint:fix": "bunx --no-install --bun biome check . --write --unsafe",
+		"security:check": "bun run audit && bun run security:supply-chain",
+		"security:supply-chain": "bun scripts/check-supply-chain.mjs",
 		"start": "bun run dev",
 		"test": "bun run --filter '*' test",
 		"typecheck": "bun run typecheck:tsgo",

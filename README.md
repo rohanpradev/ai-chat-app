@@ -28,6 +28,7 @@ It can run locally with Docker Compose or through the Helm chart under `helm/cha
 - Persistent conversations in PostgreSQL
 - Redis-backed runtime/cache support
 - Shared Zod schemas and TypeScript types across client and server
+- AI SDK structured output endpoints for task planning and LLM-as-judge evaluation
 - Approval-gated web search with Serper
 - File attachments in chat input
 - Mermaid rendering loaded lazily for markdown diagrams
@@ -58,7 +59,7 @@ Makefile                Common local, Docker, and Kubernetes commands
 
 ## Prerequisites
 
-- Bun `1.3.13+`
+- Bun `1.3.14+`
 - Docker Desktop or OrbStack
 - `kubectl` and `helm` for Kubernetes
 - OpenAI API key
@@ -129,6 +130,7 @@ Useful checks:
 bun run lint
 bun run typecheck
 bun run test
+bun run security:check
 bun run build
 ```
 
@@ -147,6 +149,8 @@ make start
 ```
 
 This starts Traefik, PostgreSQL, Redis, the migration job, API server, and client.
+The server image compiles the Hono entrypoint during the Docker build with `bun run --filter @chat-app/server build`,
+then runs the generated `dist/index.js` in production instead of executing TypeScript source at container startup.
 
 URLs:
 
@@ -249,6 +253,16 @@ Web search is exposed through the `serper` tool. It is approval-gated, so the UI
 
 Langfuse telemetry is initialized only when credentials are present. AI SDK telemetry is enabled on server-side model calls and is exported through Langfuse's OpenTelemetry span processor.
 
+## Security and Operations Docs
+
+- `SECURITY.md` - vulnerability reporting and supported security posture
+- `docs/security.md` - runtime, proxy, secret, and deployment hardening notes
+- `docs/supply-chain.md` - Bun/npm supply-chain policy and Shai-Hulud response playbook
+- `docs/ai-architecture.md` - agent, tool, streaming, and observability architecture
+- `docs/model-policy.md` - model catalog and upgrade policy
+- `docs/evals.md` - release evaluation checklist for AI behavior
+- `llms.txt` - AI-readable project index for coding assistants and doc ingestion
+
 ## Common Commands
 
 ```bash
@@ -257,6 +271,7 @@ make validate          # check required env vars
 make local             # run client and server directly
 make start             # Docker Compose stack
 make stop              # stop Docker Compose stack
+bun run security:check # dependency audit plus supply-chain indicator scan
 make k8s-full-stack    # full local Kubernetes + Traefik run
 make k8s-status        # Kubernetes status and URLs
 make clean-generated   # remove generated local artifacts

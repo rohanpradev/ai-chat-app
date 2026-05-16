@@ -1,4 +1,8 @@
 import type {
+  AIEvaluationRequest,
+  AIEvaluationResponse,
+  AIPlanRequest,
+  AIPlanResponse,
   AuthResponse,
   AvailableModelsResponse,
   CreateConversationRequest,
@@ -25,6 +29,10 @@ type LogoutResponse = { message: string };
 
 export const apiContract = new Hono()
   .get("/ai/models", (c) => c.json({} as AvailableModelsResponse, 200))
+  .post<"/ai/plan", { in: { json: AIPlanRequest } }>("/ai/plan", (c) => c.json({} as AIPlanResponse, 200))
+  .post<"/ai/evaluate", { in: { json: AIEvaluationRequest } }>("/ai/evaluate", (c) =>
+    c.json({} as AIEvaluationResponse, 200),
+  )
   .post<"/auth/register", { in: { json: RegisterUserRequest } }>("/auth/register", (c) =>
     c.json({} as RegisterResponse, 201),
   )

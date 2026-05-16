@@ -1,0 +1,46 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      root-javascript:
+        patterns:
+          - "*"
+  - package-ecosystem: npm
+    directory: /client
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      client-javascript:
+        patterns:
+          - "*"
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      server-javascript:
+        patterns:
+          - "*"
+  - package-ecosystem: npm
+    directory: /shared
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      shared-javascript:
+        patterns:
+          - "*"

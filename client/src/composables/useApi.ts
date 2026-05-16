@@ -1,4 +1,6 @@
 import type {
+  AIEvaluationResponse,
+  AIPlanResponse,
   ApiError,
   AuthResponse,
   AvailableModelsResponse,
@@ -70,6 +72,20 @@ export const getApiClient = () => {
       models: async () => {
         const response = await apiClient.ai.models.$get();
         const result = await parseResponse<AvailableModelsResponse>(response);
+        return result.data;
+      },
+      plan: async (
+        payload: InferRequestType<typeof apiClient.ai.plan.$post>["json"],
+      ): Promise<AIPlanResponse["data"]> => {
+        const response = await apiClient.ai.plan.$post({ json: payload });
+        const result = await parseResponse<AIPlanResponse>(response);
+        return result.data;
+      },
+      evaluate: async (
+        payload: InferRequestType<typeof apiClient.ai.evaluate.$post>["json"],
+      ): Promise<AIEvaluationResponse["data"]> => {
+        const response = await apiClient.ai.evaluate.$post({ json: payload });
+        const result = await parseResponse<AIEvaluationResponse>(response);
         return result.data;
       },
     },
