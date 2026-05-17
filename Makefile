@@ -65,7 +65,7 @@ setup: ## Initial setup - Copy .env.example to .env and guide user
 		echo ""; \
 		echo "📝 Required: Update these 3 values in .env:"; \
 		echo "   1. OPENAI_API_KEY        - Get from platform.openai.com"; \
-		echo "   2. JWT_SECRET            - Generate a random 32+ char string"; \
+		echo "   2. BETTER_AUTH_SECRET    - Generate a random 32+ char string"; \
 		echo "   3. DB_PASSWORD           - Change from the default for non-local use"; \
 		echo ""; \
 		echo "💡 Optional: For Langfuse AI observability:"; \
@@ -90,7 +90,7 @@ validate: ## Validate .env configuration
 	fi
 	@echo "Checking required variables..."
 	@grep -q "OPENAI_API_KEY=.*[^_here]" .env || (echo "❌ OPENAI_API_KEY not set" && exit 1)
-	@grep -q "JWT_SECRET=.*[^_here]" .env || (echo "❌ JWT_SECRET not set" && exit 1)
+	@(grep -q "BETTER_AUTH_SECRET=.*[^_here]" .env || grep -q "JWT_SECRET=.*[^_here]" .env) || (echo "❌ BETTER_AUTH_SECRET not set" && exit 1)
 	@grep -q "DB_PASSWORD=.*[^_here]" .env || (echo "❌ DB_PASSWORD not set" && exit 1)
 	@echo "✅ All required variables are set!"
 	@echo "💡 Optional: Check LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY for AI observability"

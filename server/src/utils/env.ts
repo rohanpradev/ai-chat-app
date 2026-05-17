@@ -31,10 +31,13 @@ const booleanStringToBoolean = (value: unknown) => {
 	return value;
 };
 
+const firstNonEmptyString = (...values: Array<string | undefined>) => values.find((value) => value?.trim());
+
 const sampleRateSchema = z.preprocess(emptyStringToUndefined, z.coerce.number().min(0).max(1).optional().default(0.1));
 
 const normalizedEnv = {
 	...Bun.env,
+	BETTER_AUTH_SECRET: firstNonEmptyString(Bun.env.BETTER_AUTH_SECRET, Bun.env.AUTH_SECRET, Bun.env.JWT_SECRET),
 	// Langfuse docs use LANGFUSE_BASE_URL; keep LANGFUSE_BASEURL as a backward-compatible alias.
 	LANGFUSE_BASE_URL: Bun.env.LANGFUSE_BASE_URL ?? Bun.env.LANGFUSE_BASEURL
 };
@@ -42,13 +45,15 @@ const normalizedEnv = {
 const urlSchema = z.string().url();
 
 const EnvSchema = z.object({
-	AUTH_COOKIE_NAME: z.string().default("token"),
 	BASE_API_SLUG: z.string().default("api"),
+	BETTER_AUTH_SECRET: z.string().min(32),
+	BETTER_AUTH_URL: z.preprocess(emptyStringToUndefined, urlSchema.optional()),
 	CLIENT_URL: urlSchema,
 	// Optional comma-separated list of allowed CORS origins
 	CORS_ORIGINS: z.string().optional(),
 	DB_URL: urlSchema,
-	JWT_SECRET: z.string().min(32),
+	GITHUB_CLIENT_ID: z.preprocess(emptyStringToUndefined, z.string().optional()),
+	GITHUB_CLIENT_SECRET: z.preprocess(emptyStringToUndefined, z.string().optional()),
 	LANGFUSE_BASE_URL: z.preprocess(emptyStringToUndefined, urlSchema.optional().default("https://cloud.langfuse.com")),
 	LANGFUSE_PUBLIC_KEY: z.preprocess(emptyStringToUndefined, z.string().optional()),
 	// Langfuse observability configuration (optional)

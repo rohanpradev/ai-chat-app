@@ -13,9 +13,9 @@ export default function configureOpenAPI(app: AppOpenAPI) {
 	});
 
 	app.openAPIRegistry.registerComponent("securitySchemes", "CookieAuth", {
-		description: "JWT authentication using a cookie named `token`",
+		description: "Better Auth session cookie",
 		in: "cookie",
-		name: "token", // the name of your JWT cookie
+		name: "better-auth.session_token",
 		type: "apiKey"
 	});
 

@@ -1,4 +1,5 @@
 const defaults: Record<string, string> = {
+	BETTER_AUTH_SECRET: "test_secret_minimum_32_characters",
 	CLIENT_URL: "http://localhost:5173",
 	DB_URL: "postgres://postgres:postgres@localhost:5432/chatapp",
 	JWT_SECRET: "test_secret_minimum_32_characters",

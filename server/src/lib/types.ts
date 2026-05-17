@@ -6,6 +6,14 @@ export interface UserDetails {
 	id: string;
 	name: string;
 	email: string;
+	image?: string | null;
+}
+
+export interface SessionDetails {
+	id: string;
+	userId: string;
+	expiresAt: Date;
+	token: string;
 }
 
 export type SessionUserDetails = UserDetails;
@@ -20,6 +28,7 @@ export interface AppBindings {
 	Variables: {
 		logger: PinoLogger;
 		jwtPayload: JWTPayload;
+		session: SessionDetails;
 		user: UserDetails;
 	};
 }

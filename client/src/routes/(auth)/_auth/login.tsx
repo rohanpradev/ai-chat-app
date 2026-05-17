@@ -5,9 +5,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GitHub } from "@/components/ui/github-icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserLogin } from "@/composables/useLoginUser";
+import { authClient } from "@/lib/auth-client";
 import { redirectSearchValidator } from "@/lib/router-search";
 import { Route as RegisterRoute } from "@/routes/(auth)/_auth/register";
 import { Route as IndexRoute } from "@/routes/index";
@@ -39,9 +41,24 @@ function LoginComponent() {
   const search = Route.useSearch();
   const { mutateAsync } = useUserLogin(search.redirect);
   const [showPassword, setShowPassword] = useState(false);
+  const [isGithubPending, setIsGithubPending] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const emailId = useId();
   const passwordId = useId();
+
+  const signInWithGithub = async () => {
+    setIsGithubPending(true);
+    const { error } = await authClient.signIn.social({
+      callbackURL: search.redirect || IndexRoute.to,
+      errorCallbackURL: Route.to,
+      provider: "github",
+    });
+
+    if (error) {
+      setIsGithubPending(false);
+      toast.error(error.message || "GitHub sign in failed.");
+    }
+  };
 
   const loginAction = async (_prevState: LoginState, formData: FormData): Promise<LoginState> => {
     const email = formData.get("email") as string;
@@ -111,6 +128,27 @@ function LoginComponent() {
         </CardHeader>
 
         <CardContent>
+          <Button
+            type="button"
+            variant="outline"
+            className="mb-4 h-11 w-full text-base font-medium"
+            disabled={isPending || isGithubPending}
+            onClick={signInWithGithub}
+          >
+            {isGithubPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GitHub className="mr-2 h-4 w-4" />
+            )}
+            Continue with GitHub
+          </Button>
+
+          <div className="mb-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span>Email</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor={emailId} className="text-sm font-medium">

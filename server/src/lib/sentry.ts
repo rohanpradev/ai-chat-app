@@ -48,7 +48,7 @@ const redactRequest = (event: ErrorEvent) => {
 	return event;
 };
 
-export const isSentryEnabled = Boolean(env.SENTRY_DSN);
+const isSentryEnabled = Boolean(env.SENTRY_DSN);
 
 export function initializeSentry() {
 	if (!isSentryEnabled || initialized) {

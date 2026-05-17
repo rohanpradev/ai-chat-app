@@ -32,7 +32,6 @@ const fileToDataUrl = async (profileImage: File) => {
 export const userProfile: AppRouteHandler<UserProfileRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const user = await db.query.users.findFirst({
-		columns: { password: false },
 		where: (userDb, { eq }) => eq(userDb.id, userJwt.id)
 	});
 
@@ -43,7 +42,12 @@ export const userProfile: AppRouteHandler<UserProfileRoute> = async (c) => {
 
 	return c.json(
 		{
-			data: user,
+			data: {
+				email: user.email,
+				id: user.id,
+				name: user.name,
+				profileImage: user.image
+			},
 			message: "User profile retrieved successfully"
 		},
 		HttpStatusCodes.OK
@@ -53,7 +57,6 @@ export const userProfile: AppRouteHandler<UserProfileRoute> = async (c) => {
 export const patchUserProfile: AppRouteHandler<UpdateUserProfileRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const user = await db.query.users.findFirst({
-		columns: { password: false },
 		where: (userDb, { eq }) => eq(userDb.id, userJwt.id)
 	});
 
@@ -64,20 +67,20 @@ export const patchUserProfile: AppRouteHandler<UpdateUserProfileRoute> = async (
 
 	const { name, profileImage = null } = UpdateProfileRequestSchema.parse(await c.req.parseBody());
 
-	const updatedData: { name: string; profileImage?: string } = {
+	const updatedData: { name: string; image?: string } = {
 		name
 	};
 
 	if (profileImage) {
 		validateProfileImage(profileImage);
-		updatedData.profileImage = await fileToDataUrl(profileImage);
+		updatedData.image = await fileToDataUrl(profileImage);
 	}
 
 	const [updatedUser] = await db.update(users).set(updatedData).where(eq(users.id, user.id)).returning({
 		email: users.email,
 		id: users.id,
 		name: users.name,
-		profileImage: users.profileImage
+		profileImage: users.image
 	});
 
 	if (!updatedUser) {

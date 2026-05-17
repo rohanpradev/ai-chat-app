@@ -1,29 +1,36 @@
 import * as Sentry from "@sentry/bun";
-import { jwt } from "hono/jwt";
+import { HTTPException } from "hono/http-exception";
 
-import { asAppMiddleware } from "@/lib/hono-compat";
+import { auth } from "@/lib/auth";
+import * as HttpStatusCodes from "@/lib/http-status-codes";
 import type { AppMiddleware } from "@/lib/types";
-import env from "@/utils/env";
-
-const jwtMiddleware = asAppMiddleware(
-	jwt({
-		alg: "HS256",
-		cookie: env.AUTH_COOKIE_NAME,
-		secret: env.JWT_SECRET
-	})
-);
 
 export const authMiddleware: AppMiddleware = async (c, next) => {
-	await jwtMiddleware(c, async () => {
-		const user = c.get("jwtPayload")?.sub;
-
-		if (user) {
-			c.set("user", user);
-			Sentry.setUser({ id: user.id });
-		} else {
-			Sentry.setUser(null);
-		}
-
-		await next();
+	const session = await auth.api.getSession({
+		headers: c.req.raw.headers
 	});
+
+	if (!session) {
+		Sentry.setUser(null);
+		throw new HTTPException(HttpStatusCodes.UNAUTHORIZED, {
+			message: "Please log in to continue."
+		});
+	}
+
+	const user = {
+		email: session.user.email,
+		id: session.user.id,
+		image: session.user.image ?? null,
+		name: session.user.name
+	};
+
+	c.set("user", user);
+	c.set("session", session.session);
+	c.set("jwtPayload", {
+		exp: Math.floor(session.session.expiresAt.getTime() / 1000),
+		sub: user
+	});
+
+	Sentry.setUser({ id: user.id });
+	await next();
 };

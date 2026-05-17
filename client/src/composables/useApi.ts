@@ -2,7 +2,6 @@ import type {
   AIEvaluationResponse,
   AIPlanResponse,
   ApiError,
-  AuthResponse,
   AvailableModelsResponse,
   CreateConversationResponse,
   EmbeddingDeleteResponse,
@@ -12,9 +11,7 @@ import type {
   GetConversationResponse,
   GetConversationsResponse,
   GetProfileResponse,
-  LoginResponse,
   RagResponse,
-  RegisterResponse,
 } from "@chat-app/shared";
 import { hc, type InferRequestType } from "hono/client";
 import type { ApiContract } from "@/lib/hono-contract";
@@ -86,31 +83,6 @@ export const getApiClient = () => {
       ): Promise<AIEvaluationResponse["data"]> => {
         const response = await apiClient.ai.evaluate.$post({ json: payload });
         const result = await parseResponse<AIEvaluationResponse>(response);
-        return result.data;
-      },
-    },
-    auth: {
-      login: async (
-        payload: InferRequestType<typeof apiClient.auth.login.$post>["json"],
-      ): Promise<LoginResponse["data"]> => {
-        const response = await apiClient.auth.login.$post({ json: payload });
-        const result = await parseResponse<LoginResponse>(response);
-        return result.data;
-      },
-      logout: async (): Promise<void> => {
-        const response = await apiClient.auth.logout.$post();
-        await parseResponse<{ message: string }>(response);
-      },
-      me: async (): Promise<AuthResponse["data"]> => {
-        const response = await apiClient.auth.me.$get();
-        const result = await parseResponse<AuthResponse>(response);
-        return result.data;
-      },
-      register: async (
-        payload: InferRequestType<typeof apiClient.auth.register.$post>["json"],
-      ): Promise<RegisterResponse["data"]> => {
-        const response = await apiClient.auth.register.$post({ json: payload });
-        const result = await parseResponse<RegisterResponse>(response);
         return result.data;
       },
     },

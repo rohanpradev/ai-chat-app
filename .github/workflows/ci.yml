@@ -109,7 +109,7 @@ jobs:
           LANGFUSE_SECRET_KEY=
           LANGFUSE_PUBLIC_KEY=
           LANGFUSE_BASEURL=
-          JWT_SECRET=test_secret_min_32_characters_long
+          BETTER_AUTH_SECRET=test_secret_min_32_characters_long
           CLIENT_URL=http://localhost
           BASE_API_SLUG=api
           VITE_API_URL=/api
@@ -199,7 +199,7 @@ jobs:
           LANGFUSE_SECRET_KEY=
           LANGFUSE_PUBLIC_KEY=
           LANGFUSE_BASEURL=
-          JWT_SECRET=test_secret_min_32_characters_long
+          BETTER_AUTH_SECRET=test_secret_min_32_characters_long
           CLIENT_URL=http://localhost
           BASE_API_SLUG=api
           VITE_API_URL=/api

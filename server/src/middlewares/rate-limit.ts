@@ -34,7 +34,7 @@ const pruneExpiredBuckets = (now: number) => {
 	}
 };
 
-export const createRateLimit = ({
+const createRateLimit = ({
 	keyPrefix,
 	limit,
 	message = "Too many requests. Please wait and try again.",
@@ -65,13 +65,6 @@ export const createRateLimit = ({
 		await next();
 	};
 };
-
-export const authRateLimit = createRateLimit({
-	keyPrefix: "auth",
-	limit: 20,
-	message: "Too many authentication attempts. Please wait and try again.",
-	windowMs: 60_000
-});
 
 export const aiRateLimit = createRateLimit({
 	keyPrefix: "ai",
