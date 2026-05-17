@@ -33,8 +33,10 @@ secrets:
       POSTGRES_PASSWORD: change-me
       DB_PASSWORD: change-me
       REDIS_AUTH: redis_password
-      JWT_SECRET: local-dev-jwt-secret-minimum-32-chars-1234567890
+      BETTER_AUTH_SECRET: local-dev-better-auth-secret-minimum-32-chars
       DB_URL: ""
+      GITHUB_CLIENT_ID: ""
+      GITHUB_CLIENT_SECRET: ""
       OPENAI_API_KEY: local-test-openai-key
       SERPER_API_KEY: ""
       LANGFUSE_PUBLIC_KEY: ""

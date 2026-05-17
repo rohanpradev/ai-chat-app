@@ -306,12 +306,15 @@ services:
     environment:
       - NODE_ENV=production
       - SERVER_PORT=${SERVER_PORT:-3000}
-      - AUTH_COOKIE_NAME=${AUTH_COOKIE_NAME:-token}
       - BASE_API_SLUG=${BASE_API_SLUG:-api}
-      - CLIENT_URL=${CLIENT_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-}
+      - CLIENT_URL=${CLIENT_URL:-https://${DOMAIN:-localhost}}
       - CORS_ORIGINS=${CORS_ORIGINS:-}
       - DB_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - JWT_SECRET=${JWT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - JWT_SECRET=${JWT_SECRET:-}
       - REDIS_URL=${REDIS_URL:-redis://:${REDIS_AUTH:-redis_password}@redis:6379}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -378,7 +381,7 @@ services:
       - "traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolallowheaders=Accept,Authorization,Content-Type,Origin,X-Requested-With,X-Request-ID,Sentry-Trace,Baggage"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolexposeheaders=Content-Length,Content-Type,X-Request-ID"
-      - "traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=https://${DOMAIN},${CLIENT_URL}"
+      - "traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=https://${DOMAIN:-localhost},${CLIENT_URL:-https://${DOMAIN:-localhost}}"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolmaxage=86400"
       - "traefik.http.middlewares.api-cors.headers.accesscontrolallowcredentials=true"
       - "traefik.http.middlewares.api-cors.headers.addvaryheader=true"

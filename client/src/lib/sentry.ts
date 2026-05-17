@@ -66,7 +66,7 @@ const sentryRelease = import.meta.env.VITE_SENTRY_RELEASE || import.meta.env.VIT
 
 let initialized = false;
 
-export const isSentryEnabled = () => Boolean(sentryDsn);
+const isSentryEnabled = () => Boolean(sentryDsn);
 
 export const initializeSentry = (router: SentryRouter) => {
   if (!sentryDsn || initialized) {

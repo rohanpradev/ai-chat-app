@@ -20,7 +20,7 @@ const endpoints = [
 	{ label: "Health", method: "GET", path: "/health", tone: "Probe-ready service status" },
 	{ label: "Scalar Docs", method: "GET", path: "/reference", tone: "Interactive API reference" },
 	{ label: "OpenAPI", method: "GET", path: "/doc", tone: "Machine-readable contract" },
-	{ label: "Session", method: "GET", path: `${apiBasePath}/auth/me`, tone: "Authenticated current user" },
+	{ label: "Session", method: "GET", path: `${apiBasePath}/auth/get-session`, tone: "Authenticated current user" },
 	{ label: "Chat Stream", method: "POST", path: `${apiBasePath}/ai/chat-stream`, tone: "OpenAI + AI SDK streaming" },
 	{ label: "Conversations", method: "GET", path: `${apiBasePath}/conversations`, tone: "Saved chat history" }
 ] as const;

@@ -39,7 +39,12 @@ is_truthy() {
   esac
 }
 
-JWT_SECRET="$(read_env JWT_SECRET)"
+BETTER_AUTH_SECRET="$(read_env BETTER_AUTH_SECRET)"
+if [ -z "${BETTER_AUTH_SECRET}" ]; then
+  BETTER_AUTH_SECRET="$(read_env JWT_SECRET)"
+fi
+GITHUB_CLIENT_ID="$(read_env GITHUB_CLIENT_ID)"
+GITHUB_CLIENT_SECRET="$(read_env GITHUB_CLIENT_SECRET)"
 OPENAI_API_KEY="$(read_env OPENAI_API_KEY)"
 REDIS_AUTH="$(read_env REDIS_AUTH)"
 LANGFUSE_PUBLIC_KEY="$(read_env LANGFUSE_PUBLIC_KEY)"
@@ -166,8 +171,10 @@ secrets:
       POSTGRES_PASSWORD: change-me
       DB_PASSWORD: change-me
       REDIS_AUTH: "$(yaml_escape "${REDIS_AUTH:-redis_password}")"
-      JWT_SECRET: "$(yaml_escape "${JWT_SECRET:-}")"
+      BETTER_AUTH_SECRET: "$(yaml_escape "${BETTER_AUTH_SECRET:-}")"
       DB_URL: ""
+      GITHUB_CLIENT_ID: "$(yaml_escape "${GITHUB_CLIENT_ID:-}")"
+      GITHUB_CLIENT_SECRET: "$(yaml_escape "${GITHUB_CLIENT_SECRET:-}")"
       OPENAI_API_KEY: "$(yaml_escape "${OPENAI_API_KEY:-}")"
       SERPER_API_KEY: "$(yaml_escape "${SERPER_API_KEY:-}")"
       LANGFUSE_PUBLIC_KEY: "$(yaml_escape "${LANGFUSE_PUBLIC_KEY:-}")"

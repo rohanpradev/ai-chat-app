@@ -85,15 +85,27 @@ describe("App Creation", () => {
 		const body = await response.json();
 		expect(body.info.title).toBe("AI API");
 		expect(body.openapi).toBe("3.0.0");
+		expect(body.components.securitySchemes.CookieAuth).toEqual({
+			description: "Better Auth session cookie",
+			in: "cookie",
+			name: "better-auth.session_token",
+			type: "apiKey"
+		});
 	});
 
 	it("should serve the Scalar API reference", async () => {
 		const app = createApp();
 		configureOpenAPI(app);
 		const response = await app.request("/reference");
+		const html = await response.text();
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toContain("text/html");
-		expect(await response.text()).toContain("<title>AI API Reference</title>");
+		expect(html).toContain("<title>AI API Reference</title>");
+		expect(html).toContain('"title": "App API"');
+		expect(html).toContain('"url": "/doc"');
+		expect(html).toContain('"title": "Auth API"');
+		expect(html).toContain('"url": "/api/auth/open-api/generate-schema"');
+		expect(html).toContain('"preferredSecurityScheme": "CookieAuth"');
 	});
 });

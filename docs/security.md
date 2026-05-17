@@ -2,10 +2,10 @@
 
 ## Runtime Controls
 
-- Auth is cookie based. Production cookies are `httpOnly`, `secure`, and `sameSite=strict`.
-- `JWT_SECRET` must be at least 32 characters and should be randomly generated.
+- Auth is Better Auth session-cookie based. Production cookies are `httpOnly` and `secure`.
+- `BETTER_AUTH_SECRET` must be at least 32 characters and should be randomly generated.
 - Production startup rejects `CORS_ORIGINS=*` because credentialed cookies are enabled.
-- Auth register/login routes have an IP-based rate-limit backstop. Traefik still provides the outer production rate limit.
+- Better Auth provides auth endpoint protections. Traefik still provides the outer production rate limit.
 - Request bodies are capped globally, and embedding uploads have a tighter route-level cap.
 - Sentry defaults avoid sending PII unless `SENTRY_SEND_DEFAULT_PII=true` is explicitly configured.
 
@@ -38,7 +38,7 @@ Traefik provides:
 
 ## Production Checklist
 
-- Use strong unique values for `JWT_SECRET`, `DB_PASSWORD`, and `REDIS_AUTH`.
+- Use strong unique values for `BETTER_AUTH_SECRET`, `DB_PASSWORD`, and `REDIS_AUTH`.
 - Keep `CORS_ORIGINS` explicit. Do not use `*` in production.
 - Enable GitHub secret scanning and push protection.
 - Enable Dependabot alerts and review dependency PRs manually.

@@ -6,6 +6,7 @@ metadata:
     {{- include "chat-app.labels" . | nindent 4 }}
 data:
   BASE_API_SLUG: {{ .Values.config.env.BASE_API_SLUG | quote }}
+  BETTER_AUTH_URL: {{ .Values.config.env.BETTER_AUTH_URL | quote }}
   CLIENT_URL: {{ .Values.config.env.CLIENT_URL | quote }}
   CORS_ORIGINS: {{ .Values.config.env.CORS_ORIGINS | quote }}
   DB_HOST: {{ include "chat-app.componentName" (dict "root" . "component" "db") | quote }}

@@ -81,9 +81,18 @@ Then edit `.env`. At minimum set:
 
 ```text
 OPENAI_API_KEY=
-JWT_SECRET=
+BETTER_AUTH_SECRET=
 DB_PASSWORD=
 ```
+
+For GitHub login:
+
+```text
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+```
+
+For Docker or Kubernetes, set `CLIENT_URL` or `BETTER_AUTH_URL` to the public app origin used by the browser, for example `https://localhost` or `https://app.docker.localhost`.
 
 For web search:
 

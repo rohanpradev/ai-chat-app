@@ -1,4 +1,4 @@
-import type { LoginResponse, RegisterResponse, User } from "@chat-app/shared";
+import type { User } from "@chat-app/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { ApiRequestError } from "@/composables/useApi";
 import { captureSentryException, setSentryUser } from "@/lib/sentry";
@@ -7,7 +7,7 @@ import { getCurrentUserQuery } from "@/queries/getCurrentUser";
 export interface AuthContext {
   isAuthenticated: boolean;
   user: User | null;
-  login: (response: LoginResponse | RegisterResponse) => void;
+  login: (user: User) => void;
   logout: () => void;
 }
 
@@ -15,11 +15,11 @@ export function createAuthContext(queryClient: QueryClient): AuthContext {
   const authContext: AuthContext = {
     isAuthenticated: false,
     user: null,
-    login: (response: LoginResponse | RegisterResponse) => {
+    login: (user: User) => {
       authContext.isAuthenticated = true;
-      authContext.user = response.data;
-      setSentryUser({ id: response.data.id });
-      queryClient.setQueryData(getCurrentUserQuery().queryKey, response.data);
+      authContext.user = user;
+      setSentryUser({ id: user.id });
+      queryClient.setQueryData(getCurrentUserQuery().queryKey, user);
     },
     logout: () => {
       authContext.isAuthenticated = false;
@@ -35,7 +35,7 @@ export async function loadUser(queryClient: QueryClient, authContext: AuthContex
   try {
     const user = await queryClient.fetchQuery(getCurrentUserQuery());
     if (user) {
-      authContext.login({ data: user, message: "User loaded" });
+      authContext.login(user);
       return user;
     }
   } catch (error) {

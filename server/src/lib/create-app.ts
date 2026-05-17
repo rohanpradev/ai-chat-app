@@ -75,20 +75,28 @@ export function createApp() {
 		)
 	);
 
-	useAppMiddleware(
-		asAppMiddleware(
-			csrf({
-				origin: (origin) => {
-					if (!origin) {
-						return false;
-					}
+	const csrfMiddleware = asAppMiddleware(
+		csrf({
+			origin: (origin) => {
+				if (!origin) {
+					return false;
+				}
 
-					return isAllowedOrigin(origin);
-				},
-				secFetchSite: ["same-origin", "same-site", "none"]
-			})
-		)
+				return isAllowedOrigin(origin);
+			},
+			secFetchSite: ["same-origin", "same-site", "none"]
+		})
 	);
+	const authPathPrefix = `/${env.BASE_API_SLUG}/auth/`;
+
+	useAppMiddleware(async (c, next) => {
+		if (c.req.path.startsWith(authPathPrefix)) {
+			await next();
+			return;
+		}
+
+		await csrfMiddleware(c, next);
+	});
 
 	useAppMiddleware(asAppMiddleware(etag()));
 	useAppMiddleware(asAppMiddleware(timeout(180_000)));

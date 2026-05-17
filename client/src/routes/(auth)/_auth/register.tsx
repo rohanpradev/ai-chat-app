@@ -5,9 +5,11 @@ import { toast } from "sonner";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GitHub } from "@/components/ui/github-icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserRegister } from "@/composables/useRegisterUser";
+import { authClient } from "@/lib/auth-client";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 import { Route as IndexRoute } from "@/routes/index";
 import { EMAIL_REGEX } from "@/utils";
@@ -46,10 +48,26 @@ function RegisterForm() {
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isGithubPending, setIsGithubPending] = useState(false);
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
   const confirmPasswordId = useId();
+
+  const signUpWithGithub = async () => {
+    setIsGithubPending(true);
+    const { error } = await authClient.signIn.social({
+      callbackURL: IndexRoute.to,
+      errorCallbackURL: LoginRoute.to,
+      newUserCallbackURL: IndexRoute.to,
+      provider: "github",
+    });
+
+    if (error) {
+      setIsGithubPending(false);
+      toast.error(error.message || "GitHub sign up failed.");
+    }
+  };
 
   const registerAction = async (_prevState: RegisterState, formData: FormData): Promise<RegisterState> => {
     const name = ((formData.get("name") as string | null) ?? "").trim();
@@ -130,6 +148,23 @@ function RegisterForm() {
         </CardHeader>
 
         <CardContent>
+          <Button
+            type="button"
+            variant="outline"
+            className="mb-4 h-11 w-full text-base font-medium"
+            disabled={isPending || isGithubPending}
+            onClick={signUpWithGithub}
+          >
+            {isGithubPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GitHub className="mr-2 h-4 w-4" />}
+            Continue with GitHub
+          </Button>
+
+          <div className="mb-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span>Email</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Profile Picture (Optional)</Label>

@@ -32,6 +32,7 @@ export const getUserProfile = createRoute({
 			description: "No authentication token provided or invalid token"
 		}
 	},
+	security: [{ CookieAuth: [] }],
 	summary: "Get profile information",
 	tags
 });
@@ -69,6 +70,7 @@ export const updateUserProfile = createRoute({
 			description: "Invalid input data"
 		}
 	},
+	security: [{ CookieAuth: [] }],
 	summary: "Update profile information",
 	tags
 });

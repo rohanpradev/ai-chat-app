@@ -1,6 +1,17 @@
 import { generateId } from "ai";
 import { relations } from "drizzle-orm";
-import { index, integer, json, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	integer,
+	json,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+	uuid,
+	varchar
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable(
 	"users",
@@ -9,16 +20,92 @@ export const users = pgTable(
 			.$defaultFn(() => new Date())
 			.notNull(),
 		email: varchar("email", { length: 255 }).notNull().unique(),
+		emailVerified: boolean("email_verified").notNull().default(false),
 		id: uuid("id").primaryKey().defaultRandom(),
+		image: text("profile_image"),
 		name: varchar("name", { length: 100 }).notNull(),
-		password: varchar("password", { length: 255 }).notNull(),
-		profileImage: text("profile_image"),
 		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.$defaultFn(() => new Date())
 			.notNull()
 			.$onUpdate(() => new Date())
 	},
 	(table) => [index("users_created_at_idx").on(table.createdAt), index("users_email_idx").on(table.email)]
+);
+
+export const sessions = pgTable(
+	"session",
+	{
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		id: varchar("id", { length: 255 })
+			.primaryKey()
+			.$defaultFn(() => generateId()),
+		ipAddress: text("ip_address"),
+		token: varchar("token", { length: 255 }).notNull().unique(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull()
+			.$onUpdate(() => new Date()),
+		userAgent: text("user_agent"),
+		userId: uuid("user_id")
+			.references(() => users.id, { onDelete: "cascade" })
+			.notNull()
+	},
+	(table) => [index("sessions_token_idx").on(table.token), index("sessions_user_id_idx").on(table.userId)]
+);
+
+export const accounts = pgTable(
+	"account",
+	{
+		accessToken: text("access_token"),
+		accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+		accountId: varchar("account_id", { length: 255 }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull(),
+		id: varchar("id", { length: 255 })
+			.primaryKey()
+			.$defaultFn(() => generateId()),
+		idToken: text("id_token"),
+		password: text("password"),
+		providerId: varchar("provider_id", { length: 255 }).notNull(),
+		refreshToken: text("refresh_token"),
+		refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+		scope: text("scope"),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull()
+			.$onUpdate(() => new Date()),
+		userId: uuid("user_id")
+			.references(() => users.id, { onDelete: "cascade" })
+			.notNull()
+	},
+	(table) => [
+		uniqueIndex("accounts_provider_account_idx").on(table.providerId, table.accountId),
+		index("accounts_user_id_idx").on(table.userId)
+	]
+);
+
+export const verifications = pgTable(
+	"verification",
+	{
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		id: varchar("id", { length: 255 })
+			.primaryKey()
+			.$defaultFn(() => generateId()),
+		identifier: text("identifier").notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull()
+			.$onUpdate(() => new Date()),
+		value: text("value").notNull()
+	},
+	(table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
 
 export const chats = pgTable(
@@ -48,14 +135,30 @@ export const chats = pgTable(
 );
 
 export const userRelations = relations(users, ({ many }) => ({
+	accounts: many(accounts),
 	chats: many(chats),
-	embeddingDocuments: many(embeddingDocuments)
+	embeddingDocuments: many(embeddingDocuments),
+	sessions: many(sessions)
 }));
 
 export const chatRelations = relations(chats, ({ one, many }) => ({
 	messages: many(messages),
 	user: one(users, {
 		fields: [chats.userId],
+		references: [users.id]
+	})
+}));
+
+export const sessionRelations = relations(sessions, ({ one }) => ({
+	user: one(users, {
+		fields: [sessions.userId],
+		references: [users.id]
+	})
+}));
+
+export const accountRelations = relations(accounts, ({ one }) => ({
+	user: one(users, {
+		fields: [accounts.userId],
 		references: [users.id]
 	})
 }));
