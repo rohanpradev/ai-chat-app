@@ -5,14 +5,14 @@
 	"catalog": {
 		"@hono/zod-openapi": "^1.4.0",
 		"@types/node": "^25.7.0",
-		"ai": "7.0.0-beta.116",
+		"ai": "7.0.0-canary.142",
 		"hono": "^4.12.18",
 		"zod": "^4.4.3"
 	},
 	"description": "A chat application built with Bun, React, and Zod.",
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",
-		"@typescript/native-preview": "7.0.0-dev.20260513.1",
+		"@typescript/native-preview": "7.0.0-dev.20260515.1",
 		"knip": "^6.13.1",
 		"rimraf": "^6.1.3"
 	},
