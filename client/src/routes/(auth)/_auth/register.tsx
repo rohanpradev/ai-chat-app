@@ -155,11 +155,7 @@ function RegisterForm() {
             disabled={isPending || isGithubPending}
             onClick={signUpWithGithub}
           >
-            {isGithubPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <GitHub className="mr-2 h-4 w-4" />
-            )}
+            {isGithubPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GitHub className="mr-2 h-4 w-4" />}
             Continue with GitHub
           </Button>
 

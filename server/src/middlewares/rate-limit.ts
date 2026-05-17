@@ -34,7 +34,7 @@ const pruneExpiredBuckets = (now: number) => {
 	}
 };
 
-export const createRateLimit = ({
+const createRateLimit = ({
 	keyPrefix,
 	limit,
 	message = "Too many requests. Please wait and try again.",
