@@ -40,6 +40,7 @@ export const createConversationRoute = createRoute({
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(ChatBadRequestResponseSchema, "Invalid input")
 	},
+	security: [{ CookieAuth: [] }],
 	summary: "Create new conversation",
 	tags
 });
@@ -55,6 +56,7 @@ export const getConversationsRoute = createRoute({
 		[HttpStatusCodes.OK]: jsonContent(GetConversationsResponseSchema, "List of conversations"),
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized")
 	},
+	security: [{ CookieAuth: [] }],
 	summary: "Get user conversations",
 	tags
 });
@@ -74,6 +76,7 @@ export const getConversationRoute = createRoute({
 		[HttpStatusCodes.NOT_FOUND]: jsonContent(ChatErrorResponseSchema, "Conversation not found"),
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized")
 	},
+	security: [{ CookieAuth: [] }],
 	summary: "Get conversation by ID",
 	tags
 });
@@ -94,6 +97,7 @@ export const updateConversationRoute = createRoute({
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(ChatBadRequestResponseSchema, "Invalid input")
 	},
+	security: [{ CookieAuth: [] }],
 	summary: "Update conversation",
 	tags
 });

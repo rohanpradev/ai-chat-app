@@ -1,5 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
+import { openAPI } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import env from "@/utils/env";
@@ -61,6 +62,7 @@ export const auth = betterAuth({
 			verify: ({ hash, password }) => Bun.password.verify(password, hash)
 		}
 	},
+	plugins: [openAPI()],
 	socialProviders: githubProvider,
 	trustedOrigins
 });
