@@ -2,11 +2,13 @@
 
 ## Source of Truth
 
-The fallback model catalog lives in `shared/models.ts`. The server can also fetch available OpenAI models at runtime and merge account-specific overrides from `OPENAI_MODEL_OVERRIDES`.
+The approved chat model catalog lives in `shared/models.ts`. The server may check the OpenAI model list at runtime, but it only exposes approved IDs from that shared catalog.
 
 ## Default Model
 
-The default model should be capable of:
+The only approved chat model is `gpt-5-mini`. The only approved embedding model is `text-embedding-3-small`.
+
+The default chat model should be capable of:
 
 - Tool calling
 - Streaming

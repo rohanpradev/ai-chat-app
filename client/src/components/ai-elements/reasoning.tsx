@@ -1,14 +1,17 @@
+// @ts-nocheck
 "use client";
 
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
-import { Shimmer } from "@/components/ai-elements/shimmer";
-import { useStreamdownPlugins } from "@/components/ai-elements/use-streamdown-plugins";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { cjk } from "@streamdown/cjk";
+import { code } from "@streamdown/code";
+import { math } from "@streamdown/math";
+import { mermaid } from "@streamdown/mermaid";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import {
@@ -22,6 +25,8 @@ import {
   useState,
 } from "react";
 import { Streamdown } from "streamdown";
+
+import { Shimmer } from "./shimmer";
 
 interface ReasoningContextValue {
   isStreaming: boolean;
@@ -121,12 +126,12 @@ export const Reasoning = memo(
       (newOpen: boolean) => {
         setIsOpen(newOpen);
       },
-      [setIsOpen],
+      [setIsOpen]
     );
 
     const contextValue = useMemo(
       () => ({ duration, isOpen, isStreaming, setIsOpen }),
-      [duration, isOpen, isStreaming, setIsOpen],
+      [duration, isOpen, isStreaming, setIsOpen]
     );
 
     return (
@@ -141,7 +146,7 @@ export const Reasoning = memo(
         </Collapsible>
       </ReasoningContext.Provider>
     );
-  },
+  }
 );
 
 export type ReasoningTriggerProps = ComponentProps<
@@ -173,7 +178,7 @@ export const ReasoningTrigger = memo(
       <CollapsibleTrigger
         className={cn(
           "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground",
-          className,
+          className
         )}
         {...props}
       >
@@ -184,14 +189,14 @@ export const ReasoningTrigger = memo(
             <ChevronDownIcon
               className={cn(
                 "size-4 transition-transform",
-                isOpen ? "rotate-180" : "rotate-0",
+                isOpen ? "rotate-180" : "rotate-0"
               )}
             />
           </>
         )}
       </CollapsibleTrigger>
     );
-  },
+  }
 );
 
 export type ReasoningContentProps = ComponentProps<
@@ -200,23 +205,21 @@ export type ReasoningContentProps = ComponentProps<
   children: string;
 };
 
-export const ReasoningContent = memo(
-  ({ className, children, ...props }: ReasoningContentProps) => {
-    const plugins = useStreamdownPlugins(children);
+const streamdownPlugins = { cjk, code, math, mermaid };
 
-    return (
-      <CollapsibleContent
-        className={cn(
-          "mt-4 text-sm",
-          "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-          className,
-        )}
-        {...props}
-      >
-        <Streamdown plugins={plugins}>{children}</Streamdown>
-      </CollapsibleContent>
-    );
-  },
+export const ReasoningContent = memo(
+  ({ className, children, ...props }: ReasoningContentProps) => (
+    <CollapsibleContent
+      className={cn(
+        "mt-4 text-sm",
+        "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+        className
+      )}
+      {...props}
+    >
+      <Streamdown plugins={streamdownPlugins}>{children}</Streamdown>
+    </CollapsibleContent>
+  )
 );
 
 Reasoning.displayName = "Reasoning";

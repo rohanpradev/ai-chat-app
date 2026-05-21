@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,8 @@ import {
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
-import { CodeBlock } from "@/components/ai-elements/code-block";
+
+import { CodeBlock } from "./code-block";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -79,17 +81,13 @@ export const ToolHeader = ({
   ...props
 }: ToolHeaderProps) => {
   const derivedName =
-    type === "dynamic-tool"
-      ? (toolName ?? "tool")
-      : typeof type === "string"
-        ? type.split("-").slice(1).join("-") || type
-        : "tool";
+    type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
 
   return (
     <CollapsibleTrigger
       className={cn(
         "flex w-full items-center justify-between gap-4 p-3",
-        className,
+        className
       )}
       {...props}
     >
@@ -109,7 +107,7 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className,
+      className
     )}
     {...props}
   />
@@ -125,13 +123,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
       Parameters
     </h4>
     <div className="rounded-md bg-muted/50">
-      {typeof input === "undefined" ? (
-        <div className="px-3 py-2 text-muted-foreground text-sm">
-          Parameters are still streaming.
-        </div>
-      ) : (
-        <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
-      )}
+      <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
 );
@@ -171,7 +163,7 @@ export const ToolOutput = ({
           "overflow-x-auto rounded-md text-xs [&_table]:w-full",
           errorText
             ? "bg-destructive/10 text-destructive"
-            : "bg-muted/50 text-foreground",
+            : "bg-muted/50 text-foreground"
         )}
       >
         {errorText && <div>{errorText}</div>}

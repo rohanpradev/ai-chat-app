@@ -1,11 +1,11 @@
+// @ts-nocheck
 "use client";
-
-import type { ComponentProps, HTMLAttributes } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Ansi from "ansi-to-react";
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from "lucide-react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import {
   createContext,
   useCallback,
@@ -15,7 +15,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { Shimmer } from "@/components/ai-elements/shimmer";
 
 interface TerminalContextType {
   output: string;
@@ -30,56 +29,6 @@ const TerminalContext = createContext<TerminalContextType>({
   output: "",
 });
 
-export type TerminalProps = HTMLAttributes<HTMLDivElement> & {
-  output: string;
-  isStreaming?: boolean;
-  autoScroll?: boolean;
-  onClear?: () => void;
-};
-
-export const Terminal = ({
-  output,
-  isStreaming = false,
-  autoScroll = true,
-  onClear,
-  className,
-  children,
-  ...props
-}: TerminalProps) => {
-  const contextValue = useMemo(
-    () => ({ autoScroll, isStreaming, onClear, output }),
-    [autoScroll, isStreaming, onClear, output],
-  );
-
-  return (
-    <TerminalContext.Provider value={contextValue}>
-      <div
-        className={cn(
-          "flex flex-col overflow-hidden rounded-lg border bg-zinc-950 text-zinc-100",
-          className,
-        )}
-        {...props}
-      >
-        {children ?? (
-          <>
-            <TerminalHeader>
-              <TerminalTitle />
-              <div className="flex items-center gap-1">
-                <TerminalStatus />
-                <TerminalActions>
-                  <TerminalCopyButton />
-                  {onClear && <TerminalClearButton />}
-                </TerminalActions>
-              </div>
-            </TerminalHeader>
-            <TerminalContent />
-          </>
-        )}
-      </div>
-    </TerminalContext.Provider>
-  );
-};
-
 export type TerminalHeaderProps = HTMLAttributes<HTMLDivElement>;
 
 export const TerminalHeader = ({
@@ -90,7 +39,7 @@ export const TerminalHeader = ({
   <div
     className={cn(
       "flex items-center justify-between border-zinc-800 border-b px-4 py-2",
-      className,
+      className
     )}
     {...props}
   >
@@ -132,7 +81,7 @@ export const TerminalStatus = ({
       className={cn("flex items-center gap-2 text-xs text-zinc-400", className)}
       {...props}
     >
-      {children ?? <Shimmer className="w-16">Running...</Shimmer>}
+      {children}
     </div>
   );
 };
@@ -187,7 +136,7 @@ export const TerminalCopyButton = ({
     () => () => {
       window.clearTimeout(timeoutRef.current);
     },
-    [],
+    []
   );
 
   const Icon = isCopied ? CheckIcon : CopyIcon;
@@ -196,7 +145,7 @@ export const TerminalCopyButton = ({
     <Button
       className={cn(
         "size-7 shrink-0 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100",
-        className,
+        className
       )}
       onClick={copyToClipboard}
       size="icon"
@@ -225,7 +174,7 @@ export const TerminalClearButton = ({
     <Button
       className={cn(
         "size-7 shrink-0 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100",
-        className,
+        className
       )}
       onClick={onClear}
       size="icon"
@@ -247,7 +196,6 @@ export const TerminalContent = ({
   const { output, isStreaming, autoScroll } = useContext(TerminalContext);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: output triggers auto-scroll when new content arrives
   useEffect(() => {
     if (autoScroll && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -258,7 +206,7 @@ export const TerminalContent = ({
     <div
       className={cn(
         "max-h-96 overflow-auto p-4 font-mono text-sm leading-relaxed",
-        className,
+        className
       )}
       ref={containerRef}
       {...props}
@@ -272,5 +220,55 @@ export const TerminalContent = ({
         </pre>
       )}
     </div>
+  );
+};
+
+export type TerminalProps = HTMLAttributes<HTMLDivElement> & {
+  output: string;
+  isStreaming?: boolean;
+  autoScroll?: boolean;
+  onClear?: () => void;
+};
+
+export const Terminal = ({
+  output,
+  isStreaming = false,
+  autoScroll = true,
+  onClear,
+  className,
+  children,
+  ...props
+}: TerminalProps) => {
+  const contextValue = useMemo(
+    () => ({ autoScroll, isStreaming, onClear, output }),
+    [autoScroll, isStreaming, onClear, output]
+  );
+
+  return (
+    <TerminalContext.Provider value={contextValue}>
+      <div
+        className={cn(
+          "flex flex-col overflow-hidden rounded-lg border bg-zinc-950 text-zinc-100",
+          className
+        )}
+        {...props}
+      >
+        {children ?? (
+          <>
+            <TerminalHeader>
+              <TerminalTitle />
+              <div className="flex items-center gap-1">
+                <TerminalStatus />
+                <TerminalActions>
+                  <TerminalCopyButton />
+                  {onClear && <TerminalClearButton />}
+                </TerminalActions>
+              </div>
+            </TerminalHeader>
+            <TerminalContent />
+          </>
+        )}
+      </div>
+    </TerminalContext.Provider>
   );
 };

@@ -15,24 +15,6 @@ interface OpenAIModelListResponse {
 
 const MODEL_CACHE_TTL_MS = 5 * 60 * 1000;
 const OPENAI_MODELS_TIMEOUT_MS = 5000;
-const snapshotSuffixPattern = /-\d{4}-\d{2}-\d{2}$/;
-const supportedPrefixes = [/^gpt-/, /^o\d/, /^codex/];
-const unsupportedFragments = [
-	"audio",
-	"computer-use",
-	"deep-research",
-	"embedding",
-	"image",
-	"moderation",
-	"omni-moderation",
-	"preview",
-	"realtime",
-	"search-preview",
-	"sora",
-	"transcribe",
-	"tts",
-	"whisper"
-];
 
 let cachedModelCatalog:
 	| {
@@ -40,41 +22,6 @@ let cachedModelCatalog:
 			expiresAt: number;
 	  }
 	| undefined;
-
-const knownModelSegmentLabels: Record<string, string> = {
-	codex: "Codex",
-	mini: "Mini",
-	nano: "Nano",
-	oss: "OSS",
-	pro: "Pro"
-};
-
-const formatModelSegment = (segment: string): string => {
-	const normalizedSegment = segment.toLowerCase();
-	const knownLabel = knownModelSegmentLabels[normalizedSegment];
-
-	if (knownLabel) {
-		return knownLabel;
-	}
-
-	if (/^\d+b$/i.test(segment)) {
-		return segment.toUpperCase();
-	}
-
-	return segment;
-};
-
-const buildDefaultModelDisplayName = (modelId: string): string => {
-	const [family, ...qualifiers] = modelId.split("-");
-
-	if (family === "gpt" && qualifiers.length > 0) {
-		const [variant, ...rest] = qualifiers;
-
-		return [`GPT-${formatModelSegment(variant)}`, ...rest.map(formatModelSegment)].filter(Boolean).join(" ");
-	}
-
-	return [formatModelSegment(family), ...qualifiers.map(formatModelSegment)].filter(Boolean).join(" ");
-};
 
 const mergeUniqueModels = (models: readonly AIModelDefinition[]): AIModelDefinition[] => {
 	const modelMap = new Map<string, AIModelDefinition>();
@@ -88,71 +35,26 @@ const mergeUniqueModels = (models: readonly AIModelDefinition[]): AIModelDefinit
 	return [...modelMap.values()];
 };
 
-export const parseConfiguredModelOverrides = (configuredModelIds: string | undefined): AIModelDefinition[] => {
-	if (!configuredModelIds) {
-		return [];
-	}
-
-	return mergeUniqueModels(
-		configuredModelIds
-			.split(",")
-			.map((modelId) => modelId.trim())
-			.filter(Boolean)
-			.map((modelId) => ({
-				id: modelId,
-				name: buildDefaultModelDisplayName(modelId),
-				provider: "openai" as const,
-				source: "fallback" as const
-			}))
-	);
-};
-
-const configuredModelOverrides = parseConfiguredModelOverrides(env.OPENAI_MODEL_OVERRIDES);
-const fallbackModels = mergeUniqueModels([...getModelsByProvider("openai"), ...configuredModelOverrides]);
-const fallbackNameLookup = new Map(fallbackModels.map((model) => [model.id, model.name]));
+const fallbackModels = mergeUniqueModels(getModelsByProvider("openai"));
 const fallbackOrderLookup = new Map(fallbackModels.map((model, index) => [model.id, index]));
-
-const buildModelDisplayName = (modelId: string): string => {
-	const fallbackName = fallbackNameLookup.get(modelId);
-
-	if (fallbackName) {
-		return fallbackName;
-	}
-
-	return buildDefaultModelDisplayName(modelId);
-};
-
-const isSupportedChatModelId = (modelId: string) => {
-	const normalizedId = modelId.toLowerCase();
-
-	if (normalizedId.startsWith("chatgpt-") || normalizedId.startsWith("ft:")) {
-		return false;
-	}
-
-	if (snapshotSuffixPattern.test(normalizedId)) {
-		return false;
-	}
-
-	if (unsupportedFragments.some((fragment) => normalizedId.includes(fragment))) {
-		return false;
-	}
-
-	return supportedPrefixes.some((pattern) => pattern.test(normalizedId));
-};
+const fallbackModelLookup = new Map(fallbackModels.map((model) => [model.id, model]));
 
 export const filterAvailableChatModels = (models: readonly OpenAIModelRecord[]): AIModelDefinition[] =>
 	mergeUniqueModels([
 		...models
-			.filter((model) => isSupportedChatModelId(model.id))
-			.map((model) => ({
-				created: model.created,
-				id: model.id,
-				name: buildModelDisplayName(model.id),
-				ownedBy: model.owned_by,
-				provider: "openai" as const,
-				source: "api" as const
-			})),
-		...configuredModelOverrides
+			.filter((model) => fallbackModelLookup.has(model.id))
+			.map((model) => {
+				const fallbackModel = fallbackModelLookup.get(model.id);
+				return {
+					created: model.created,
+					id: model.id,
+					name: fallbackModel?.name ?? model.id,
+					ownedBy: model.owned_by,
+					provider: "openai" as const,
+					source: "api" as const
+				};
+			}),
+		...fallbackModels
 	]).sort((left, right) => {
 		const leftFallbackOrder = fallbackOrderLookup.get(left.id);
 		const rightFallbackOrder = fallbackOrderLookup.get(right.id);
@@ -203,7 +105,7 @@ const getFallbackModelCatalog = (): AIModelDefinition[] =>
 		: [
 				{
 					id: defaultModelId,
-					name: getModelById(defaultModelId)?.name ?? "GPT-5.4",
+					name: getModelById(defaultModelId)?.name ?? "GPT-5 Mini",
 					provider: "openai",
 					source: "fallback"
 				}

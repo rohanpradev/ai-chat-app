@@ -23,13 +23,13 @@ describe("buildChatRequestBody", () => {
       buildChatRequestBody({
         conversationId: "chat-123",
         agentMode: "research",
-        model: "gpt-4o",
+        model: "gpt-5-mini",
         webSearch: true,
       }),
     ).toEqual({
       agentMode: "research",
       chatId: "chat-123",
-      model: "gpt-4o",
+      model: "gpt-5-mini",
       tools: [webSearchToolId],
     });
   });

@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Database, FileText, Loader2, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
+import { Loader } from "@/components/ai-elements/loader";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,27 @@ const formatDate = (value: string) =>
   }).format(new Date(value));
 
 const formatError = (error: unknown) => (error instanceof Error ? error.message : "Request failed");
+
+function EmbeddingOperationStatus({
+  detail,
+  title,
+}: Readonly<{
+  detail: string;
+  title: string;
+}>) {
+  return (
+    <div className="rounded-lg border bg-muted/25 p-4">
+      <div className="flex items-center gap-3">
+        <Loader className="shrink-0 text-primary" size={18} />
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground">{detail}</p>
+        </div>
+      </div>
+      <Progress className="mt-4 h-1.5" value={67} />
+    </div>
+  );
+}
 
 function EmbeddingsPage() {
   const uploadFormRef = useRef<HTMLFormElement | null>(null);
@@ -186,6 +208,29 @@ function EmbeddingsPage() {
   const isSearching = searchMutation.isPending;
   const isAsking = ragMutation.isPending;
   const isBusy = isVectorizing || isSearching || isAsking;
+  const activeOperation = uploadMutation.isPending
+    ? {
+        detail: file?.name ? `Extracting and embedding ${file.name}` : "Extracting and embedding the uploaded document",
+        title: "Vectorizing upload",
+      }
+    : ingestTextMutation.isPending
+      ? {
+          detail: textTitle.trim()
+            ? `Chunking and embedding ${textTitle.trim()}`
+            : "Chunking and embedding pasted content",
+          title: "Vectorizing content",
+        }
+      : isSearching
+        ? {
+            detail: "Embedding the query and ranking matching chunks",
+            title: "Searching vectors",
+          }
+        : isAsking
+          ? {
+              detail: "Retrieving source chunks and generating a grounded answer",
+              title: "Generating RAG answer",
+            }
+          : undefined;
 
   return (
     <main className="min-h-0 flex-1 overflow-y-auto bg-background">
@@ -200,6 +245,8 @@ function EmbeddingsPage() {
             {documents.length} {documents.length === 1 ? "document" : "documents"}
           </Badge>
         </div>
+
+        {activeOperation ? <EmbeddingOperationStatus {...activeOperation} /> : null}
 
         <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <section className="grid min-h-0 content-start gap-4">
@@ -308,10 +355,7 @@ function EmbeddingsPage() {
 
               <CardContent className="grid gap-3">
                 {documentsQuery.isLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" />
-                    Loading documents
-                  </div>
+                  <EmbeddingOperationStatus detail="Loading your vectorized document index" title="Loading documents" />
                 ) : null}
 
                 {documentsQuery.error ? (
@@ -452,8 +496,42 @@ function EmbeddingsPage() {
                 {ragMutation.error ? (
                   <p className="mt-3 text-sm text-destructive">{formatError(ragMutation.error)}</p>
                 ) : null}
+
+                <div className="mt-3 grid gap-2">
+                  {isSearching ? (
+                    <EmbeddingOperationStatus
+                      detail="Embedding the query and comparing stored chunks"
+                      title="Searching"
+                    />
+                  ) : null}
+                  {isAsking ? (
+                    <EmbeddingOperationStatus
+                      detail="Building an answer from the strongest retrieved chunks"
+                      title="Asking"
+                    />
+                  ) : null}
+                </div>
               </CardContent>
             </Card>
+
+            {isAsking && !ragMutation.data ? (
+              <Card className="min-h-0 rounded-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="size-4" />
+                    RAG Answer
+                  </CardTitle>
+                  <CardDescription>{model}</CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                  <EmbeddingOperationStatus
+                    detail="Retrieving sources and composing the answer"
+                    title="Generating answer"
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
 
             {ragMutation.data ? (
               <Card className="min-h-0 rounded-lg">
@@ -513,10 +591,10 @@ function EmbeddingsPage() {
                 <CardContent className="min-h-0 flex-1 overflow-y-auto pr-2">
                   <div className="grid gap-3">
                     {isBusy && !searchMutation.data ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="size-4 animate-spin" />
-                        Working
-                      </div>
+                      <EmbeddingOperationStatus
+                        detail="The request is running; results will fill this panel as soon as they are ready"
+                        title="Working"
+                      />
                     ) : null}
 
                     {searchMutation.data?.results.map((result, index) => (

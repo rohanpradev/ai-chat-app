@@ -61,7 +61,7 @@ const extractUploadContentMock = mock(async () => ({
 const searchEmbeddingsMock = mock(async () => searchResultFixture);
 const answerWithRagMock = mock(async () => ({
 	answer: "Grounded answer [1]",
-	model: "gpt-5.4",
+	model: "gpt-5-mini",
 	query: "hello",
 	sources: searchResultFixture.results
 }));

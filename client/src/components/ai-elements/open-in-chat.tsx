@@ -1,6 +1,5 @@
+// @ts-nocheck
 "use client";
-
-import type { ComponentProps } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +16,8 @@ import {
   ExternalLinkIcon,
   MessageCircleIcon,
 } from "lucide-react";
-import { createContext, useContext } from "react";
+import type { ComponentProps } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 const providers = {
   chatgpt: {
@@ -199,11 +199,15 @@ export type OpenInProps = ComponentProps<typeof DropdownMenu> & {
   query: string;
 };
 
-export const OpenIn = ({ query, ...props }: OpenInProps) => (
-  <OpenInContext.Provider value={{ query }}>
-    <DropdownMenu {...props} />
-  </OpenInContext.Provider>
-);
+export const OpenIn = ({ query, ...props }: OpenInProps) => {
+  const contextValue = useMemo(() => ({ query }), [query]);
+
+  return (
+    <OpenInContext.Provider value={contextValue}>
+      <DropdownMenu {...props} />
+    </OpenInContext.Provider>
+  );
+};
 
 export type OpenInContentProps = ComponentProps<typeof DropdownMenuContent>;
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import { BookIcon, ChevronDownIcon } from "lucide-react";

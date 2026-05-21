@@ -71,19 +71,15 @@ export const getApiClient = () => {
         const result = await parseResponse<AvailableModelsResponse>(response);
         return result.data;
       },
-      plan: async (
-        payload: InferRequestType<typeof apiClient.ai.plan.$post>["json"],
-      ): Promise<AIPlanResponse["data"]> => {
+      plan: async (payload: InferRequestType<typeof apiClient.ai.plan.$post>["json"]): Promise<AIPlanResponse> => {
         const response = await apiClient.ai.plan.$post({ json: payload });
-        const result = await parseResponse<AIPlanResponse>(response);
-        return result.data;
+        return parseResponse<AIPlanResponse>(response);
       },
       evaluate: async (
         payload: InferRequestType<typeof apiClient.ai.evaluate.$post>["json"],
-      ): Promise<AIEvaluationResponse["data"]> => {
+      ): Promise<AIEvaluationResponse> => {
         const response = await apiClient.ai.evaluate.$post({ json: payload });
-        const result = await parseResponse<AIEvaluationResponse>(response);
-        return result.data;
+        return parseResponse<AIEvaluationResponse>(response);
       },
     },
     conversations: {

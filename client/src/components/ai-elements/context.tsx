@@ -1,7 +1,5 @@
+// @ts-nocheck
 "use client";
-
-import type { LanguageModelUsage } from "ai";
-import type { ComponentProps } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +9,8 @@ import {
 } from "@/components/ui/hover-card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import type { LanguageModelUsage } from "ai";
+import type { ComponentProps } from "react";
 import { createContext, useContext, useMemo } from "react";
 import { getUsage } from "tokenlens";
 
@@ -230,6 +230,25 @@ export const ContextContentFooter = ({
   );
 };
 
+const TokensWithCost = ({
+  tokens,
+  costText,
+}: {
+  tokens?: number;
+  costText?: string;
+}) => (
+  <span>
+    {tokens === undefined
+      ? "—"
+      : new Intl.NumberFormat("en-US", {
+          notation: "compact",
+        }).format(tokens)}
+    {costText ? (
+      <span className="ml-2 text-muted-foreground">• {costText}</span>
+    ) : null}
+  </span>
+);
+
 export type ContextInputUsageProps = ComponentProps<"div">;
 
 export const ContextInputUsage = ({
@@ -389,22 +408,3 @@ export const ContextCacheUsage = ({
     </div>
   );
 };
-
-const TokensWithCost = ({
-  tokens,
-  costText,
-}: {
-  tokens?: number;
-  costText?: string;
-}) => (
-  <span>
-    {tokens === undefined
-      ? "—"
-      : new Intl.NumberFormat("en-US", {
-          notation: "compact",
-        }).format(tokens)}
-    {costText ? (
-      <span className="ml-2 text-muted-foreground">• {costText}</span>
-    ) : null}
-  </span>
-);

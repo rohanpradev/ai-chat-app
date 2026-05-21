@@ -61,8 +61,6 @@ const EnvSchema = z.object({
 	LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 	NODE_ENV: z.string().default("production"),
 	OPENAI_API_KEY: z.string().min(1),
-	// Optional comma-separated list of account-specific model ids to expose in the selector.
-	OPENAI_MODEL_OVERRIDES: z.string().optional(),
 	REDIS_URL: urlSchema,
 	SENTRY_DSN: z.preprocess(emptyStringToUndefined, urlSchema.optional()),
 	SENTRY_ENVIRONMENT: z.preprocess(emptyStringToUndefined, z.string().optional()),

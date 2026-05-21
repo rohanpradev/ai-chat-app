@@ -1,7 +1,7 @@
 import type { Chat } from "@chat-app/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
-import { Database, MessageSquare, Plus } from "lucide-react";
+import { Database, FlaskConical, MessageSquare, Plus } from "lucide-react";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,7 @@ import {
 import { useCreateChat } from "@/queries/createChat";
 import { getChatsQuery } from "@/queries/getChats";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
+import { Route as AiLabRoute } from "@/routes/chat/ai-lab";
 import { Route as EmbeddingsRoute } from "@/routes/chat/embeddings";
 
 export function ConversationSidebar() {
@@ -117,6 +118,18 @@ export function ConversationSidebar() {
                   <Link to={EmbeddingsRoute.to} search={{ redirect: undefined }}>
                     <Database className="h-4 w-4" />
                     <span className="truncate">Embedding</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={currentPath === AiLabRoute.to}
+                  className="w-full justify-start gap-2"
+                >
+                  <Link to={AiLabRoute.to} search={{ redirect: undefined }}>
+                    <FlaskConical className="h-4 w-4" />
+                    <span className="truncate">AI Lab</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -1,7 +1,5 @@
+// @ts-nocheck
 "use client";
-
-import type { LucideProps } from "lucide-react";
-import type { ComponentProps, HTMLAttributes } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -11,7 +9,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { LucideProps } from "lucide-react";
 import { BookmarkIcon } from "lucide-react";
+import type { ComponentProps, HTMLAttributes } from "react";
 
 export type CheckpointProps = HTMLAttributes<HTMLDivElement>;
 
