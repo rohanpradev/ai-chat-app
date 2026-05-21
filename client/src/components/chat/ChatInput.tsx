@@ -1,6 +1,7 @@
 import { type AgentMode, type AIModelDefinition, type AIModelId, agentModes } from "@chat-app/shared";
 import type { ChatStatus } from "ai";
 import { GlobeIcon } from "lucide-react";
+import { lazy, Suspense } from "react";
 import {
   Attachment,
   AttachmentInfo,
@@ -28,7 +29,11 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
-import { AgentModePanel } from "@/components/chat/AgentModePanel";
+
+const LazyAgentModePanel = lazy(async () => {
+  const { AgentModePanel } = await import("@/components/chat/AgentModePanel");
+  return { default: AgentModePanel };
+});
 
 interface ChatInputProps {
   availableModels: AIModelDefinition[];
@@ -105,7 +110,14 @@ export function ChatInput({
   return (
     <div className="mt-4 space-y-3">
       {showAgentGuide ? (
-        <AgentModePanel agentMode={agentMode} availableModels={availableModels} model={model} webSearch={webSearch} />
+        <Suspense fallback={null}>
+          <LazyAgentModePanel
+            agentMode={agentMode}
+            availableModels={availableModels}
+            model={model}
+            webSearch={webSearch}
+          />
+        </Suspense>
       ) : null}
       <PromptInput
         onSubmit={handleSubmit}

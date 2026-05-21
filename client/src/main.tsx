@@ -31,6 +31,8 @@ const router = createRouter({
     auth,
     queryClient,
   },
+  defaultPreload: "intent",
+  defaultPreloadStaleTime: 0,
 });
 
 initializeSentry(router);

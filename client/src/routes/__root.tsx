@@ -1,7 +1,7 @@
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRootRouteWithContext, Link, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AuthContext } from "@/lib/auth";
@@ -10,6 +10,13 @@ interface RouterContext {
   auth: AuthContext;
   queryClient: QueryClient;
 }
+
+const LazyTanStackRouterDevtools = import.meta.env.DEV
+  ? lazy(async () => {
+      const { TanStackRouterDevtools } = await import("@tanstack/react-router-devtools");
+      return { default: TanStackRouterDevtools };
+    })
+  : null;
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
@@ -21,8 +28,20 @@ function RootComponent() {
   return (
     <QueryClientProvider client={Route.useRouteContext().queryClient}>
       <Outlet />
-      <TanStackRouterDevtools />
+      <RouterDevtools />
     </QueryClientProvider>
+  );
+}
+
+function RouterDevtools() {
+  if (!LazyTanStackRouterDevtools) {
+    return null;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <LazyTanStackRouterDevtools />
+    </Suspense>
   );
 }
 

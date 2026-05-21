@@ -9,7 +9,9 @@ import { defineConfig, loadEnv } from "vite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const maxIntentionalChunkWarningKb = 1500;
+const kib = 1024;
+const maxIntentionalChunkWarningKb = 1536;
+const maxVendorChunkBytes = maxIntentionalChunkWarningKb * kib;
 
 const browserNodeShims = {
   diagnostics_channel: resolve(
@@ -45,7 +47,8 @@ const vendorChunkGroups = [
     name: "syntax-vendor",
     // Keep the Shiki runtime together, but leave language/theme loaders as
     // independent async chunks so rendered code blocks only fetch what they use.
-    test: /@shikijs\/(?:core|engine-javascript|primitive|types|vscode-textmate)|highlight\.js|react-syntax-highlighter/,
+    test: /@shikijs[\\/](?:core|engine-javascript|engine-oniguruma|langs|primitive|themes|types|vscode-textmate)|[\\/]shiki[\\/]|highlight\.js|react-syntax-highlighter/,
+    maxSize: maxVendorChunkBytes,
     priority: 32,
   },
   {
@@ -66,6 +69,7 @@ const vendorChunkGroups = [
   {
     name: "mermaid-vendor",
     test: /mermaid|@mermaid-js/,
+    maxSize: maxVendorChunkBytes,
     priority: 28,
   },
   {
@@ -83,7 +87,14 @@ const vendorChunkGroups = [
     test: /react-markdown|rehype|remark|mdast|hast|micromark|unified/,
     priority: 25,
   },
-  { name: "vendor", test: /node_modules/, priority: 1 },
+  {
+    name: "vendor",
+    test: /node_modules/,
+    entriesAware: true,
+    entriesAwareMergeThreshold: 20 * kib,
+    maxSize: maxVendorChunkBytes,
+    priority: 1,
+  },
 ];
 
 export default defineConfig(({ mode }) => {

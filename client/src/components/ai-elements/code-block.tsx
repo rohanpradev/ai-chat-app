@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,6 @@ import type {
   HighlighterGeneric,
   ThemedToken,
 } from "shiki";
-import { bundledLanguages, createHighlighter } from "shiki";
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
 // oxlint-disable-next-line eslint(no-bitwise)
@@ -121,6 +119,11 @@ interface TokenizedCode {
   bg: string;
 }
 
+interface AsyncTokenizedCode {
+  cacheKey: string;
+  tokenized: TokenizedCode;
+}
+
 interface CodeBlockContextType {
   code: string;
 }
@@ -135,6 +138,7 @@ const highlighterCache = new Map<
   string,
   Promise<HighlighterGeneric<BundledLanguage, BundledTheme>>
 >();
+let shikiPromise: Promise<typeof import("shiki")> | undefined;
 
 // Token cache
 const tokensCache = new Map<string, TokenizedCode>();
@@ -143,26 +147,32 @@ const fallbackLanguage = "console" satisfies BundledLanguage;
 // Subscribers for async token updates
 const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
 
-const getTokensCacheKey = (code: string, language: BundledLanguage) => {
+const getTokensCacheKey = (code: string, language: string) => {
   const start = code.slice(0, 100);
   const end = code.length > 100 ? code.slice(-100) : "";
   return `${language}:${code.length}:${start}:${end}`;
 };
 
-const normalizeLanguage = (language: BundledLanguage | (string & {})) =>
-  language in bundledLanguages ? (language as BundledLanguage) : fallbackLanguage;
+const loadShiki = () => {
+  shikiPromise ??= import("shiki");
+  return shikiPromise;
+};
 
 const getHighlighter = (
-  language: BundledLanguage
+  language: string
 ): Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> => {
   const cached = highlighterCache.get(language);
   if (cached) {
     return cached;
   }
 
-  const highlighterPromise = createHighlighter({
-    langs: [language],
-    themes: ["github-light", "github-dark"],
+  const highlighterPromise = loadShiki().then(({ bundledLanguages, createHighlighter }) => {
+    const resolvedLanguage = language in bundledLanguages ? (language as BundledLanguage) : fallbackLanguage;
+
+    return createHighlighter({
+      langs: [resolvedLanguage],
+      themes: ["github-light", "github-dark"],
+    });
   });
 
   highlighterCache.set(language, highlighterPromise);
@@ -188,7 +198,7 @@ const createRawTokens = (code: string): TokenizedCode => ({
 // Synchronous highlight with callback for async results
 export const highlightCode = (
   code: string,
-  language: BundledLanguage,
+  language: string,
   // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-callbacks)
   callback?: (result: TokenizedCode) => void
 ): TokenizedCode | null => {
@@ -213,8 +223,8 @@ export const highlightCode = (
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
     .then((highlighter) => {
       const availableLangs = highlighter.getLoadedLanguages();
-      const langToUse = availableLangs.includes(language)
-        ? language
+      const langToUse = availableLangs.includes(language as BundledLanguage)
+        ? (language as BundledLanguage)
         : fallbackLanguage;
 
       const result = highlighter.codeToTokens(code, {
@@ -388,7 +398,11 @@ export const CodeBlockContent = ({
   showLineNumbers?: boolean;
 }) => {
   const resolvedCode = code ?? "";
-  const resolvedLanguage = normalizeLanguage(language);
+  const resolvedLanguage = language || fallbackLanguage;
+  const tokensCacheKey = useMemo(
+    () => getTokensCacheKey(resolvedCode, resolvedLanguage),
+    [resolvedCode, resolvedLanguage]
+  );
 
   // Memoized raw tokens for immediate display
   const rawTokens = useMemo(() => createRawTokens(resolvedCode), [resolvedCode]);
@@ -400,39 +414,23 @@ export const CodeBlockContent = ({
   );
 
   // Async highlighting result (populated after shiki loads)
-  const [asyncTokens, setAsyncTokens] = useState<TokenizedCode | null>(null);
-  const asyncKeyRef = useRef({
-    code: resolvedCode,
-    language: resolvedLanguage,
-  });
-
-  // Invalidate stale async tokens synchronously during render
-  if (
-    asyncKeyRef.current.code !== resolvedCode ||
-    asyncKeyRef.current.language !== resolvedLanguage
-  ) {
-    asyncKeyRef.current = {
-      code: resolvedCode,
-      language: resolvedLanguage,
-    };
-    setAsyncTokens(null);
-  }
+  const [asyncTokens, setAsyncTokens] = useState<AsyncTokenizedCode | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     highlightCode(resolvedCode, resolvedLanguage, (result) => {
       if (!cancelled) {
-        setAsyncTokens(result);
+        setAsyncTokens({ cacheKey: tokensCacheKey, tokenized: result });
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [resolvedCode, resolvedLanguage]);
+  }, [resolvedCode, resolvedLanguage, tokensCacheKey]);
 
-  const tokenized = asyncTokens ?? syncTokens;
+  const tokenized = asyncTokens?.cacheKey === tokensCacheKey ? asyncTokens.tokenized : syncTokens;
 
   return (
     <div className="relative overflow-auto">

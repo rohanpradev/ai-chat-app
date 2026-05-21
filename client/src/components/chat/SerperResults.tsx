@@ -9,7 +9,15 @@ type OrganicResult = SerperResultsProps["data"]["organic"][number];
 type PeopleAlsoAskResult = SerperResultsProps["data"]["peopleAlsoAsk"][number];
 type RelatedSearchResult = SerperResultsProps["data"]["relatedSearches"][number];
 
-export function SerperResults({ data }: Readonly<SerperResultsProps>) {
+const getHostname = (link: string) => {
+  try {
+    return new URL(link).hostname;
+  } catch {
+    return link;
+  }
+};
+
+export default function SerperResults({ data }: Readonly<SerperResultsProps>) {
   const {
     answerBox,
     knowledgeGraph,
@@ -76,7 +84,7 @@ export function SerperResults({ data }: Readonly<SerperResultsProps>) {
                 </p>
                 <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                   <GlobeIcon className="w-3 h-3" />
-                  {new URL(result.link).hostname}
+                  {getHostname(result.link)}
                 </div>
               </a>
             </div>
