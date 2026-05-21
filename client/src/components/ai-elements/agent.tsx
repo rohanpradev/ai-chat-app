@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Tool } from "ai";
 import { BotIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { memo } from "react";
@@ -86,8 +85,14 @@ export const AgentTools = memo(({ className, ...props }: AgentToolsProps) => (
   </div>
 ));
 
+type AgentToolDefinition = {
+  description?: string | ((options: never) => string);
+  inputSchema?: unknown;
+  jsonSchema?: unknown;
+};
+
 export type AgentToolProps = ComponentProps<typeof AccordionItem> & {
-  tool: Tool;
+  tool: AgentToolDefinition;
 };
 
 export const AgentTool = memo(
@@ -96,6 +101,8 @@ export const AgentTool = memo(
       "jsonSchema" in tool && tool.jsonSchema
         ? tool.jsonSchema
         : tool.inputSchema;
+    const description =
+      typeof tool.description === "string" ? tool.description : "No description";
 
     return (
       <AccordionItem
@@ -104,9 +111,7 @@ export const AgentTool = memo(
         {...props}
       >
         <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
-          {typeof tool.description === "string"
-            ? tool.description
-            : "No description"}
+          {description}
         </AccordionTrigger>
         <AccordionContent className="px-3 pb-3">
           <div className="rounded-md bg-muted/50">

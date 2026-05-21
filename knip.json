@@ -54,6 +54,8 @@
 		"client": {
 			"ignoreBinaries": ["vite!"],
 			"ignoreDependencies": [
+				"@testing-library/dom",
+				"@testing-library/react",
 				"@radix-ui/react-hover-card",
 				"@radix-ui/react-progress",
 				"@radix-ui/react-scroll-area",

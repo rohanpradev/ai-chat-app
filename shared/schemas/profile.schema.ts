@@ -52,3 +52,5 @@ export const BadRequestResponseSchema = z
 	});
 
 export type GetProfileResponse = z.infer<typeof GetProfileResponseSchema>;
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
+export type UpdateProfileResponse = z.infer<typeof UpdateProfileResponseSchema>;

@@ -1,20 +1,14 @@
-import type {
-  AIEvaluationResponse,
-  AIPlanResponse,
-  ApiError,
-  AvailableModelsResponse,
-  CreateConversationResponse,
-  EmbeddingDeleteResponse,
-  EmbeddingDocumentsResponse,
-  EmbeddingIngestResponse,
-  EmbeddingSearchResponse,
-  GetConversationResponse,
-  GetConversationsResponse,
-  GetProfileResponse,
-  RagResponse,
-} from "@chat-app/shared";
-import { hc, type InferRequestType } from "hono/client";
-import type { ApiContract } from "@/lib/hono-contract";
+import type { ApiError } from "@chat-app/shared";
+import type { ApiContract } from "@chat-app/shared/api-contract";
+import {
+  type ClientResponse,
+  DetailedError,
+  hc,
+  type InferRequestType,
+  parseResponse as parseHonoResponse,
+} from "hono/client";
+import type { ResponseFormat } from "hono/types";
+import type { StatusCode } from "hono/utils/http-status";
 
 type ApiErrorPayload = ApiError & {
   details?: unknown;
@@ -33,137 +27,136 @@ export class ApiRequestError extends Error {
   }
 }
 
-const apiClient = hc<ApiContract>("/api", {
+export const apiBasePath = "/api" as const;
+
+export const apiClient = hc<ApiContract>(apiBasePath, {
   init: {
     credentials: "include",
   },
 });
 
-async function parseResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    let errorData: ApiErrorPayload;
+type ConversationByIdRoute = (typeof apiClient.conversations)[":id"];
+type UpdateConversationPayload = InferRequestType<ConversationByIdRoute["$put"]>["json"];
 
-    try {
-      const parsed = (await response.json()) as Partial<ApiErrorPayload>;
-      errorData = {
-        details: parsed.details,
-        message: parsed.message || getStatusMessage(response.status),
-        status: response.status,
-      };
-    } catch {
-      errorData = {
-        message: getStatusMessage(response.status),
-        status: response.status,
-      };
-    }
+function parseApiResponse<T extends ClientResponse<unknown, StatusCode, ResponseFormat>>(response: T | Promise<T>) {
+  return parseHonoResponse(response).catch((error: unknown) => {
+    throw normalizeApiError(error);
+  });
+}
 
-    throw new ApiRequestError(errorData);
+function normalizeApiError(error: unknown): Error {
+  if (error instanceof ApiRequestError) {
+    return error;
   }
 
-  return response.json() as Promise<T>;
+  if (error instanceof DetailedError) {
+    const status = typeof error.statusCode === "number" ? error.statusCode : 500;
+    const details = error.detail;
+
+    return new ApiRequestError({
+      details,
+      message: getErrorMessage(details, error.message || getStatusMessage(status)),
+      status,
+    });
+  }
+
+  return error instanceof Error ? error : new Error("Request failed.");
+}
+
+function getErrorMessage(details: unknown, fallback: string): string {
+  if (details && typeof details === "object" && "message" in details) {
+    const message = details.message;
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+
+  return fallback;
 }
 
 export const getApiClient = () => {
   return {
     ai: {
       models: async () => {
-        const response = await apiClient.ai.models.$get();
-        const result = await parseResponse<AvailableModelsResponse>(response);
+        const result = await parseApiResponse(apiClient.ai.models.$get());
         return result.data;
       },
-      plan: async (payload: InferRequestType<typeof apiClient.ai.plan.$post>["json"]): Promise<AIPlanResponse> => {
-        const response = await apiClient.ai.plan.$post({ json: payload });
-        return parseResponse<AIPlanResponse>(response);
+      plan: async (payload: InferRequestType<typeof apiClient.ai.plan.$post>["json"]) => {
+        return parseApiResponse(apiClient.ai.plan.$post({ json: payload }));
       },
-      evaluate: async (
-        payload: InferRequestType<typeof apiClient.ai.evaluate.$post>["json"],
-      ): Promise<AIEvaluationResponse> => {
-        const response = await apiClient.ai.evaluate.$post({ json: payload });
-        return parseResponse<AIEvaluationResponse>(response);
+      evaluate: async (payload: InferRequestType<typeof apiClient.ai.evaluate.$post>["json"]) => {
+        return parseApiResponse(apiClient.ai.evaluate.$post({ json: payload }));
       },
     },
     conversations: {
-      create: async (
-        payload: InferRequestType<typeof apiClient.conversations.$post>["json"],
-      ): Promise<CreateConversationResponse["data"]> => {
-        const response = await apiClient.conversations.$post({ json: payload });
-        const result = await parseResponse<CreateConversationResponse>(response);
+      create: async (payload: InferRequestType<typeof apiClient.conversations.$post>["json"]) => {
+        const result = await parseApiResponse(apiClient.conversations.$post({ json: payload }));
         return result.data;
       },
-      get: async (id: string): Promise<GetConversationResponse["data"]> => {
-        const response = await apiClient.conversations[":id"].$get({
-          param: { id },
-        });
-        const result = await parseResponse<GetConversationResponse>(response);
+      get: async (id: string) => {
+        const result = await parseApiResponse(
+          apiClient.conversations[":id"].$get({
+            param: { id },
+          }),
+        );
         return result.data;
       },
-      list: async (): Promise<GetConversationsResponse["data"]> => {
-        const response = await apiClient.conversations.$get();
-        const result = await parseResponse<GetConversationsResponse>(response);
+      list: async () => {
+        const result = await parseApiResponse(apiClient.conversations.$get());
+        return result.data;
+      },
+      update: async (id: string, payload: UpdateConversationPayload) => {
+        const result = await parseApiResponse(
+          apiClient.conversations[":id"].$put({
+            json: payload,
+            param: { id },
+          }),
+        );
         return result.data;
       },
     },
     embeddings: {
-      delete: async (id: string): Promise<EmbeddingDeleteResponse["data"]> => {
-        const response = await apiClient.embeddings.documents[":id"].$delete({
-          param: { id },
-        });
-        const result = await parseResponse<EmbeddingDeleteResponse>(response);
+      delete: async (id: string) => {
+        const result = await parseApiResponse(
+          apiClient.embeddings.documents[":id"].$delete({
+            param: { id },
+          }),
+        );
         return result.data;
       },
-      ingestText: async (
-        payload: InferRequestType<typeof apiClient.embeddings.ingest.$post>["json"],
-      ): Promise<EmbeddingIngestResponse["data"]> => {
-        const response = await apiClient.embeddings.ingest.$post({ json: payload });
-        const result = await parseResponse<EmbeddingIngestResponse>(response);
+      ingestText: async (payload: InferRequestType<typeof apiClient.embeddings.ingest.$post>["json"]) => {
+        const result = await parseApiResponse(apiClient.embeddings.ingest.$post({ json: payload }));
         return result.data;
       },
-      list: async (): Promise<EmbeddingDocumentsResponse["data"]> => {
-        const response = await apiClient.embeddings.documents.$get();
-        const result = await parseResponse<EmbeddingDocumentsResponse>(response);
+      list: async () => {
+        const result = await parseApiResponse(apiClient.embeddings.documents.$get());
         return result.data;
       },
-      rag: async (
-        payload: InferRequestType<typeof apiClient.embeddings.rag.$post>["json"],
-      ): Promise<RagResponse["data"]> => {
-        const response = await apiClient.embeddings.rag.$post({ json: payload });
-        const result = await parseResponse<RagResponse>(response);
+      rag: async (payload: InferRequestType<typeof apiClient.embeddings.rag.$post>["json"]) => {
+        const result = await parseApiResponse(apiClient.embeddings.rag.$post({ json: payload }));
         return result.data;
       },
-      search: async (
-        payload: InferRequestType<typeof apiClient.embeddings.search.$post>["json"],
-      ): Promise<EmbeddingSearchResponse["data"]> => {
-        const response = await apiClient.embeddings.search.$post({ json: payload });
-        const result = await parseResponse<EmbeddingSearchResponse>(response);
+      search: async (payload: InferRequestType<typeof apiClient.embeddings.search.$post>["json"]) => {
+        const result = await parseApiResponse(apiClient.embeddings.search.$post({ json: payload }));
         return result.data;
       },
-      upload: async (payload: {
-        file: File;
-        metadata?: Record<string, unknown>;
-        title?: string;
-      }): Promise<EmbeddingIngestResponse["data"]> => {
-        const formData = new FormData();
-        formData.append("file", payload.file);
-        if (payload.title) {
-          formData.append("title", payload.title);
-        }
-        if (payload.metadata) {
-          formData.append("metadata", JSON.stringify(payload.metadata));
-        }
-
-        const response = await fetch("/api/embeddings/upload", {
-          body: formData,
-          credentials: "include",
-          method: "POST",
-        });
-        const result = await parseResponse<EmbeddingIngestResponse>(response);
+      upload: async (payload: { file: File; metadata?: Record<string, unknown>; title?: string }) => {
+        const form: InferRequestType<typeof apiClient.embeddings.upload.$post>["form"] = {
+          file: payload.file,
+          ...(payload.metadata ? { metadata: JSON.stringify(payload.metadata) } : {}),
+          ...(payload.title ? { title: payload.title } : {}),
+        };
+        const result = await parseApiResponse(apiClient.embeddings.upload.$post({ form }));
         return result.data;
       },
     },
     profile: {
-      get: async (): Promise<GetProfileResponse["data"]> => {
-        const response = await apiClient.profile.$get();
-        const result = await parseResponse<GetProfileResponse>(response);
+      get: async () => {
+        const result = await parseApiResponse(apiClient.profile.$get());
+        return result.data;
+      },
+      update: async (payload: InferRequestType<typeof apiClient.profile.$patch>["form"]) => {
+        const result = await parseApiResponse(apiClient.profile.$patch({ form: payload }));
         return result.data;
       },
     },

@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { useEffect, useRef, useState } from "react";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { apiBasePath, apiClient } from "@/composables/useApi";
 import { buildChatRequestBody } from "@/lib/chat-request";
 import { getAiModelsQuery } from "@/queries/getAiModels";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
@@ -21,6 +22,8 @@ interface UseAgentChatOptions {
   conversationId?: string;
   initialMessages?: MyUIMessage[];
 }
+
+const aiStreamApiPath = `${apiBasePath}${apiClient.ai["text-stream"].$path()}`;
 
 export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<UseAgentChatOptions>) {
   const [input, setInput] = useState("");
@@ -32,7 +35,7 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
   const requestBodyRef = useRef(buildChatRequestBody({ conversationId, agentMode, model, webSearch }));
   const transportRef = useRef(
     new DefaultChatTransport<MyUIMessage>({
-      api: "/api/ai/text-stream",
+      api: aiStreamApiPath,
       credentials: "include",
       prepareSendMessagesRequest: ({ body, id, messageId, messages, trigger }) => ({
         body: {

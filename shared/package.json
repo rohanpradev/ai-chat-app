@@ -1,7 +1,9 @@
 {
 	"dependencies": {
 		"@hono/zod-openapi": "catalog:",
+		"@hono/zod-validator": "catalog:",
 		"ai": "catalog:",
+		"hono": "catalog:",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
@@ -10,6 +12,7 @@
 	"exports": {
 		".": "./index.ts",
 		"./agents": "./agents.ts",
+		"./api-contract": "./api-contract.ts",
 		"./models": "./models.ts",
 		"./schemas": "./schemas/index.ts",
 		"./schemas/*": "./schemas/*.ts",
@@ -19,6 +22,7 @@
 		"./types/*": "./types/*.ts"
 	},
 	"files": [
+		"api-contract.ts",
 		"agents.ts",
 		"index.ts",
 		"models.ts",

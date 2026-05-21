@@ -3,6 +3,15 @@ import { description, version } from "@/../package.json";
 import type { AppOpenAPI } from "@/lib/types";
 import env from "@/utils/env";
 
+const scalarFetch: typeof fetch = Object.assign(
+	(input: string | Request | URL, init?: RequestInit) =>
+		fetch(input, {
+			...init,
+			credentials: "include"
+		}),
+	{ preconnect: fetch.preconnect }
+);
+
 export default function configureOpenAPI(app: AppOpenAPI) {
 	app.doc("/doc", {
 		info: {
@@ -26,11 +35,7 @@ export default function configureOpenAPI(app: AppOpenAPI) {
 			authentication: {
 				preferredSecurityScheme: "CookieAuth"
 			},
-			fetch: (input: string | Request | URL, init?: RequestInit) =>
-				fetch(input, {
-					...init,
-					credentials: "include"
-				}),
+			fetch: scalarFetch,
 			pageTitle: "AI API Reference",
 			sources: [
 				{ title: "App API", url: "/doc" },
