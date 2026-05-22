@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 import type { AppRouteHandler } from "@/lib/types";
+import { invalidateCache } from "@/middlewares/redis-cache-middleware";
 import type { UpdateUserProfileRoute, UserProfileRoute } from "@/routes/profile/profile.route";
 
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -88,6 +89,8 @@ export const patchUserProfile: AppRouteHandler<UpdateUserProfileRoute> = async (
 			message: "User not found"
 		});
 	}
+
+	await invalidateCache.byUser(user.id);
 
 	return c.json(
 		{

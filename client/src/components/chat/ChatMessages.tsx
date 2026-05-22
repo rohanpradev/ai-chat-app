@@ -119,6 +119,7 @@ export function ChatMessages({
         </div>
       )}
       {messages.map((message) => {
+        const isStreamingMessage = status === "streaming" && message.role === "assistant";
         const reasoningParts = message.parts.filter(isReasoningPart);
         const sourceParts = message.parts.filter(isSourcePart);
         const visibleParts = message.parts.filter(
@@ -134,7 +135,11 @@ export function ChatMessages({
             <MessageContent>
               {reasoningText ? (
                 <Suspense fallback={<div className="text-muted-foreground text-sm">{reasoningText}</div>}>
-                  <LazyReasoningBlock isStreaming={reasoningParts.some((part: ReasoningPart) => part.state !== "done")}>
+                  <LazyReasoningBlock
+                    isStreaming={
+                      isStreamingMessage && reasoningParts.some((part: ReasoningPart) => part.state !== "done")
+                    }
+                  >
                     {reasoningText}
                   </LazyReasoningBlock>
                 </Suspense>
@@ -145,6 +150,7 @@ export function ChatMessages({
                   part={part}
                   messageId={message.id}
                   index={index}
+                  isStreaming={isStreamingMessage}
                   onToolApprovalResponse={onToolApprovalResponse}
                 />
               ))}

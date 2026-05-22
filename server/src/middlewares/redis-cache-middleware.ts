@@ -3,7 +3,23 @@ import type { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { AppBindings } from "@/lib/types";
 
-type RedisCommandClient = Pick<typeof redis, "del" | "exists" | "expire" | "get" | "send" | "set" | "ttl">;
+type RedisCommandClient = {
+	del: (...keys: string[]) => Promise<number>;
+	exists: (key: string) => Promise<boolean | number>;
+	get: (key: string) => Promise<string | null>;
+	scan: (
+		cursor: string | number,
+		match: "MATCH",
+		pattern: string,
+		count: "COUNT",
+		hint: number
+	) => Promise<[string, string[]]>;
+	set: (key: string, value: string, ex: "EX", ttl: number) => Promise<"OK" | string | null>;
+	ttl: (key: string) => Promise<number>;
+};
+
+const SCAN_COUNT_HINT = 100;
+const DELETE_BATCH_SIZE = 500;
 
 interface RedisCacheOptions {
 	key?: string | ((c: Context<AppBindings>) => string);
@@ -69,8 +85,7 @@ class HonoRedisCache {
 			const redisKey = this.buildKey(key, namespace);
 			const serializedValue = this.serialize(value);
 
-			await this.client.set(redisKey, serializedValue);
-			await this.client.expire(redisKey, ttl);
+			await this.client.set(redisKey, serializedValue, "EX", ttl);
 
 			return true;
 		} catch {
@@ -92,7 +107,7 @@ class HonoRedisCache {
 		try {
 			const redisKey = this.buildKey(key, namespace);
 			const result = await this.client.exists(redisKey);
-			return Number(result) > 0;
+			return typeof result === "boolean" ? result : result > 0;
 		} catch {
 			return false;
 		}
@@ -110,14 +125,19 @@ class HonoRedisCache {
 	async delByPattern(pattern: string, namespace: string): Promise<number> {
 		try {
 			const searchPattern = this.buildKey(pattern, namespace);
-			const keysResult = await this.client.send("KEYS", [searchPattern]);
-			const keys = Array.isArray(keysResult) ? keysResult.filter((key): key is string => typeof key === "string") : [];
+			let cursor = "0";
+			let deleted = 0;
 
-			if (keys.length === 0) {
-				return 0;
-			}
+			do {
+				const [nextCursor, keys] = await this.client.scan(cursor, "MATCH", searchPattern, "COUNT", SCAN_COUNT_HINT);
+				cursor = nextCursor;
 
-			return await this.client.del(...keys);
+				for (let index = 0; index < keys.length; index += DELETE_BATCH_SIZE) {
+					deleted += await this.client.del(...keys.slice(index, index + DELETE_BATCH_SIZE));
+				}
+			} while (cursor !== "0");
+
+			return deleted;
 		} catch {
 			return 0;
 		}

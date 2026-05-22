@@ -1,5 +1,6 @@
 import type { MyUIMessage } from "@chat-app/shared";
 import type { ChatAddToolApproveResponseFunction } from "ai";
+import { useCallback, useEffect, useState } from "react";
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -31,6 +32,37 @@ const getToolApprovalPrompt = (part: ApprovalRequestedToolPart) => {
 };
 
 export default function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRendererProps>) {
+  const approvalId = part.state === "approval-requested" ? part.approval?.id : undefined;
+  const [pendingApprovalId, setPendingApprovalId] = useState<string | null>(null);
+  const isApprovalPending = Boolean(approvalId && pendingApprovalId === approvalId);
+
+  useEffect(() => {
+    if (pendingApprovalId && (part.state !== "approval-requested" || part.approval?.id !== pendingApprovalId)) {
+      setPendingApprovalId(null);
+    }
+  }, [part.approval?.id, part.state, pendingApprovalId]);
+
+  const respondToApproval = useCallback(
+    async (approved: boolean) => {
+      if (!approvalId || isApprovalPending || !onToolApprovalResponse) {
+        return;
+      }
+
+      setPendingApprovalId(approvalId);
+
+      try {
+        await onToolApprovalResponse({
+          approved,
+          id: approvalId,
+        });
+      } catch (error) {
+        setPendingApprovalId(null);
+        throw error;
+      }
+    },
+    [approvalId, isApprovalPending, onToolApprovalResponse],
+  );
+
   return (
     <Tool defaultOpen={part.state !== "output-available"}>
       <ToolHeader type={part.type} state={part.state} />
@@ -42,25 +74,15 @@ export default function ToolPartRenderer({ part, onToolApprovalResponse }: Reado
             </ConfirmationTitle>
             <ConfirmationActions>
               <ConfirmationAction
+                disabled={isApprovalPending || !onToolApprovalResponse}
                 variant="outline"
-                onClick={() =>
-                  part.approval &&
-                  onToolApprovalResponse?.({
-                    approved: false,
-                    id: part.approval.id,
-                  })
-                }
+                onClick={() => void respondToApproval(false)}
               >
                 Deny
               </ConfirmationAction>
               <ConfirmationAction
-                onClick={() =>
-                  part.approval &&
-                  onToolApprovalResponse?.({
-                    approved: true,
-                    id: part.approval.id,
-                  })
-                }
+                disabled={isApprovalPending || !onToolApprovalResponse}
+                onClick={() => void respondToApproval(true)}
               >
                 Approve
               </ConfirmationAction>

@@ -10,18 +10,25 @@ const LazyMessageResponse = lazy(async () => {
 });
 
 interface MessagePartProps {
+  isStreaming?: boolean;
   part: MyUIMessage["parts"][number];
   messageId: string;
   index: number;
   onToolApprovalResponse?: ChatAddToolApproveResponseFunction;
 }
 
-export function MessagePart({ part, messageId, index, onToolApprovalResponse }: Readonly<MessagePartProps>) {
+export function MessagePart({
+  isStreaming = false,
+  part,
+  messageId,
+  index,
+  onToolApprovalResponse,
+}: Readonly<MessagePartProps>) {
   switch (part.type) {
     case "text":
       return (
         <Suspense fallback={<div className="whitespace-pre-wrap">{part.text}</div>} key={`${messageId}-${index}`}>
-          <LazyMessageResponse>{part.text}</LazyMessageResponse>
+          <LazyMessageResponse isAnimating={isStreaming}>{part.text}</LazyMessageResponse>
         </Suspense>
       );
     case "file":

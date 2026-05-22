@@ -4,11 +4,20 @@ import { HonoRedisCache, invalidateCache, redisCache, userCache } from "@/middle
 
 type MockRedisClient = {
 	del: ReturnType<typeof mock<(key: string, ...keys: string[]) => Promise<number>>>;
-	exists: ReturnType<typeof mock<(key: string) => Promise<boolean>>>;
-	expire: ReturnType<typeof mock<(key: string, ttl: number) => Promise<number>>>;
+	exists: ReturnType<typeof mock<(key: string) => Promise<boolean | number>>>;
 	get: ReturnType<typeof mock<(key: string) => Promise<string | null>>>;
-	send: ReturnType<typeof mock<(command: string, args: string[]) => Promise<unknown>>>;
-	set: ReturnType<typeof mock<(key: string, value: string) => Promise<"OK">>>;
+	scan: ReturnType<
+		typeof mock<
+			(
+				cursor: string | number,
+				match: "MATCH",
+				pattern: string,
+				count: "COUNT",
+				hint: number
+			) => Promise<[string, string[]]>
+		>
+	>;
+	set: ReturnType<typeof mock<(key: string, value: string, ex: "EX", ttl: number) => Promise<"OK">>>;
 	ttl: ReturnType<typeof mock<(key: string) => Promise<number>>>;
 };
 
@@ -16,9 +25,8 @@ type MockRedisClient = {
 const mockRedisClient: MockRedisClient = {
 	del: mock(() => Promise.resolve(1)),
 	exists: mock(() => Promise.resolve(false)),
-	expire: mock(() => Promise.resolve(1)),
 	get: mock(() => Promise.resolve(null)),
-	send: mock(() => Promise.resolve([])),
+	scan: mock(() => Promise.resolve(["0", []])),
 	set: mock(() => Promise.resolve("OK")),
 	ttl: mock(() => Promise.resolve(-1))
 };
@@ -59,8 +67,7 @@ describe("Redis Cache Middleware", () => {
 			const result = await cache.set("test-key", testData, 300, "test-namespace");
 
 			expect(result).toBe(true);
-			expect(mockRedisClient.set).toHaveBeenCalledWith("test-namespace:test-key", JSON.stringify(testData));
-			expect(mockRedisClient.expire).toHaveBeenCalledWith("test-namespace:test-key", 300);
+			expect(mockRedisClient.set).toHaveBeenCalledWith("test-namespace:test-key", JSON.stringify(testData), "EX", 300);
 		});
 
 		it("should delete value from cache", async () => {
@@ -86,6 +93,21 @@ describe("Redis Cache Middleware", () => {
 
 			expect(result).toBe(250);
 			expect(mockRedisClient.ttl).toHaveBeenCalledWith("test-namespace:test-key");
+		});
+
+		it("should delete matching keys using scan", async () => {
+			mockRedisClient.scan
+				.mockResolvedValueOnce(["10", ["test-namespace:user:one", "test-namespace:user:two"]])
+				.mockResolvedValueOnce(["0", ["test-namespace:user:three"]]);
+			mockRedisClient.del.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+
+			const result = await cache.delByPattern("user:*", "test-namespace");
+
+			expect(result).toBe(3);
+			expect(mockRedisClient.scan).toHaveBeenNthCalledWith(1, "0", "MATCH", "test-namespace:user:*", "COUNT", 100);
+			expect(mockRedisClient.scan).toHaveBeenNthCalledWith(2, "10", "MATCH", "test-namespace:user:*", "COUNT", 100);
+			expect(mockRedisClient.del).toHaveBeenNthCalledWith(1, "test-namespace:user:one", "test-namespace:user:two");
+			expect(mockRedisClient.del).toHaveBeenNthCalledWith(2, "test-namespace:user:three");
 		});
 	});
 

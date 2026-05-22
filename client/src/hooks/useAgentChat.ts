@@ -10,8 +10,12 @@ import {
   myUIMessageMetadataSchema,
 } from "@chat-app/shared";
 import { useQuery } from "@tanstack/react-query";
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { useEffect, useRef, useState } from "react";
+import {
+  type ChatAddToolApproveResponseFunction,
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from "ai";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { apiBasePath, apiClient } from "@/composables/useApi";
 import { buildChatRequestBody } from "@/lib/chat-request";
@@ -64,6 +68,49 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     transport: transportRef.current,
   });
+  const pendingApprovalIdsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    const requestedApprovalIds = new Set(
+      chat.messages.flatMap((message) =>
+        message.parts.flatMap((part) =>
+          "state" in part &&
+          part.state === "approval-requested" &&
+          "approval" in part &&
+          part.approval &&
+          typeof part.approval === "object" &&
+          "id" in part.approval &&
+          typeof part.approval.id === "string"
+            ? [part.approval.id]
+            : [],
+        ),
+      ),
+    );
+
+    for (const approvalId of pendingApprovalIdsRef.current) {
+      if (!requestedApprovalIds.has(approvalId)) {
+        pendingApprovalIdsRef.current.delete(approvalId);
+      }
+    }
+  }, [chat.messages]);
+
+  const addToolApprovalResponseOnce = useCallback<ChatAddToolApproveResponseFunction>(
+    async (response) => {
+      if (pendingApprovalIdsRef.current.has(response.id)) {
+        return;
+      }
+
+      pendingApprovalIdsRef.current.add(response.id);
+
+      try {
+        await chat.addToolApprovalResponse(response);
+      } catch (error) {
+        pendingApprovalIdsRef.current.delete(response.id);
+        throw error;
+      }
+    },
+    [chat.addToolApprovalResponse],
+  );
 
   const availableModels: AIModelDefinition[] =
     availableModelsQuery.data && availableModelsQuery.data.length > 0 ? availableModelsQuery.data : fallbackModels;
@@ -90,6 +137,7 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
 
   return {
     ...chat,
+    addToolApprovalResponse: addToolApprovalResponseOnce,
     agentMode,
     availableModels,
     input,
