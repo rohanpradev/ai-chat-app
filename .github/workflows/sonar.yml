@@ -87,7 +87,7 @@ jobs:
 
       - name: SonarQube Scan
         if: steps.sonar.outputs.enabled == 'true'
-        uses: SonarSource/sonarqube-scan-action@v8.0.0
+        uses: SonarSource/sonarqube-scan-action@v8.1.0
         with:
           args: ${{ steps.sonar.outputs.args }}
         env:
