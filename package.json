@@ -1,72 +1,72 @@
 {
-  "author": {
-    "name": "Rohan Pradev"
-  },
-  "catalog": {
-    "@hono/zod-openapi": "^1.4.0",
-    "@hono/zod-validator": "^0.8.0",
-    "@types/node": "^25.7.0",
-    "ai": "7.0.0-canary.142",
-    "hono": "^4.12.18",
-    "zod": "^4.4.3"
-  },
-  "description": "A chat application built with Bun, React, and Zod.",
-  "devDependencies": {
-    "@biomejs/biome": "2.4.16",
-    "@typescript/native-preview": "7.0.0-dev.20260527.1",
-    "knip": "^6.14.2",
-    "rimraf": "^6.1.3"
-  },
-  "name": "chat-app",
-  "optionalDependencies": {
-    "@biomejs/cli-linux-x64": "2.4.16",
-    "@typescript/native-preview-darwin-arm64": "7.0.0-dev.20260527.1",
-    "@typescript/native-preview-darwin-x64": "7.0.0-dev.20260527.1",
-    "@typescript/native-preview-linux-arm": "7.0.0-dev.20260527.1",
-    "@typescript/native-preview-linux-arm64": "7.0.0-dev.20260527.1",
-    "@typescript/native-preview-linux-x64": "7.0.0-dev.20260527.1",
-    "@typescript/native-preview-win32-arm64": "7.0.0-dev.20260527.1",
-    "@typescript/native-preview-win32-x64": "7.0.0-dev.20260527.1"
-  },
-  "overrides": {
-    "@protobufjs/utf8": "1.1.1",
-    "brace-expansion": "5.0.6",
-    "esbuild": "0.25.12",
-    "mermaid": "11.15.0",
-    "protobufjs": "8.3.0",
-    "uuid": "11.1.1"
-  },
-  "packageManager": "bun@1.3.14",
-  "private": true,
-  "scripts": {
-    "app:health": "make health",
-    "app:start": "make start",
-    "audit": "bun audit",
-    "build": "bun run --filter @chat-app/client build",
-    "build:report": "bun run --filter @chat-app/client build:report",
-    "check": "bun run lint && bun run typecheck && bun run test",
-    "clean": "rimraf node_modules bun.lock",
-    "dev": "bun run --filter '*' dev",
-    "format": "biome format . --write",
-    "k8s:deploy": "bash scripts/deploy-k8s.sh",
-    "k8s:prepare": "bash scripts/ensure-k8s-secrets.sh",
-    "k8s:status": "kubectl get all -n default",
-    "k8s:validate": "bun run k8s:prepare && helm lint --strict helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml && helm template chat-app helm/chat-app --kube-version 1.33.0 --api-versions gateway.networking.k8s.io/v1 --api-versions traefik.io/v1alpha1/Middleware -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml > /dev/null",
-    "knip": "knip",
-    "knip:production": "knip --production",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write --unsafe",
-    "security:check": "bun run audit && bun run security:supply-chain",
-    "security:supply-chain": "bun scripts/check-supply-chain.mjs",
-    "start": "bun run dev",
-    "test": "bun run --filter '*' test",
-    "typecheck": "bun run typecheck:tsgo",
-    "typecheck:tsgo": "bun run --filter '*' typecheck:tsgo"
-  },
-  "type": "module",
-  "workspaces": [
-    "server",
-    "client",
-    "shared"
-  ]
+	"author": {
+		"name": "Rohan Pradev"
+	},
+	"catalog": {
+		"@hono/zod-openapi": "^1.4.0",
+		"@hono/zod-validator": "^0.8.0",
+		"@types/node": "^25.7.0",
+		"ai": "7.0.0-canary.142",
+		"hono": "^4.12.18",
+		"zod": "^4.4.3"
+	},
+	"description": "A chat application built with Bun, React, and Zod.",
+	"devDependencies": {
+		"@biomejs/biome": "2.4.16",
+		"@typescript/native-preview": "7.0.0-dev.20260527.1",
+		"knip": "^6.14.2",
+		"rimraf": "^6.1.3"
+	},
+	"name": "chat-app",
+	"optionalDependencies": {
+		"@biomejs/cli-linux-x64": "2.4.16",
+		"@typescript/native-preview-darwin-arm64": "7.0.0-dev.20260527.1",
+		"@typescript/native-preview-darwin-x64": "7.0.0-dev.20260527.1",
+		"@typescript/native-preview-linux-arm": "7.0.0-dev.20260527.1",
+		"@typescript/native-preview-linux-arm64": "7.0.0-dev.20260527.1",
+		"@typescript/native-preview-linux-x64": "7.0.0-dev.20260527.1",
+		"@typescript/native-preview-win32-arm64": "7.0.0-dev.20260527.1",
+		"@typescript/native-preview-win32-x64": "7.0.0-dev.20260527.1"
+	},
+	"overrides": {
+		"@protobufjs/utf8": "1.1.1",
+		"brace-expansion": "5.0.6",
+		"esbuild": "0.25.12",
+		"mermaid": "11.15.0",
+		"protobufjs": "8.3.0",
+		"uuid": "11.1.1"
+	},
+	"packageManager": "bun@1.3.14",
+	"private": true,
+	"scripts": {
+		"app:health": "make health",
+		"app:start": "make start",
+		"audit": "bun audit",
+		"build": "bun run --filter @chat-app/client build",
+		"build:report": "bun run --filter @chat-app/client build:report",
+		"check": "bun run lint && bun run typecheck && bun run test",
+		"clean": "rimraf node_modules bun.lock",
+		"dev": "bun run --filter '*' dev",
+		"format": "biome format . --write",
+		"k8s:deploy": "bash scripts/deploy-k8s.sh",
+		"k8s:prepare": "bash scripts/ensure-k8s-secrets.sh",
+		"k8s:status": "kubectl get all -n default",
+		"k8s:validate": "bun run k8s:prepare && helm lint --strict helm/chat-app -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml && helm template chat-app helm/chat-app --kube-version 1.33.0 --api-versions gateway.networking.k8s.io/v1 --api-versions traefik.io/v1alpha1/Middleware -f helm/chat-app/values.yaml -f helm/chat-app/values.local.yaml > /dev/null",
+		"knip": "knip",
+		"knip:production": "knip --production",
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write --unsafe",
+		"security:check": "bun run audit && bun run security:supply-chain",
+		"security:supply-chain": "bun scripts/check-supply-chain.mjs",
+		"start": "bun run dev",
+		"test": "bun run --filter '*' test",
+		"typecheck": "bun run typecheck:tsgo",
+		"typecheck:tsgo": "bun run --filter '*' typecheck:tsgo"
+	},
+	"type": "module",
+	"workspaces": [
+		"server",
+		"client",
+		"shared"
+	]
 }
