@@ -302,7 +302,7 @@ jobs:
           tags: chat-app-client:latest
           build-args: |
             BUN_DEV_IMAGE=oven/bun:${{ env.BUN_VERSION }}-alpine
-            NGINX_IMAGE=nginx:1.30.0-alpine
+            NGINX_IMAGE=nginx:1.31.0-alpine
           cache-from: type=gha,scope=client
           cache-to: type=gha,scope=client,mode=max
 

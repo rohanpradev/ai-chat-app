@@ -1,6 +1,6 @@
 x-bun-build-args: &bun-build-args
-  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-dhi.io/bun:1.3-dev}
-  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-dhi.io/bun:1.3}
+  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-dhi.io/bun:1.3.14-debian13-dev}
+  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-dhi.io/bun:1.3.14-debian13}
   NGINX_IMAGE: ${NGINX_IMAGE:-dhi.io/nginx:1}
 
 x-security-defaults: &security-defaults

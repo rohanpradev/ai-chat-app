@@ -40,7 +40,7 @@ This repo is a Bun-based chat application with shared TypeScript contracts, a Re
 
 ## Environment And Package Management
 
-- Use Bun `1.3.13+`.
+- Use Bun `1.3.14+`.
 - Keep dependency versions in the root `catalog` when multiple workspaces share them.
 - Run `bun install --frozen-lockfile` in CI and before release builds unless the repo explicitly standardizes on another Bun lockfile command.
 - Prefer `bun run check` before handing off changes.

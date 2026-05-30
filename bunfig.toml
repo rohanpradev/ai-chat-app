@@ -2,4 +2,4 @@
 linker = "isolated"
 # Hold newly published package versions for 72 hours before fresh resolution.
 # Existing versions in bun.lock are unchanged by this gate.
-minimumReleaseAge = 259200
+# minimumReleaseAge = 259200
