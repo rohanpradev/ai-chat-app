@@ -13,6 +13,8 @@ AI chat application built with Bun, React, Hono, PostgreSQL, Redis, and the AI S
 ![Traefik](https://img.shields.io/badge/Traefik-%2300314b.svg?style=for-the-badge&logo=traefikproxy&logoColor=white)
 ![Zod](https://img.shields.io/badge/zod-%233068b7.svg?style=for-the-badge&logo=zod&logoColor=white)
 
+![Chat App demo](docs/assets/app-demo.gif)
+
 The repo is a Bun workspace with three app packages:
 
 - `client/` - React app
