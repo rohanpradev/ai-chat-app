@@ -1,19 +1,26 @@
 import type { MyUIMessage } from "@chat-app/shared";
 import type { ChatAddToolApproveResponseFunction, ChatStatus } from "ai";
-import { FileTextIcon } from "lucide-react";
-import { type HTMLAttributes, lazy, Suspense } from "react";
+import { CheckIcon, CopyIcon, FileTextIcon, MessageSquareIcon, RefreshCcwIcon } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
+import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Loader } from "@/components/ai-elements/loader";
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+  MessageToolbar,
+} from "@/components/ai-elements/message";
 import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { ErrorDisplay } from "@/components/chat/ErrorDisplay";
 import { MessagePart } from "@/components/chat/MessagePart";
-import { cn } from "@/lib/utils";
 
 interface ChatMessagesProps {
   messages: MyUIMessage[];
   status: ChatStatus;
   error?: Error;
-  onRetry?: () => void;
+  onRetry?: (messageId?: string) => void | Promise<void>;
   onClearError?: () => void;
   onToolApprovalResponse?: ChatAddToolApproveResponseFunction;
 }
@@ -35,35 +42,84 @@ const LazyReasoningBlock = lazy(async () => {
   };
 });
 
-const Message = ({ className, from, ...props }: HTMLAttributes<HTMLDivElement> & { from: MyUIMessage["role"] }) => (
-  <div
-    className={cn(
-      "group flex w-full max-w-[95%] flex-col gap-2",
-      from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
-      className,
-    )}
-    {...props}
-  />
-);
-
-const MessageContent = ({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:text-foreground",
-      className,
-    )}
-    {...props}
-  >
-    {children}
-  </div>
-);
-
 const isReasoningPart = (part: ChatMessagePart): part is ReasoningPart => part.type === "reasoning";
 
 const isSourcePart = (part: ChatMessagePart): part is SourcePart =>
   part.type === "source-document" || part.type === "source-url";
+
+const getMessageText = (message: MyUIMessage) =>
+  message.parts
+    .filter((part): part is Extract<ChatMessagePart, { type: "text" }> => part.type === "text")
+    .map((part) => part.text)
+    .join("\n")
+    .trim();
+
+function MessageMetadata({ message }: Readonly<{ message: MyUIMessage }>) {
+  const details = [
+    message.metadata?.model,
+    message.metadata?.totalTokens ? `${message.metadata.totalTokens.toLocaleString()} tokens` : undefined,
+    message.metadata?.finishReason,
+  ].filter(Boolean);
+
+  if (details.length === 0) {
+    return null;
+  }
+
+  return <div className="text-muted-foreground text-xs">{details.join(" · ")}</div>;
+}
+
+function MessageControls({
+  canRegenerate,
+  message,
+  onRetry,
+}: Readonly<{
+  canRegenerate: boolean;
+  message: MyUIMessage;
+  onRetry?: (messageId?: string) => void | Promise<void>;
+}>) {
+  const messageText = useMemo(() => getMessageText(message), [message]);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const resetCopied = globalThis.setTimeout(() => setCopied(false), 1500);
+    return () => globalThis.clearTimeout(resetCopied);
+  }, [copied]);
+
+  const copyMessage = useCallback(async () => {
+    if (!messageText) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(messageText);
+    setCopied(true);
+  }, [messageText]);
+
+  if (!messageText && !canRegenerate) {
+    return null;
+  }
+
+  return (
+    <MessageToolbar className="mt-1 justify-between opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      <MessageMetadata message={message} />
+      <MessageActions>
+        {messageText ? (
+          <MessageAction label="Copy" tooltip={copied ? "Copied" : "Copy"} onClick={() => void copyMessage()}>
+            {copied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
+          </MessageAction>
+        ) : null}
+        {canRegenerate ? (
+          <MessageAction label="Regenerate" tooltip="Regenerate" onClick={() => void onRetry?.(message.id)}>
+            <RefreshCcwIcon className="size-3" />
+          </MessageAction>
+        ) : null}
+      </MessageActions>
+    </MessageToolbar>
+  );
+}
 
 const getPartBaseKey = (messageId: string, part: ChatMessagePart) => {
   const baseType = part.type;
@@ -114,12 +170,16 @@ export function ChatMessages({
   return (
     <>
       {messages.length === 0 && (
-        <div className="text-center font-semibold mt-8">
-          <p className="text-3xl mt-4">What can I help you with today?</p>
-        </div>
+        <ConversationEmptyState
+          icon={<MessageSquareIcon className="size-10" />}
+          title="What can I help you with today?"
+          description="Start with a question, a file, or a research task."
+          className="min-h-[40vh]"
+        />
       )}
       {messages.map((message) => {
         const isStreamingMessage = status === "streaming" && message.role === "assistant";
+        const canRegenerate = message.role === "assistant" && (status === "ready" || status === "error");
         const reasoningParts = message.parts.filter(isReasoningPart);
         const sourceParts = message.parts.filter(isSourcePart);
         const visibleParts = message.parts.filter(
@@ -175,22 +235,25 @@ export function ChatMessages({
                 </Sources>
               ) : null}
             </MessageContent>
+            {message.role === "assistant" ? (
+              <MessageControls canRegenerate={canRegenerate} message={message} onRetry={onRetry} />
+            ) : null}
           </Message>
         );
       })}
       {status === "submitted" && (
         <Message from="assistant">
           <MessageContent>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="status" aria-live="polite">
               <Loader />
-              Thinking...
+              Waiting for the first token...
             </div>
           </MessageContent>
         </Message>
       )}
       {error && onRetry && onClearError && (
         <div className="px-4">
-          <ErrorDisplay error={error} onRetry={onRetry} onClear={onClearError} />
+          <ErrorDisplay error={error} onRetry={() => void onRetry()} onClear={onClearError} />
         </div>
       )}
     </>

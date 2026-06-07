@@ -31,6 +31,10 @@ export function MessagePart({
           <LazyMessageResponse isAnimating={isStreaming}>{part.text}</LazyMessageResponse>
         </Suspense>
       );
+    case "step-start":
+      return index > 0 ? (
+        <div aria-hidden="true" key={`${messageId}-${index}`} className="my-2 h-px bg-border" />
+      ) : null;
     case "file":
       if (part.mediaType?.startsWith("image/")) {
         return (

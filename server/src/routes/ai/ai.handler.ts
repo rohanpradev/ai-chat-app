@@ -1,10 +1,4 @@
-import {
-	AIEvaluationRequestSchema,
-	AIPlanRequestSchema,
-	ChatRequestSchema,
-	defaultModelId,
-	safeValidateMyUIMessages
-} from "@chat-app/shared";
+import { defaultModelId, safeValidateMyUIMessages } from "@chat-app/shared";
 import { propagateAttributes } from "@langfuse/tracing";
 import { consumeStream, createAgentUIStreamResponse, createIdGenerator, smoothStream } from "ai";
 import { HTTPException } from "hono/http-exception";
@@ -23,13 +17,10 @@ import { evaluateAIOutput, generateStructuredPlan } from "@/services/ai-structur
 import { loadConversationMessages, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
 
-const applyStreamingProxyHeaders = async (response: Promise<Response>) => {
-	const resolvedResponse = await response;
-
-	resolvedResponse.headers.set("Cache-Control", "no-cache, no-transform");
-	resolvedResponse.headers.set("X-Accel-Buffering", "no");
-	return resolvedResponse;
-};
+const streamingProxyHeaders = {
+	"Cache-Control": "no-cache, no-transform",
+	"X-Accel-Buffering": "no"
+} as const;
 
 const agentStreamTimeout = {
 	chunkMs: 20_000,
@@ -51,7 +42,7 @@ export const getAvailableModels: AppRouteHandler<GetAvailableModelsRoute> = asyn
 };
 
 export const generatePlan: AppRouteHandler<GeneratePlanRoute> = async (c) => {
-	const requestBody = AIPlanRequestSchema.parse(await c.req.json());
+	const requestBody = c.req.valid("json");
 	const userJwt = c.get("jwtPayload").sub;
 	const result = await generateStructuredPlan(requestBody, userJwt.id, c.req.raw.signal);
 
@@ -63,7 +54,7 @@ export const generatePlan: AppRouteHandler<GeneratePlanRoute> = async (c) => {
 };
 
 export const evaluateOutput: AppRouteHandler<EvaluateOutputRoute> = async (c) => {
-	const requestBody = AIEvaluationRequestSchema.parse(await c.req.json());
+	const requestBody = c.req.valid("json");
 	const userJwt = c.get("jwtPayload").sub;
 	const result = await evaluateAIOutput(requestBody, userJwt.id, c.req.raw.signal);
 
@@ -75,7 +66,7 @@ export const evaluateOutput: AppRouteHandler<EvaluateOutputRoute> = async (c) =>
 };
 
 export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
-	const requestBody = ChatRequestSchema.parse(await c.req.json());
+	const requestBody = c.req.valid("json");
 	const coalescedChatId = requestBody.chatId || requestBody.id || requestBody.conversationId;
 	const { agentMode, model = defaultModelId, tools: toolNames = [] } = requestBody;
 	const userJwt = c.get("jwtPayload").sub;
@@ -110,64 +101,63 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 		model
 	};
 	const runAgentStream = () =>
-		applyStreamingProxyHeaders(
-			createAgentUIStreamResponse({
-				abortSignal: c.req.raw.signal,
-				agent: getChatAgent(selectedAgentMode),
-				consumeSseStream: consumeStream,
-				experimental_transform: smoothStream(),
-				generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
-				messageMetadata: ({ part }) => {
-					if (part.type === "start") {
-						return messageMetadata;
-					}
+		createAgentUIStreamResponse({
+			abortSignal: c.req.raw.signal,
+			agent: getChatAgent(selectedAgentMode),
+			consumeSseStream: consumeStream,
+			experimental_transform: smoothStream(),
+			generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
+			headers: streamingProxyHeaders,
+			messageMetadata: ({ part }) => {
+				if (part.type === "start") {
+					return messageMetadata;
+				}
 
-					if (part.type === "finish") {
-						return {
-							...messageMetadata,
-							finishReason: part.finishReason,
-							totalTokens: part.totalUsage.totalTokens
-						};
-					}
+				if (part.type === "finish") {
+					return {
+						...messageMetadata,
+						finishReason: part.finishReason,
+						totalTokens: part.totalUsage.totalTokens
+					};
+				}
 
-					return undefined;
-				},
-				onError: (error: unknown) => {
-					logger.error({ error, selectedAgentMode }, "AI agent stream failed");
-					return "The assistant request failed. Please retry.";
-				},
-				onFinish: async ({ isAborted, messages: finalMessages }) => {
-					if (isAborted) {
-						return;
-					}
+				return undefined;
+			},
+			onError: (error: unknown) => {
+				logger.error({ error, selectedAgentMode }, "AI agent stream failed");
+				return "The assistant request failed. Please retry.";
+			},
+			onFinish: async ({ isAborted, messages: finalMessages }) => {
+				if (isAborted) {
+					return;
+				}
 
-					await saveConversation(coalescedChatId, finalMessages, userJwt.id);
-				},
-				onStepFinish: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
-					logger.debug(
-						{
-							finishReason,
-							stepNumber,
-							toolCallCount: toolCalls.length,
-							toolResultCount: toolResults.length,
-							totalTokens: usage.totalTokens,
-							warningCount: warnings?.length ?? 0
-						},
-						"AI agent step finished"
-					);
-				},
-				options: {
-					conversationId: coalescedChatId,
-					requestedModel: model,
-					toolNames,
-					userId: userJwt.id
-				},
-				sendReasoning: true,
-				sendSources: true,
-				timeout: agentStreamTimeout,
-				uiMessages: normalizedMessages
-			})
-		);
+				await saveConversation(coalescedChatId, finalMessages, userJwt.id);
+			},
+			onStepFinish: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
+				logger.debug(
+					{
+						finishReason,
+						stepNumber,
+						toolCallCount: toolCalls.length,
+						toolResultCount: toolResults.length,
+						totalTokens: usage.totalTokens,
+						warningCount: warnings?.length ?? 0
+					},
+					"AI agent step finished"
+				);
+			},
+			options: {
+				conversationId: coalescedChatId,
+				requestedModel: model,
+				toolNames,
+				userId: userJwt.id
+			},
+			sendReasoning: true,
+			sendSources: true,
+			timeout: agentStreamTimeout,
+			uiMessages: normalizedMessages
+		});
 
 	return isTelemetryEnabled
 		? await propagateAttributes(

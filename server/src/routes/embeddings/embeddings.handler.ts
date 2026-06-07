@@ -1,4 +1,3 @@
-import { EmbeddingUploadRequestSchema } from "@chat-app/shared";
 import { HTTPException } from "hono/http-exception";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 import type { AppRouteHandler } from "@/lib/types";
@@ -82,15 +81,12 @@ export const ingestText: AppRouteHandler<IngestTextRoute> = async (c) => {
 };
 
 export const uploadDocument: AppRouteHandler<UploadDocumentRoute> = async (c) => {
-	const parsed = EmbeddingUploadRequestSchema.safeParse(await c.req.parseBody());
-	if (!parsed.success) {
-		throw asBadRequest(parsed.error, "Invalid upload payload");
-	}
+	const requestBody = c.req.valid("form");
 
 	try {
-		const extracted = await extractUploadContent(parsed.data.file, {
-			metadata: parsed.data.metadata,
-			title: parsed.data.title
+		const extracted = await extractUploadContent(requestBody.file, {
+			metadata: requestBody.metadata,
+			title: requestBody.title
 		});
 		const result = await createEmbeddingDocument({
 			...extracted,

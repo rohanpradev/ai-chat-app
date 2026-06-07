@@ -12,6 +12,7 @@ import {
 import {
   PromptInput,
   PromptInputActionAddAttachments,
+  PromptInputActionAddScreenshot,
   PromptInputActionMenu,
   PromptInputActionMenuContent,
   PromptInputActionMenuTrigger,
@@ -45,7 +46,8 @@ interface ChatInputProps {
   setModel: (value: AIModelId) => void;
   webSearch: boolean;
   setWebSearch: (value: boolean) => void;
-  onMessageSend: (message: PromptInputMessage) => void;
+  onMessageSend: (message: PromptInputMessage) => void | Promise<void>;
+  onStop: () => void;
   showAgentGuide?: boolean;
   status: ChatStatus;
 }
@@ -73,12 +75,14 @@ function PromptInputAttachmentsDisplay() {
   );
 }
 
-function PromptSubmit({ input, status }: Readonly<{ input: string; status: ChatStatus }>) {
+function PromptSubmit({ input, onStop, status }: Readonly<{ input: string; onStop: () => void; status: ChatStatus }>) {
   const attachments = usePromptInputAttachments();
   const hasAttachments = attachments.files.length > 0;
-  const isStreaming = status === "streaming";
+  const isGenerating = status === "submitted" || status === "streaming";
 
-  return <PromptInputSubmit disabled={!input && !hasAttachments && !isStreaming} status={status} />;
+  return (
+    <PromptInputSubmit disabled={!input.trim() && !hasAttachments && !isGenerating} onStop={onStop} status={status} />
+  );
 }
 
 export function ChatInput({
@@ -92,19 +96,21 @@ export function ChatInput({
   webSearch,
   setWebSearch,
   onMessageSend,
+  onStop,
   showAgentGuide = false,
   status,
 }: Readonly<ChatInputProps>) {
   const handleSubmit = (message: PromptInputMessage) => {
-    const hasText = Boolean(message.text);
+    const text = message.text.trim();
+    const hasText = Boolean(text);
     const hasAttachments = Boolean(message.files?.length);
 
     if (!(hasText || hasAttachments)) {
       return;
     }
 
-    onMessageSend(message);
     setInput("");
+    return onMessageSend({ ...message, text });
   };
 
   return (
@@ -133,7 +139,11 @@ export function ChatInput({
       >
         <PromptInputAttachmentsDisplay />
         <PromptInputBody>
-          <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
+          <PromptInputTextarea
+            disabled={status !== "ready" && status !== "error"}
+            onChange={(e) => setInput(e.target.value)}
+            value={input}
+          />
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
@@ -141,6 +151,7 @@ export function ChatInput({
               <PromptInputActionMenuTrigger />
               <PromptInputActionMenuContent>
                 <PromptInputActionAddAttachments />
+                <PromptInputActionAddScreenshot />
               </PromptInputActionMenuContent>
             </PromptInputActionMenu>
             <PromptInputButton variant={webSearch ? "default" : "ghost"} onClick={() => setWebSearch(!webSearch)}>
@@ -172,7 +183,7 @@ export function ChatInput({
               </PromptInputSelectContent>
             </PromptInputSelect>
           </PromptInputTools>
-          <PromptSubmit input={input} status={status} />
+          <PromptSubmit input={input} onStop={onStop} status={status} />
         </PromptInputFooter>
       </PromptInput>
     </div>

@@ -1,6 +1,11 @@
 import { type MyUIMessage, safeValidateMyUIMessages } from "@chat-app/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationDownload,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ApiRequestError } from "@/composables/useApi";
@@ -120,6 +125,7 @@ function ConversationChat() {
     setWebSearch,
     showAgentGuide,
     status,
+    stop,
     webSearch,
   } = useAgentChat({
     conversationId,
@@ -134,11 +140,12 @@ function ConversationChat() {
             messages={messages}
             status={status}
             error={error}
-            onRetry={() => regenerate()}
+            onRetry={(messageId) => regenerate(messageId ? { messageId } : undefined)}
             onClearError={clearError}
             onToolApprovalResponse={addToolApprovalResponse}
           />
         </ConversationContent>
+        {messages.length > 0 ? <ConversationDownload aria-label="Download conversation" messages={messages} /> : null}
         <ConversationScrollButton />
       </Conversation>
 
@@ -154,6 +161,7 @@ function ConversationChat() {
           webSearch={webSearch}
           setWebSearch={setWebSearch}
           onMessageSend={sendPromptMessage}
+          onStop={stop}
           showAgentGuide={showAgentGuide}
           status={status}
         />

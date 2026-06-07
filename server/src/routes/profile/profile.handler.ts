@@ -1,4 +1,3 @@
-import { UpdateProfileRequestSchema } from "@chat-app/shared";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { db } from "@/db";
@@ -66,7 +65,7 @@ export const patchUserProfile: AppRouteHandler<UpdateUserProfileRoute> = async (
 			message: "User not found"
 		});
 
-	const { name, profileImage = null } = UpdateProfileRequestSchema.parse(await c.req.parseBody());
+	const { name, profileImage = null } = c.req.valid("form");
 
 	const updatedData: { name: string; image?: string } = {
 		name

@@ -10,12 +10,14 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from "@/components/ai-elements/confirmation";
+import { Loader } from "@/components/ai-elements/loader";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import SerperResults from "@/components/chat/SerperResults";
 
 type ChatMessagePart = MyUIMessage["parts"][number];
 type ToolMessagePart = Extract<ChatMessagePart, { type: "tool-deepSearch" | "tool-serper" }>;
 type ApprovalRequestedToolPart = Extract<ToolMessagePart, { state: "approval-requested" }>;
+type ToolPartState = ToolMessagePart["state"];
 
 interface ToolPartRendererProps {
   onToolApprovalResponse?: ChatAddToolApproveResponseFunction;
@@ -30,6 +32,27 @@ const getToolApprovalPrompt = (part: ApprovalRequestedToolPart) => {
       return `Allow deep search for "${part.input.query}"?`;
   }
 };
+
+const toolStateDescriptions: Partial<Record<ToolPartState, string>> = {
+  "approval-responded": "Approval sent. The assistant can continue this turn with the approved decision.",
+  "input-available": "Tool parameters are ready and execution is in progress.",
+  "input-streaming": "Receiving streamed tool parameters from the model.",
+};
+
+function ToolStateNotice({ state }: Readonly<{ state: ToolPartState }>) {
+  const description = toolStateDescriptions[state];
+
+  if (!description) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-md bg-muted/50 p-3 text-muted-foreground text-sm">
+      <Loader className="shrink-0" size={14} />
+      <span>{description}</span>
+    </div>
+  );
+}
 
 export default function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRendererProps>) {
   const approvalId = part.state === "approval-requested" ? part.approval?.id : undefined;
@@ -95,6 +118,8 @@ export default function ToolPartRenderer({ part, onToolApprovalResponse }: Reado
             <ConfirmationTitle>Tool execution denied.</ConfirmationTitle>
           </ConfirmationRejected>
         </Confirmation>
+
+        <ToolStateNotice state={part.state} />
 
         {(part.state === "approval-requested" ||
           part.state === "approval-responded" ||

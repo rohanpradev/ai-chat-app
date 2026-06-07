@@ -1,4 +1,3 @@
-import { CreateConversationRequestSchema, UpdateConversationRequestSchema } from "@chat-app/shared";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { chats } from "@/db/schema";
@@ -13,7 +12,7 @@ import type {
 
 export const createConversation: AppRouteHandler<CreateConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
-	const { title } = CreateConversationRequestSchema.parse(await c.req.json());
+	const { title } = c.req.valid("json");
 
 	const [conversation] = await db
 		.insert(chats)
@@ -62,7 +61,7 @@ export const getConversations: AppRouteHandler<GetConversationsRoute> = async (c
 
 export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
-	const { id } = c.req.param() as { id: string };
+	const { id } = c.req.valid("param");
 
 	const chat = await db.query.chats.findFirst({
 		where: and(eq(chats.id, id), eq(chats.userId, userJwt.id)),
@@ -116,8 +115,8 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 
 export const updateConversation: AppRouteHandler<UpdateConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
-	const { id } = c.req.param() as { id: string };
-	const { title } = UpdateConversationRequestSchema.parse(await c.req.json());
+	const { id } = c.req.valid("param");
+	const { title } = c.req.valid("json");
 
 	const [updatedChat] = await db
 		.update(chats)

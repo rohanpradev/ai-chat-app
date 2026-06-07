@@ -6,7 +6,7 @@ import {
 	enabledRequestToolIds,
 	getAgentModeById
 } from "@chat-app/shared";
-import { stepCountIs, ToolLoopAgent, type ToolSet } from "ai";
+import { isStepCount, ToolLoopAgent, type ToolSet } from "ai";
 import { z } from "zod";
 import { isTelemetryEnabled } from "@/lib/instrumentation";
 import { getActiveTools, tools } from "@/lib/tools";
@@ -104,7 +104,7 @@ const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentP
 				telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel })
 			};
 		},
-		stopWhen: stepCountIs(stepLimit),
+		stopWhen: isStepCount(stepLimit),
 		tools: agentTools
 	});
 

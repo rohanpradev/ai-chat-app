@@ -66,6 +66,7 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
     messageMetadataSchema: myUIMessageMetadataSchema,
     messages: initialMessages,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    experimental_throttle: 50,
     transport: transportRef.current,
   });
   const pendingApprovalIdsRef = useRef(new Set<string>());
@@ -129,9 +130,9 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
   const sendPromptMessage = async (message: PromptInputMessage) => {
     const fileParts = message.files && message.files.length > 0 ? await convertFilesToDataURLs(message.files) : [];
 
-    chat.sendMessage({
-      role: "user",
-      parts: [{ type: "text", text: message.text || "Sent with attachments" }, ...fileParts],
+    await chat.sendMessage({
+      text: message.text || "Sent with attachments",
+      ...(fileParts.length > 0 ? { files: fileParts } : {}),
     });
   };
 

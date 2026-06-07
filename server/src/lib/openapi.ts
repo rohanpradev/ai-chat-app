@@ -7,13 +7,13 @@ export const defaultHook: Hook<unknown, AppBindings, string, unknown> = (result,
 	if (!result.success) {
 		return c.json(
 			{
-				error: {
-					issues: result.error.issues,
-					name: result.error.name
-				},
-				success: result.success
+				errors: result.error.issues.map((issue) => ({
+					field: issue.path.join(".") || "request",
+					message: issue.message
+				})),
+				message: "Invalid request payload"
 			},
-			HttpStatusCodes.UNPROCESSABLE_ENTITY
+			HttpStatusCodes.BAD_REQUEST
 		);
 	}
 };

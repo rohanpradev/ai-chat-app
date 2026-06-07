@@ -28,8 +28,15 @@ import {
 } from "@chat-app/shared/schemas/embedding.schema";
 import type { GetProfileResponse, UpdateProfileResponse } from "@chat-app/shared/schemas/profile.schema";
 import { UpdateProfileRequestSchema } from "@chat-app/shared/schemas/profile.schema";
+import type {
+	CommonBadRequestResponse,
+	CommonErrorResponse,
+	CommonNotFoundResponse,
+	CommonUnauthorizedResponse,
+} from "@chat-app/shared/types/api.types";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import type { ApplyGlobalResponse, InferRequestType } from "hono/client";
 import { z } from "zod";
 
 const routeParamsSchema = z.object({
@@ -69,4 +76,18 @@ export const apiContract = new Hono()
 	)
 	.post("/embeddings/rag", zValidator("json", RagRequestSchema), (c) => c.json({} as RagResponse, 200));
 
-export type ApiContract = typeof apiContract;
+type GlobalApiResponses = {
+	400: { json: CommonBadRequestResponse };
+	401: { json: CommonUnauthorizedResponse };
+	404: { json: CommonNotFoundResponse };
+	413: { json: CommonBadRequestResponse };
+	429: { json: CommonErrorResponse };
+	500: { json: CommonErrorResponse };
+};
+
+export type ApiContract = ApplyGlobalResponse<typeof apiContract, GlobalApiResponses>;
+
+declare const apiContractClient: ReturnType<typeof import("hono/client").hc<ApiContract>>;
+
+export type ApiContractClient = typeof apiContractClient;
+export type AiTextStreamRequestBody = InferRequestType<ApiContractClient["ai"]["text-stream"]["$post"]>["json"];

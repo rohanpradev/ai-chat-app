@@ -1,4 +1,9 @@
-import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationDownload,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -45,14 +50,12 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
     setWebSearch,
     showAgentGuide,
     status,
+    stop,
     webSearch,
   } = useAgentChat({});
 
   const handleSuggestionClick = (suggestion: string) => {
-    sendMessage({
-      role: "user",
-      parts: [{ type: "text", text: suggestion }],
-    });
+    void sendMessage({ text: suggestion });
   };
 
   return (
@@ -69,11 +72,14 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
                 messages={messages}
                 status={status}
                 error={error}
-                onRetry={() => regenerate()}
+                onRetry={(messageId) => regenerate(messageId ? { messageId } : undefined)}
                 onClearError={clearError}
                 onToolApprovalResponse={addToolApprovalResponse}
               />
             </ConversationContent>
+            {messages.length > 0 ? (
+              <ConversationDownload aria-label="Download conversation" messages={messages} />
+            ) : null}
             <ConversationScrollButton />
           </Conversation>
 
@@ -96,6 +102,7 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
               webSearch={webSearch}
               setWebSearch={setWebSearch}
               onMessageSend={sendPromptMessage}
+              onStop={stop}
               showAgentGuide={showAgentGuide}
               status={status}
             />
