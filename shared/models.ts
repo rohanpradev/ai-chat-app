@@ -34,3 +34,6 @@ export const getModelById = (id: string | undefined): AIModelDefinition | undefi
 
 export const getModelsByProvider = (provider: AIProvider): AIModelDefinition[] =>
 	modelCatalog.filter((model) => model.provider === provider);
+
+export const isAvailableModelId = (id: string, availableModels: readonly AIModelDefinition[]): id is AIModelId =>
+	availableModels.some((model) => model.id === id);

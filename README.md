@@ -1,6 +1,6 @@
 # Chat App
 
-AI chat application built with Bun, React, Hono, PostgreSQL, Redis, and the AI SDK.
+AI chat application built with a Bun workspace, React client, Hono API, PostgreSQL, Redis, and the AI SDK.
 
 ![Biome](https://img.shields.io/badge/biome-%2360A5FA.svg?style=for-the-badge&logo=biome&logoColor=white)
 ![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)
@@ -15,31 +15,33 @@ AI chat application built with Bun, React, Hono, PostgreSQL, Redis, and the AI S
 
 ![Chat App demo](docs/assets/app-demo.gif)
 
-The repo is a Bun workspace with three app packages:
+## Overview
 
-- `client/` - React app
-- `server/` - Hono API
+The repo is organized as a Bun workspace with three packages:
+
+- `client/` - React app built with Vite and TanStack Router
+- `server/` - Hono API, auth, AI streaming, and database code
 - `shared/` - shared schemas, model metadata, tool definitions, and UI message types
 
-It can run locally with Docker Compose or through the Helm chart under `helm/chat-app/`.
+The repo also includes a Helm chart under `helm/chat-app/` and helper scripts for local Kubernetes workflows.
 
 ## Features
 
 - Streaming chat responses through the AI SDK
 - Cookie-based auth for register, login, logout, and current user
 - Persistent conversations in PostgreSQL
-- Redis-backed runtime/cache support
 - Shared Zod schemas and TypeScript types across client and server
-- AI SDK structured output endpoints for task planning and LLM-as-judge evaluation
+- Structured output endpoints for planning and LLM-as-judge evaluation
 - Approval-gated web search with Serper
 - File attachments in chat input
 - Mermaid rendering loaded lazily for markdown diagrams
 - Optional Langfuse telemetry through OpenTelemetry
+- Optional Sentry monitoring for client and server
 - Docker Compose and local Kubernetes workflows
 
 ## Stack
 
-- Runtime/package manager: Bun
+- Runtime and package manager: Bun
 - Frontend: React 19, Vite, TanStack Router, TanStack Query, Tailwind CSS
 - Backend: Hono, Drizzle ORM, Zod, OpenAPI metadata
 - AI: AI SDK, OpenAI provider, Langfuse telemetry
@@ -57,19 +59,21 @@ scripts/                Local deployment and setup helpers
 compose.yml             Docker Compose stack
 Dockerfile              Client and server production images
 Makefile                Common local, Docker, and Kubernetes commands
+docs/                   Architecture, security, eval, and policy docs
 ```
 
 ## Prerequisites
 
 - Bun `1.3.14+`
 - Docker Desktop or OrbStack
-- `kubectl` and `helm` for Kubernetes
+- `kubectl` and `helm` for Kubernetes workflows
 - OpenAI API key
 
 Optional:
 
 - Serper API key for web search
 - Langfuse keys for telemetry
+- GitHub OAuth credentials for the GitHub login provider
 
 ## Setup
 
@@ -124,10 +128,16 @@ Install dependencies:
 bun install --frozen-lockfile
 ```
 
-Run client and server directly:
+Run the client and server directly:
 
 ```bash
 make local
+```
+
+Or start the Bun workspace dev scripts from the root:
+
+```bash
+bun run dev
 ```
 
 Default local URLs:
@@ -160,26 +170,23 @@ make start
 ```
 
 This starts Traefik, PostgreSQL, Redis, the migration job, API server, and client.
-The server image compiles the Hono entrypoint during the Docker build with `bun run --filter @chat-app/server build`,
-then runs the generated `dist/index.js` in production instead of executing TypeScript source at container startup.
+The server image compiles the Hono entrypoint during the Docker build with `bun run --filter @chat-app/server build`, then runs the generated `dist/index.js` in production instead of executing TypeScript source at container startup.
+
+Useful commands:
+
+```bash
+make status
+make logs
+make health
+make stop
+make clean
+```
 
 URLs:
 
 - App: `https://localhost`
 - API health: `https://localhost/health`
 - Langfuse Cloud: `https://cloud.langfuse.com`
-
-Stop the stack:
-
-```bash
-make stop
-```
-
-Remove Compose containers, volumes, and local images:
-
-```bash
-make clean
-```
 
 ## Kubernetes
 
@@ -194,7 +201,7 @@ make kubernetes
 
 This will:
 
-1. Install or upgrade Traefik
+1. Install or upgrade Traefik when Gateway mode is enabled
 2. Generate local Helm values
 3. Build the server, client, and migration images
 4. Deploy the app chart
@@ -202,34 +209,14 @@ This will:
 6. Run a smoke test
 7. Print status and URLs
 
-Gateway URLs:
-
-- App: `https://app.docker.localhost:30001`
-- Health: `https://app.docker.localhost:30001/health`
-- Traefik dashboard: `https://traefik.docker.localhost:30001`
-
-Check status:
+Useful commands:
 
 ```bash
+make k8s-full-stack
 make k8s-status
-```
-
-Show logs:
-
-```bash
 make k8s-logs
-```
-
-Remove the app release:
-
-```bash
 make k8s-cleanup
-```
-
-Stop local infrastructure more broadly:
-
-```bash
-make shutdown-all
+make k8s-stop
 ```
 
 ## Bun Workspaces
@@ -283,7 +270,7 @@ make local             # run client and server directly
 make start             # Docker Compose stack
 make stop              # stop Docker Compose stack
 bun run security:check # dependency audit plus supply-chain indicator scan
-make k8s-full-stack    # full local Kubernetes + Traefik run
+make kubernetes        # full local Kubernetes + Traefik run
 make k8s-status        # Kubernetes status and URLs
 make clean-generated   # remove generated local artifacts
 bun run check          # lint, typecheck, and tests

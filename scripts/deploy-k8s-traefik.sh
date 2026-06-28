@@ -61,7 +61,7 @@ if [ -n "${TRAEFIK_CHART_VERSION}" ]; then
   CRD_ARGS+=(--version "${TRAEFIK_CHART_VERSION}")
 fi
 
-helm "${CRD_ARGS[@]}" | kubectl apply --server-side --force-conflicts -f -
+helm "${CRD_ARGS[@]}" | sed -n '/^---/,$p' | kubectl apply --server-side --force-conflicts -f -
 
 HELM_ARGS=(
   upgrade

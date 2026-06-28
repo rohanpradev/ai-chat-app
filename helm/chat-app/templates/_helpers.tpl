@@ -72,3 +72,11 @@ emptyDir: {}
 {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "chat-app.dbHost" -}}
+{{- default (include "chat-app.componentName" (dict "root" . "component" "db")) .Values.externalDatabase.host -}}
+{{- end -}}
+
+{{- define "chat-app.redisHost" -}}
+{{- default (include "chat-app.componentName" (dict "root" . "component" "redis")) .Values.externalRedis.host -}}
+{{- end -}}

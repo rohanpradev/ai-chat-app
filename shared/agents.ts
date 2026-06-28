@@ -29,3 +29,5 @@ export const agentModes = [...agentModeCatalog];
 
 export const getAgentModeById = (id: string | undefined): AgentModeDefinition | undefined =>
 	id ? agentModeLookup.get(id) : undefined;
+
+export const isAgentMode = (id: string): id is AgentMode => agentModeLookup.has(id);

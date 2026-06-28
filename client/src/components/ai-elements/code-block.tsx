@@ -25,7 +25,6 @@ import type {
   BundledLanguage,
   BundledTheme,
   HighlighterGeneric,
-  PlainTextLanguage,
   ThemedToken,
 } from "shiki";
 import { bundledLanguages, createHighlighter } from "shiki";
@@ -40,6 +39,9 @@ const isUnderline = (fontStyle: number | undefined) =>
   fontStyle && fontStyle & 4;
 
 // Transform tokens to include pre-computed keys to avoid noArrayIndexKey lint
+type CodeBlockLanguage = BundledLanguage | "ansi" | (string & {});
+type HighlightLanguage = BundledLanguage | "ansi";
+
 interface KeyedToken {
   token: ThemedToken;
   key: string;
@@ -110,8 +112,8 @@ const LineSpan = ({
 
 // Types
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
-  code?: string;
-  language: BundledLanguage | (string & {});
+  code: string;
+  language: CodeBlockLanguage;
   showLineNumbers?: boolean;
 };
 
@@ -119,11 +121,6 @@ interface TokenizedCode {
   tokens: ThemedToken[][];
   fg: string;
   bg: string;
-}
-
-interface AsyncTokenizedCode {
-  cacheKey: string;
-  tokenized: TokenizedCode;
 }
 
 interface CodeBlockContextType {
@@ -135,89 +132,56 @@ const CodeBlockContext = createContext<CodeBlockContextType>({
   code: "",
 });
 
-const shikiThemes = ["github-light", "github-dark"] satisfies BundledTheme[];
-let highlighterPromise:
-  | Promise<HighlighterGeneric<BundledLanguage, BundledTheme>>
-  | undefined;
-const languageLoadJobs = new Map<BundledLanguage, Promise<void>>();
+// Highlighter cache (singleton per language)
+const highlighterCache = new Map<
+  string,
+  Promise<HighlighterGeneric<BundledLanguage, BundledTheme>>
+>();
 
 // Token cache
 const tokensCache = new Map<string, TokenizedCode>();
-const tokenizationJobs = new Map<string, Promise<TokenizedCode>>();
-const fallbackLanguage = "text";
 
 // Subscribers for async token updates
 const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
 
-const getTokensCacheKey = (code: string, language: string) => {
+const getTokensCacheKey = (code: string, language: HighlightLanguage) => {
   const start = code.slice(0, 100);
   const end = code.length > 100 ? code.slice(-100) : "";
   return `${language}:${code.length}:${start}:${end}`;
 };
 
-type ShikiTokenLanguage = BundledLanguage | "ansi";
-type ResolvedLanguage = PlainTextLanguage | ShikiTokenLanguage;
+const TEXT_LANGUAGE_ALIASES = new Set(["plain", "plaintext", "text", "txt"]);
 
-const plainTextLanguages = new Set<string>([
-  "text",
-  "plaintext",
-  "txt",
-  "plain",
-]);
+const normalizeLanguage = (language: CodeBlockLanguage): HighlightLanguage | null => {
+  const normalized = language.toLowerCase();
 
-const isPlainTextLanguage = (language: string): language is PlainTextLanguage =>
-  plainTextLanguages.has(language);
-
-const normalizeLanguage = (language: string) =>
-  (language.trim() || fallbackLanguage).toLowerCase();
-
-const resolveLanguage = (language: string): ResolvedLanguage | null => {
-  const normalizedLanguage = normalizeLanguage(language);
-
-  if (isPlainTextLanguage(normalizedLanguage)) {
-    return "text";
+  if (TEXT_LANGUAGE_ALIASES.has(normalized)) {
+    return null;
   }
 
-  if (normalizedLanguage === "ansi") {
+  if (normalized === "ansi") {
     return "ansi";
   }
 
-  return normalizedLanguage in bundledLanguages ? (normalizedLanguage as BundledLanguage) : null;
+  return normalized in bundledLanguages ? (normalized as BundledLanguage) : null;
 };
 
-const getHighlighter = () => {
-  highlighterPromise ??= createHighlighter({
-    langs: [],
-    themes: shikiThemes,
+const getHighlighter = (
+  language: HighlightLanguage
+): Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> => {
+  const cached = highlighterCache.get(language);
+  if (cached) {
+    return cached;
+  }
+
+  // ANSI highlighting is built into Shiki and does not need a grammar loaded.
+  const highlighterPromise = createHighlighter({
+    langs: language === "ansi" ? [] : [language],
+    themes: ["github-light", "github-dark"],
   });
 
+  highlighterCache.set(language, highlighterPromise);
   return highlighterPromise;
-};
-
-const ensureLanguageLoaded = async (language: ShikiTokenLanguage) => {
-  const highlighter = await getHighlighter();
-
-  if (language === "ansi") {
-    return highlighter;
-  }
-
-  if (highlighter.getLoadedLanguages().includes(language)) {
-    return highlighter;
-  }
-
-  let languageLoadJob = languageLoadJobs.get(language);
-  if (!languageLoadJob) {
-    languageLoadJob = highlighter
-      .loadLanguage(language)
-      .then(() => undefined)
-      .finally(() => {
-        languageLoadJobs.delete(language);
-      });
-    languageLoadJobs.set(language, languageLoadJob);
-  }
-
-  await languageLoadJob;
-  return highlighter;
 };
 
 // Create raw tokens for immediate display while highlighting loads
@@ -236,39 +200,25 @@ const createRawTokens = (code: string): TokenizedCode => ({
   ),
 });
 
-const notifyTokenSubscribers = (tokensCacheKey: string, tokenized: TokenizedCode) => {
-  const subs = subscribers.get(tokensCacheKey);
-  if (!subs) {
-    return;
-  }
-
-  for (const sub of subs) {
-    sub(tokenized);
-  }
-  subscribers.delete(tokensCacheKey);
-};
-
 // Synchronous highlight with callback for async results
 export const highlightCode = (
   code: string,
-  language: string,
+  language: CodeBlockLanguage,
   // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-callbacks)
   callback?: (result: TokenizedCode) => void
 ): TokenizedCode | null => {
-  const normalizedLanguage = normalizeLanguage(language);
-  const tokensCacheKey = getTokensCacheKey(code, normalizedLanguage);
+  const highlightLanguage = normalizeLanguage(language);
+
+  if (!highlightLanguage) {
+    return createRawTokens(code);
+  }
+
+  const tokensCacheKey = getTokensCacheKey(code, highlightLanguage);
 
   // Return cached result if available
   const cached = tokensCache.get(tokensCacheKey);
   if (cached) {
     return cached;
-  }
-
-  const resolvedLanguage = resolveLanguage(language);
-  if (!resolvedLanguage || isPlainTextLanguage(resolvedLanguage)) {
-    const fallback = createRawTokens(code);
-    tokensCache.set(tokensCacheKey, fallback);
-    return fallback;
   }
 
   // Subscribe callback if provided
@@ -279,29 +229,12 @@ export const highlightCode = (
     subscribers.get(tokensCacheKey)?.add(callback);
   }
 
-  if (tokenizationJobs.has(tokensCacheKey)) {
-    return null;
-  }
-
   // Start highlighting in background - fire-and-forget async pattern
-  const tokenizationJob = ensureLanguageLoaded(resolvedLanguage)
+  getHighlighter(highlightLanguage)
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
     .then((highlighter) => {
-      const availableLangs = highlighter.getLoadedLanguages();
-      const langToUse =
-        resolvedLanguage === "ansi" || availableLangs.includes(resolvedLanguage as BundledLanguage)
-          ? resolvedLanguage
-          : null;
-
-      if (!langToUse) {
-        const fallback = createRawTokens(code);
-        tokensCache.set(tokensCacheKey, fallback);
-        notifyTokenSubscribers(tokensCacheKey, fallback);
-        return fallback;
-      }
-
       const result = highlighter.codeToTokens(code, {
-        lang: langToUse,
+        lang: highlightLanguage,
         themes: {
           dark: "github-dark",
           light: "github-light",
@@ -316,29 +249,21 @@ export const highlightCode = (
 
       // Cache the result
       tokensCache.set(tokensCacheKey, tokenized);
-      notifyTokenSubscribers(tokensCacheKey, tokenized);
 
-      return tokenized;
+      // Notify all subscribers
+      const subs = subscribers.get(tokensCacheKey);
+      if (subs) {
+        for (const sub of subs) {
+          sub(tokenized);
+        }
+        subscribers.delete(tokensCacheKey);
+      }
     })
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then), eslint-plugin-promise(prefer-await-to-callbacks)
     .catch((error) => {
-      const fallback = createRawTokens(code);
-
-      if (import.meta.env.DEV) {
-        console.warn("Code highlighting failed; rendering plain text.", error);
-      }
-
-      tokensCache.set(tokensCacheKey, fallback);
-      notifyTokenSubscribers(tokensCacheKey, fallback);
-
-      return fallback;
-    })
-    // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
-    .finally(() => {
-      tokenizationJobs.delete(tokensCacheKey);
+      console.error("Failed to highlight code:", error);
+      subscribers.delete(tokensCacheKey);
     });
-
-  tokenizationJobs.set(tokensCacheKey, tokenizationJob);
 
   return null;
 };
@@ -474,44 +399,47 @@ export const CodeBlockContent = ({
   language,
   showLineNumbers = false,
 }: {
-  code?: string;
-  language: BundledLanguage | (string & {});
+  code: string;
+  language: CodeBlockLanguage;
   showLineNumbers?: boolean;
 }) => {
-  const resolvedCode = code ?? "";
-  const resolvedLanguage = language || fallbackLanguage;
-  const tokensCacheKey = useMemo(
-    () => getTokensCacheKey(resolvedCode, resolvedLanguage),
-    [resolvedCode, resolvedLanguage]
-  );
-
   // Memoized raw tokens for immediate display
-  const rawTokens = useMemo(() => createRawTokens(resolvedCode), [resolvedCode]);
+  const rawTokens = useMemo(() => createRawTokens(code), [code]);
 
   // Synchronous cache lookup — avoids setState in effect for cached results
   const syncTokens = useMemo(
-    () => highlightCode(resolvedCode, resolvedLanguage) ?? rawTokens,
-    [resolvedCode, resolvedLanguage, rawTokens]
+    () => highlightCode(code, language) ?? rawTokens,
+    [code, language, rawTokens]
   );
 
   // Async highlighting result (populated after shiki loads)
-  const [asyncTokens, setAsyncTokens] = useState<AsyncTokenizedCode | null>(null);
+  const [asyncTokens, setAsyncTokens] = useState<TokenizedCode | null>(null);
+  const asyncKeyRef = useRef({ code, language });
+
+  // Invalidate stale async tokens synchronously during render
+  if (
+    asyncKeyRef.current.code !== code ||
+    asyncKeyRef.current.language !== language
+  ) {
+    asyncKeyRef.current = { code, language };
+    setAsyncTokens(null);
+  }
 
   useEffect(() => {
     let cancelled = false;
 
-    highlightCode(resolvedCode, resolvedLanguage, (result) => {
+    highlightCode(code, language, (result) => {
       if (!cancelled) {
-        setAsyncTokens({ cacheKey: tokensCacheKey, tokenized: result });
+        setAsyncTokens(result);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [resolvedCode, resolvedLanguage, tokensCacheKey]);
+  }, [code, language]);
 
-  const tokenized = asyncTokens?.cacheKey === tokensCacheKey ? asyncTokens.tokenized : syncTokens;
+  const tokenized = asyncTokens ?? syncTokens;
 
   return (
     <div className="relative overflow-auto">
@@ -528,15 +456,14 @@ export const CodeBlock = ({
   children,
   ...props
 }: CodeBlockProps) => {
-  const resolvedCode = code ?? "";
-  const contextValue = useMemo(() => ({ code: resolvedCode }), [resolvedCode]);
+  const contextValue = useMemo(() => ({ code }), [code]);
 
   return (
     <CodeBlockContext.Provider value={contextValue}>
       <CodeBlockContainer className={className} language={language} {...props}>
         {children}
         <CodeBlockContent
-          code={resolvedCode}
+          code={code}
           language={language}
           showLineNumbers={showLineNumbers}
         />

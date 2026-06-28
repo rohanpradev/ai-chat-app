@@ -1,4 +1,4 @@
-import { type MyUIMessage, safeValidateMyUIMessages } from "@chat-app/shared";
+import { safeValidateMyUIMessages } from "@chat-app/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   Conversation,
@@ -56,8 +56,7 @@ export const Route = createFileRoute("/chat/$conversationId")({
         };
       });
 
-      const validation =
-        rawMessages.length > 0 ? await safeValidateMyUIMessages(rawMessages) : { data: [], success: true };
+      const validation = await safeValidateMyUIMessages(rawMessages);
 
       if (!validation.success) {
         throw new Error("Saved conversation messages are no longer compatible with the current chat schema.");
@@ -129,7 +128,7 @@ function ConversationChat() {
     webSearch,
   } = useAgentChat({
     conversationId,
-    initialMessages: initialMessages as MyUIMessage[],
+    initialMessages,
   });
 
   return (

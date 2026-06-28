@@ -7,6 +7,7 @@ export {
 	agentModes,
 	defaultAgentMode,
 	getAgentModeById,
+	isAgentMode,
 } from "@chat-app/shared/agents";
 export type { ApiContract } from "@chat-app/shared/api-contract";
 export {
@@ -16,6 +17,7 @@ export {
 	defaultModelId,
 	getModelById,
 	getModelsByProvider,
+	isAvailableModelId,
 	modelCatalog,
 	modelIds,
 	models,
