@@ -1,4 +1,11 @@
-import { type AgentMode, type AIModelDefinition, type AIModelId, agentModes } from "@chat-app/shared";
+import {
+  type AgentMode,
+  type AIModelDefinition,
+  type AIModelId,
+  agentModes,
+  isAgentMode,
+  isAvailableModelId,
+} from "@chat-app/shared";
 import type { ChatStatus } from "ai";
 import { GlobeIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
@@ -113,6 +120,18 @@ export function ChatInput({
     return onMessageSend({ ...message, text });
   };
 
+  const handleAgentModeChange = (value: string) => {
+    if (isAgentMode(value)) {
+      setAgentMode(value);
+    }
+  };
+
+  const handleModelChange = (value: string) => {
+    if (isAvailableModelId(value, availableModels)) {
+      setModel(value);
+    }
+  };
+
   return (
     <div className="mt-4 space-y-3">
       {showAgentGuide ? (
@@ -158,7 +177,7 @@ export function ChatInput({
               <GlobeIcon size={16} />
               <span>Web Search</span>
             </PromptInputButton>
-            <PromptInputSelect onValueChange={(value) => setAgentMode(value as AgentMode)} value={agentMode}>
+            <PromptInputSelect onValueChange={handleAgentModeChange} value={agentMode}>
               <PromptInputSelectTrigger>
                 <PromptInputSelectValue />
               </PromptInputSelectTrigger>
@@ -170,7 +189,7 @@ export function ChatInput({
                 ))}
               </PromptInputSelectContent>
             </PromptInputSelect>
-            <PromptInputSelect onValueChange={(value) => setModel(value as AIModelId)} value={model}>
+            <PromptInputSelect onValueChange={handleModelChange} value={model}>
               <PromptInputSelectTrigger>
                 <PromptInputSelectValue />
               </PromptInputSelectTrigger>

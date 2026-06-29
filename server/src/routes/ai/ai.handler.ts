@@ -134,7 +134,7 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 
 				await saveConversation(coalescedChatId, finalMessages, userJwt.id);
 			},
-			onStepFinish: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
+			onStepEnd: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
 				logger.debug(
 					{
 						finishReason,

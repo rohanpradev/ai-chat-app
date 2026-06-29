@@ -9,15 +9,15 @@ data:
   BETTER_AUTH_URL: {{ .Values.config.env.BETTER_AUTH_URL | quote }}
   CLIENT_URL: {{ .Values.config.env.CLIENT_URL | quote }}
   CORS_ORIGINS: {{ .Values.config.env.CORS_ORIGINS | quote }}
-  DB_HOST: {{ include "chat-app.componentName" (dict "root" . "component" "db") | quote }}
+  DB_HOST: {{ include "chat-app.dbHost" . | quote }}
   DB_NAME: {{ .Values.config.env.DB_NAME | quote }}
-  DB_PORT: {{ .Values.config.env.DB_PORT | quote }}
+  DB_PORT: {{ default .Values.config.env.DB_PORT .Values.externalDatabase.port | quote }}
   DB_USER: {{ .Values.config.env.DB_USER | quote }}
   DOMAIN: {{ .Values.config.env.DOMAIN | quote }}
   LOG_LEVEL: {{ .Values.config.env.LOG_LEVEL | quote }}
   NODE_ENV: {{ .Values.config.env.NODE_ENV | quote }}
-  REDIS_HOST: {{ include "chat-app.componentName" (dict "root" . "component" "redis") | quote }}
-  REDIS_PORT: {{ .Values.config.env.REDIS_PORT | quote }}
+  REDIS_HOST: {{ include "chat-app.redisHost" . | quote }}
+  REDIS_PORT: {{ default .Values.config.env.REDIS_PORT .Values.externalRedis.port | quote }}
   SERVER_HOST: {{ printf "%s.%s.svc.cluster.local" (include "chat-app.componentName" (dict "root" . "component" "server")) .Release.Namespace | quote }}
   SERVER_PORT: {{ .Values.config.env.SERVER_PORT | quote }}
   TRAEFIK_LOG_LEVEL: {{ .Values.config.env.TRAEFIK_LOG_LEVEL | quote }}

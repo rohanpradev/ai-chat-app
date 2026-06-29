@@ -1,0 +1,48 @@
+{{- if .Values.tests.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "chat-app.fullname" . }}-health-test
+  labels:
+    {{- include "chat-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: curl
+      image: {{ include "chat-app.image" .Values.tests.image | quote }}
+      imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
+      args:
+        - --fail
+        - --silent
+        - --show-error
+        - --max-time
+        - "10"
+        - http://{{ include "chat-app.componentName" (dict "root" . "component" "client") }}:{{ .Values.client.service.port }}/health
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+          ephemeral-storage: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+          ephemeral-storage: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+{{- end }}

@@ -65,7 +65,7 @@ export const CreateConversationRequestSchema = z
 
 export const CreateConversationResponseSchema = z
 	.object({
-		data: ConversationSummarySchema,
+		data: ConversationDetailSchema,
 		message: z.string().describe("Success message"),
 	})
 	.openapi({

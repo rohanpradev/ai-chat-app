@@ -27,18 +27,7 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.server.hpa.memoryUtilization }}
   behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 60
-      policies:
-        - type: Percent
-          value: 100
-          periodSeconds: 15
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-        - type: Percent
-          value: 50
-          periodSeconds: 60
+    {{- toYaml .Values.server.hpa.behavior | nindent 4 }}
 {{- end }}
 {{- if .Values.client.hpa.enabled }}
 ---
@@ -70,16 +59,5 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.client.hpa.memoryUtilization }}
   behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 60
-      policies:
-        - type: Percent
-          value: 100
-          periodSeconds: 15
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-        - type: Percent
-          value: 50
-          periodSeconds: 60
+    {{- toYaml .Values.client.hpa.behavior | nindent 4 }}
 {{- end }}

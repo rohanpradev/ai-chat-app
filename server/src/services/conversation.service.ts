@@ -1,3 +1,4 @@
+import { coerceCompatibleMyUIMessages, type MyUIMessage } from "@chat-app/shared";
 import type { UIMessage } from "ai";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
@@ -6,6 +7,9 @@ import { chats, messages } from "@/db/schema";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 
 const MESSAGE_SCHEMA_VERSION = 1;
+const uiMessageRoles = ["assistant", "system", "user"] as const satisfies readonly UIMessage["role"][];
+
+const isUIMessageRole = (role: string): role is UIMessage["role"] => uiMessageRoles.includes(role as UIMessage["role"]);
 
 const assertChatOwner = (chat: { userId: string } | undefined, userId: string) => {
 	if (chat && chat.userId !== userId) {
@@ -37,7 +41,7 @@ export const mergeConversationMessages = <TMessage extends Pick<UIMessage, "id">
 	return mergedMessages;
 };
 
-export const loadConversationMessages = async (chatId: string | undefined, userId: string): Promise<UIMessage[]> => {
+export const loadConversationMessages = async (chatId: string | undefined, userId: string): Promise<MyUIMessage[]> => {
 	if (!chatId) {
 		return [];
 	}
@@ -59,12 +63,14 @@ export const loadConversationMessages = async (chatId: string | undefined, userI
 
 	assertChatOwner(chat, userId);
 
-	return (chat?.messages ?? []).map((message) => ({
+	const rawMessages = (chat?.messages ?? []).map((message) => ({
 		id: message.id,
 		metadata: message.metadata ?? undefined,
 		parts: Array.isArray(message.parts) ? message.parts : [],
-		role: message.role as UIMessage["role"]
+		role: isUIMessageRole(message.role) ? message.role : "user"
 	}));
+
+	return coerceCompatibleMyUIMessages(rawMessages);
 };
 
 export const saveConversation = async (chatId: string | undefined, uiMessages: UIMessage[], userId: string) => {

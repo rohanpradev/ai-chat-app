@@ -22,6 +22,10 @@ export const createConversation: AppRouteHandler<CreateConversationRoute> = asyn
 		})
 		.returning();
 
+	if (!conversation) {
+		throw new Error("Failed to create conversation");
+	}
+
 	return c.json(
 		{
 			data: {

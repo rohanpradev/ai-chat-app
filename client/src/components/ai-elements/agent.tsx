@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import {
@@ -9,6 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { Tool } from "ai";
 import { BotIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { memo } from "react";
@@ -85,14 +85,8 @@ export const AgentTools = memo(({ className, ...props }: AgentToolsProps) => (
   </div>
 ));
 
-type AgentToolDefinition = {
-  description?: string | ((options: never) => string);
-  inputSchema?: unknown;
-  jsonSchema?: unknown;
-};
-
 export type AgentToolProps = ComponentProps<typeof AccordionItem> & {
-  tool: AgentToolDefinition;
+  tool: Tool;
 };
 
 export const AgentTool = memo(

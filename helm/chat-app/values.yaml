@@ -7,19 +7,19 @@ images:
   client:
     registry: ""
     repository: chat-app-client
-    tag: "1.0.0"
+    tag: latest
     digest: ""
     pullPolicy: IfNotPresent
   server:
     registry: ""
     repository: chat-app-server
-    tag: "1.0.0"
+    tag: latest
     digest: ""
     pullPolicy: IfNotPresent
   migrate:
     registry: ""
     repository: chat-app-migrate
-    tag: "1.0.0"
+    tag: latest
     digest: ""
     pullPolicy: IfNotPresent
   db:
@@ -77,6 +77,7 @@ secrets:
       DB_URL: ""
       GITHUB_CLIENT_ID: ""
       GITHUB_CLIENT_SECRET: ""
+      AI_TOOL_APPROVAL_SECRET: ""
       OPENAI_API_KEY: ""
       SERPER_API_KEY: ""
       LANGFUSE_PUBLIC_KEY: ""
@@ -115,6 +116,16 @@ networkPolicy:
     namespace: kube-system
     podLabels:
       k8s-app: kube-dns
+
+externalDatabase:
+  host: ""
+  port: "5432"
+  egressCidrs: []
+
+externalRedis:
+  host: ""
+  port: "6379"
+  egressCidrs: []
 
 server:
   replicaCount: 2
@@ -209,6 +220,19 @@ server:
     maxReplicas: 8
     cpuUtilization: 70
     memoryUtilization: 80
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 60
   pdb:
     enabled: true
     minAvailable: 1
@@ -298,6 +322,19 @@ client:
     maxReplicas: 6
     cpuUtilization: 70
     memoryUtilization: 80
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 60
   pdb:
     enabled: true
     minAvailable: 1
@@ -391,3 +428,12 @@ migration:
       memory: 512Mi
   tmp:
     sizeLimit: 128Mi
+
+tests:
+  enabled: true
+  image:
+    registry: curlimages
+    repository: curl
+    tag: latest
+    digest: ""
+    pullPolicy: IfNotPresent

@@ -45,6 +45,7 @@ const normalizedEnv = {
 const urlSchema = z.string().url();
 
 const EnvSchema = z.object({
+	AI_TOOL_APPROVAL_SECRET: z.preprocess(emptyStringToUndefined, z.string().min(32).optional()),
 	BASE_API_SLUG: z.string().default("api"),
 	BETTER_AUTH_SECRET: z.string().min(32),
 	BETTER_AUTH_URL: z.preprocess(emptyStringToUndefined, urlSchema.optional()),

@@ -34,10 +34,11 @@ TRAEFIK_GATEWAY_NAME="$(read_env K8S_TRAEFIK_GATEWAY_NAME)"
 TRAEFIK_LOG_LEVEL="$(read_env TRAEFIK_LOG_LEVEL)"
 TRAEFIK_DASHBOARD_USER="$(read_env TRAEFIK_DASHBOARD_USER)"
 TRAEFIK_DASHBOARD_PASSWORD="$(read_env TRAEFIK_DASHBOARD_PASSWORD)"
-TRAEFIK_IMAGE_REGISTRY="$(read_env TRAEFIK_IMAGE_REGISTRY)"
-TRAEFIK_IMAGE_REPOSITORY="$(read_env TRAEFIK_IMAGE_REPOSITORY)"
-TRAEFIK_IMAGE_TAG="$(read_env TRAEFIK_IMAGE_TAG)"
-TRAEFIK_IMAGE_DIGEST="$(read_env TRAEFIK_IMAGE_DIGEST)"
+TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-$(read_env TRAEFIK_IMAGE_REGISTRY)}"
+TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-$(read_env TRAEFIK_IMAGE_REPOSITORY)}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-$(read_env TRAEFIK_IMAGE_TAG)}"
+TRAEFIK_IMAGE_DIGEST="${TRAEFIK_IMAGE_DIGEST:-$(read_env TRAEFIK_IMAGE_DIGEST)}"
+TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-$(read_env TRAEFIK_VERSION_OVERRIDE)}"
 DHI_USERNAME="$(read_env DHI_USERNAME)"
 DHI_PASSWORD="$(read_env DHI_PASSWORD)"
 DOCKER_USERNAME="$(read_env DOCKER_USERNAME)"
@@ -52,7 +53,8 @@ TRAEFIK_DASHBOARD_USER="${TRAEFIK_DASHBOARD_USER:-admin}"
 TRAEFIK_DASHBOARD_PASSWORD="${TRAEFIK_DASHBOARD_PASSWORD:-change-me}"
 TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-dhi.io}"
 TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-traefik}"
-TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.7.4}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3-debian-dev}"
+TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.5}"
 
 if [ -n "${TRAEFIK_IMAGE_DIGEST:-}" ]; then
   IMAGE_TAG="${TRAEFIK_IMAGE_TAG}@${TRAEFIK_IMAGE_DIGEST}"
@@ -85,6 +87,7 @@ image:
   repository: ${TRAEFIK_IMAGE_REPOSITORY}
   tag: ${IMAGE_TAG}
   pullPolicy: Always
+versionOverride: "${TRAEFIK_VERSION_OVERRIDE}"
 EOF
 )
 
@@ -126,6 +129,7 @@ ingressRoute:
       - websecure
     middlewares:
       - name: dashboard-auth
+      - name: dashboard-security-headers
 
 extraObjects:
   - apiVersion: v1
@@ -145,6 +149,25 @@ extraObjects:
     spec:
       basicAuth:
         secret: dashboard-auth-secret
+  - apiVersion: traefik.io/v1alpha1
+    kind: Middleware
+    metadata:
+      name: dashboard-security-headers
+      namespace: ${TRAEFIK_NAMESPACE}
+    spec:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+        customResponseHeaders:
+          X-XSS-Protection: "0"
+          X-Permitted-Cross-Domain-Policies: none
+          Cross-Origin-Opener-Policy: same-origin
+          Cross-Origin-Resource-Policy: same-origin
 
 ingressClass:
   enabled: false
@@ -185,11 +208,11 @@ gateway:
           name: local-selfsigned-tls
           group: ""
 
-logs:
-  general:
-    level: ${TRAEFIK_LOG_LEVEL}
-  access:
-    enabled: true
+log:
+  level: ${TRAEFIK_LOG_LEVEL}
+
+accessLog:
+  enabled: true
 
 metrics:
   prometheus:

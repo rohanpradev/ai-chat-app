@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -145,6 +144,10 @@ export const SpeechInput = ({
         i += 1
       ) {
         const result = speechEvent.results[i];
+        if (!result) {
+          continue;
+        }
+
         if (result.isFinal) {
           finalTranscript += result[0]?.transcript ?? "";
         }

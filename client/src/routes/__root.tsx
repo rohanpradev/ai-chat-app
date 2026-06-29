@@ -69,7 +69,7 @@ function DefaultNotFound() {
   );
 }
 
-function DefaultError({ error, reset }: Readonly<{ error: Error; reset: () => void }>) {
+function DefaultError({ reset }: Readonly<{ error: Error; reset: () => void }>) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-red-100">
       <Card className="w-full max-w-md text-center">
@@ -78,7 +78,7 @@ function DefaultError({ error, reset }: Readonly<{ error: Error; reset: () => vo
             <AlertTriangle className="h-6 w-6 text-red-600" />
           </div>
           <CardTitle>Something went wrong</CardTitle>
-          <CardDescription>{error.message || "An unexpected error occurred"}</CardDescription>
+          <CardDescription>An unexpected error occurred. Please try again.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <Button onClick={reset} className="w-full">

@@ -3,17 +3,18 @@
 {{- $clientNginxConfigMapName := printf "%s-client-nginx" (include "chat-app.fullname" .) -}}
 {{- if .Values.db.enabled }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "chat-app.componentName" (dict "root" . "component" "db") }}
   labels:
     {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: db
 spec:
+  serviceName: {{ include "chat-app.componentName" (dict "root" . "component" "db") }}
   replicas: 1
   revisionHistoryLimit: 2
-  strategy:
-    type: Recreate
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       {{- include "chat-app.componentLabels" (dict "root" . "component" "db") | nindent 6 }}
@@ -122,17 +123,18 @@ spec:
 {{- if .Values.redis.enabled }}
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "chat-app.componentName" (dict "root" . "component" "redis") }}
   labels:
     {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: redis
 spec:
+  serviceName: {{ include "chat-app.componentName" (dict "root" . "component" "redis") }}
   replicas: 1
   revisionHistoryLimit: 2
-  strategy:
-    type: Recreate
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       {{- include "chat-app.componentLabels" (dict "root" . "component" "redis") | nindent 6 }}

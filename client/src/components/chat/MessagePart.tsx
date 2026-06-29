@@ -1,13 +1,8 @@
 import type { MyUIMessage } from "@chat-app/shared";
 import type { ChatAddToolApproveResponseFunction } from "ai";
-import { lazy, Suspense } from "react";
+import { lazy, memo, Suspense } from "react";
 
 const LazyToolPart = lazy(() => import("@/components/chat/ToolPartRenderer"));
-
-const LazyMessageResponse = lazy(async () => {
-  const { MessageResponse } = await import("@/components/ai-elements/message");
-  return { default: MessageResponse };
-});
 
 interface MessagePartProps {
   isStreaming?: boolean;
@@ -17,20 +12,8 @@ interface MessagePartProps {
   onToolApprovalResponse?: ChatAddToolApproveResponseFunction;
 }
 
-export function MessagePart({
-  isStreaming = false,
-  part,
-  messageId,
-  index,
-  onToolApprovalResponse,
-}: Readonly<MessagePartProps>) {
+function MessagePartComponent({ part, messageId, index, onToolApprovalResponse }: Readonly<MessagePartProps>) {
   switch (part.type) {
-    case "text":
-      return (
-        <Suspense fallback={<div className="whitespace-pre-wrap">{part.text}</div>} key={`${messageId}-${index}`}>
-          <LazyMessageResponse isAnimating={isStreaming}>{part.text}</LazyMessageResponse>
-        </Suspense>
-      );
     case "step-start":
       return index > 0 ? (
         <div aria-hidden="true" key={`${messageId}-${index}`} className="my-2 h-px bg-border" />
@@ -76,3 +59,13 @@ export function MessagePart({
       return null;
   }
 }
+
+export const MessagePart = memo(MessagePartComponent, (previous, next) => {
+  return (
+    previous.index === next.index &&
+    previous.isStreaming === next.isStreaming &&
+    previous.messageId === next.messageId &&
+    previous.onToolApprovalResponse === next.onToolApprovalResponse &&
+    previous.part === next.part
+  );
+});

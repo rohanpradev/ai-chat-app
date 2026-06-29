@@ -53,7 +53,7 @@ function NewChatComponent() {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-lg font-semibold mb-2">Failed to create chat</h2>
-          <p className="text-gray-600 mb-4">{error.message}</p>
+          <p className="text-gray-600 mb-4">Something went wrong. Please try again.</p>
           <button
             type="button"
             onClick={() => navigate({ to: ChatIndexRoute.to, replace: true })}

@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { apiBasePath, apiClient } from "@/composables/useApi";
 import { buildChatRequestBody } from "@/lib/chat-request";
+import { captureSentryException } from "@/lib/sentry";
 import { getAiModelsQuery } from "@/queries/getAiModels";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
@@ -65,6 +66,10 @@ export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<
     ...(conversationId ? { id: conversationId } : {}),
     messageMetadataSchema: myUIMessageMetadataSchema,
     messages: initialMessages,
+    onError: (error) => {
+      captureSentryException(error);
+      console.error("AI chat request failed:", error);
+    },
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     experimental_throttle: 50,
     transport: transportRef.current,
