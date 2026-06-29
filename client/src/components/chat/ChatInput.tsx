@@ -158,7 +158,11 @@ export function ChatInput({
       >
         <PromptInputAttachmentsDisplay />
         <PromptInputBody>
-          <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
+          <PromptInputTextarea
+            disabled={status !== "ready" && status !== "error"}
+            onChange={(e) => setInput(e.target.value)}
+            value={input}
+          />
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
