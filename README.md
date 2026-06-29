@@ -64,7 +64,7 @@ docs/                   Architecture, security, eval, and policy docs
 
 ## Prerequisites
 
-- Bun `1.3.14+`
+- Bun `1.x`
 - Docker Desktop or OrbStack
 - `kubectl` and `helm` for Kubernetes workflows
 - OpenAI API key

@@ -1,4 +1,4 @@
-import { safeValidateMyUIMessages } from "@chat-app/shared";
+import { coerceCompatibleMyUIMessages } from "@chat-app/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   Conversation,
@@ -56,15 +56,9 @@ export const Route = createFileRoute("/chat/$conversationId")({
         };
       });
 
-      const validation = await safeValidateMyUIMessages(rawMessages);
-
-      if (!validation.success) {
-        throw new Error("Saved conversation messages are no longer compatible with the current chat schema.");
-      }
-
       return {
         chat: conversation,
-        initialMessages: validation.data,
+        initialMessages: await coerceCompatibleMyUIMessages(rawMessages),
       };
     } catch (error) {
       if (error && typeof error === "object" && "to" in error) {
@@ -82,11 +76,11 @@ export const Route = createFileRoute("/chat/$conversationId")({
     }
   },
   component: ConversationChat,
-  errorComponent: ({ error }) => (
+  errorComponent: () => (
     <div className="flex-1 flex items-center justify-center p-4">
       <div className="text-center">
         <h2 className="text-lg font-semibold mb-2">Failed to load conversation</h2>
-        <p className="text-gray-600 mb-4">{error.message}</p>
+        <p className="text-gray-600 mb-4">Something went wrong while opening this chat. Please try again.</p>
         <button
           type="button"
           onClick={() => globalThis.location.reload()}

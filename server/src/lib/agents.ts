@@ -10,6 +10,7 @@ import { isStepCount, ToolLoopAgent, type ToolSet } from "ai";
 import { z } from "zod";
 import { isTelemetryEnabled } from "@/lib/instrumentation";
 import { getActiveTools, tools } from "@/lib/tools";
+import env from "@/utils/env";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
 const agentTools = tools satisfies ToolSet;
@@ -83,13 +84,19 @@ const buildTelemetrySettings = ({
 					tags: ["chat", "agent", functionId, resolvedModel.id, resolvedModel.provider],
 					toolCount: activeTools.length,
 					...(activeTools.length > 0 ? { tools: activeTools } : {})
-				}
+				},
+				recordInputs: false,
+				recordOutputs: false
 			}
 		: undefined;
+
+const buildToolApprovalSettings = (activeTools: EnabledRequestToolId[]) =>
+	activeTools.includes("serper") ? ({ serper: "user-approval" } as const) : undefined;
 
 const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentProfile): ChatAgent =>
 	new ToolLoopAgent<AgentCallOptions, typeof agentTools>({
 		callOptionsSchema: agentCallOptionsSchema,
+		id: functionId,
 		instructions: buildAgentInstructions(baseInstructions, []),
 		model: resolveModel(defaultModelId),
 		prepareCall: async ({ options, ...settings }) => {
@@ -99,9 +106,11 @@ const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentP
 			return {
 				...settings,
 				activeTools,
+				experimental_toolApprovalSecret: env.AI_TOOL_APPROVAL_SECRET,
 				instructions: buildAgentInstructions(baseInstructions, activeTools),
 				model: resolveModel(resolvedModel.id),
-				telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel })
+				telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel }),
+				toolApproval: buildToolApprovalSettings(activeTools)
 			};
 		},
 		stopWhen: isStepCount(stepLimit),

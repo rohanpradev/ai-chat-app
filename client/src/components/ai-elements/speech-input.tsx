@@ -144,6 +144,10 @@ export const SpeechInput = ({
         i += 1
       ) {
         const result = speechEvent.results[i];
+        if (!result) {
+          continue;
+        }
+
         if (result.isFinal) {
           finalTranscript += result[0]?.transcript ?? "";
         }

@@ -73,6 +73,17 @@ const parseStackFrame = (line: string): StackFrame => {
   const withParensMatch = trimmed.match(STACK_FRAME_WITH_PARENS_REGEX);
   if (withParensMatch) {
     const [, functionName, filePath, lineNum, colNum] = withParensMatch;
+    if (!filePath) {
+      return {
+        columnNumber: null,
+        filePath: null,
+        functionName: functionName ?? null,
+        isInternal: false,
+        lineNumber: null,
+        raw: trimmed,
+      };
+    }
+
     const isInternal =
       filePath.includes("node_modules") ||
       filePath.startsWith("node:") ||
@@ -128,7 +139,16 @@ const parseStackTrace = (trace: string): ParsedStackTrace => {
     };
   }
 
-  const firstLine = lines[0].trim();
+  const firstLine = lines[0]?.trim();
+  if (!firstLine) {
+    return {
+      errorMessage: trace,
+      errorType: null,
+      frames: [],
+      raw: trace,
+    };
+  }
+
   let errorType: string | null = null;
   let errorMessage = firstLine;
 
@@ -136,7 +156,7 @@ const parseStackTrace = (trace: string): ParsedStackTrace => {
   const errorMatch = firstLine.match(ERROR_TYPE_REGEX);
   if (errorMatch) {
     const [, type, msg] = errorMatch;
-    errorType = type;
+    errorType = type ?? null;
     errorMessage = msg || "";
   }
 

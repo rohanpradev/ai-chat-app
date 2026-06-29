@@ -25,7 +25,7 @@ Current server-side tool:
 
 - `serper` - live web search for current information
 
-The search tool is approval gated with `needsApproval: true`, strict Zod input/output schemas, timeouts, output normalization, and model-facing summaries rather than raw full-page content.
+The search tool is approval gated with AI SDK `toolApproval`, strict Zod input/output schemas, timeouts, output normalization, and model-facing summaries rather than raw full-page content. Set `AI_TOOL_APPROVAL_SECRET` in shared environments so AI SDK can sign approval responses and reject replayed or tampered approvals.
 
 ## Current AI Docs Direction
 

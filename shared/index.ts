@@ -51,6 +51,7 @@ export type {
 	User,
 } from "@chat-app/shared/types/index";
 export {
+	coerceCompatibleMyUIMessages,
 	type MyMetadata,
 	type MyTools,
 	type MyUIMessage,

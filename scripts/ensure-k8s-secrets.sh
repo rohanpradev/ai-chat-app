@@ -45,6 +45,7 @@ if [ -z "${BETTER_AUTH_SECRET}" ]; then
 fi
 GITHUB_CLIENT_ID="$(read_env GITHUB_CLIENT_ID)"
 GITHUB_CLIENT_SECRET="$(read_env GITHUB_CLIENT_SECRET)"
+AI_TOOL_APPROVAL_SECRET="$(read_env AI_TOOL_APPROVAL_SECRET)"
 OPENAI_API_KEY="$(read_env OPENAI_API_KEY)"
 REDIS_AUTH="$(read_env REDIS_AUTH)"
 LANGFUSE_PUBLIC_KEY="$(read_env LANGFUSE_PUBLIC_KEY)"
@@ -181,6 +182,7 @@ secrets:
       DB_URL: ""
       GITHUB_CLIENT_ID: "$(yaml_escape "${GITHUB_CLIENT_ID:-}")"
       GITHUB_CLIENT_SECRET: "$(yaml_escape "${GITHUB_CLIENT_SECRET:-}")"
+      AI_TOOL_APPROVAL_SECRET: "$(yaml_escape "${AI_TOOL_APPROVAL_SECRET:-}")"
       OPENAI_API_KEY: "$(yaml_escape "${OPENAI_API_KEY:-}")"
       SERPER_API_KEY: "$(yaml_escape "${SERPER_API_KEY:-}")"
       LANGFUSE_PUBLIC_KEY: "$(yaml_escape "${LANGFUSE_PUBLIC_KEY:-}")"

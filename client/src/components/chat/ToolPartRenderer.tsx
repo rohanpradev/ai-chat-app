@@ -1,6 +1,6 @@
 import type { MyUIMessage } from "@chat-app/shared";
 import type { ChatAddToolApproveResponseFunction } from "ai";
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -54,24 +54,27 @@ function ToolStateNotice({ state }: Readonly<{ state: ToolPartState }>) {
   );
 }
 
-export default function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRendererProps>) {
-  const approvalId = part.state === "approval-requested" ? part.approval?.id : undefined;
-  const [pendingApprovalId, setPendingApprovalId] = useState<string | null>(null);
-  const isApprovalPending = Boolean(approvalId && pendingApprovalId === approvalId);
+function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRendererProps>) {
+  const isManualApprovalRequest = part.state === "approval-requested" && part.approval && !part.approval.isAutomatic;
+  const approvalId = isManualApprovalRequest ? part.approval.id : undefined;
+  const pendingApprovalIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (pendingApprovalId && (part.state !== "approval-requested" || part.approval?.id !== pendingApprovalId)) {
-      setPendingApprovalId(null);
+    if (
+      pendingApprovalIdRef.current &&
+      (part.state !== "approval-requested" || part.approval?.id !== pendingApprovalIdRef.current)
+    ) {
+      pendingApprovalIdRef.current = null;
     }
-  }, [part.approval?.id, part.state, pendingApprovalId]);
+  }, [part.approval?.id, part.state]);
 
   const respondToApproval = useCallback(
     async (approved: boolean) => {
-      if (!approvalId || isApprovalPending || !onToolApprovalResponse) {
+      if (!approvalId || pendingApprovalIdRef.current === approvalId || !onToolApprovalResponse) {
         return;
       }
 
-      setPendingApprovalId(approvalId);
+      pendingApprovalIdRef.current = approvalId;
 
       try {
         await onToolApprovalResponse({
@@ -79,11 +82,11 @@ export default function ToolPartRenderer({ part, onToolApprovalResponse }: Reado
           id: approvalId,
         });
       } catch (error) {
-        setPendingApprovalId(null);
+        pendingApprovalIdRef.current = null;
         throw error;
       }
     },
-    [approvalId, isApprovalPending, onToolApprovalResponse],
+    [approvalId, onToolApprovalResponse],
   );
 
   return (
@@ -97,14 +100,14 @@ export default function ToolPartRenderer({ part, onToolApprovalResponse }: Reado
             </ConfirmationTitle>
             <ConfirmationActions>
               <ConfirmationAction
-                disabled={isApprovalPending || !onToolApprovalResponse}
+                disabled={!approvalId || !onToolApprovalResponse}
                 variant="outline"
                 onClick={() => void respondToApproval(false)}
               >
                 Deny
               </ConfirmationAction>
               <ConfirmationAction
-                disabled={isApprovalPending || !onToolApprovalResponse}
+                disabled={!approvalId || !onToolApprovalResponse}
                 onClick={() => void respondToApproval(true)}
               >
                 Approve
@@ -141,3 +144,5 @@ export default function ToolPartRenderer({ part, onToolApprovalResponse }: Reado
     </Tool>
   );
 }
+
+export default memo(ToolPartRenderer);

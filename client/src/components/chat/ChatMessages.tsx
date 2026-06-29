@@ -10,6 +10,7 @@ import {
   MessageAction,
   MessageActions,
   MessageContent,
+  MessageResponse,
   MessageToolbar,
 } from "@/components/ai-elements/message";
 import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
@@ -121,7 +122,7 @@ function MessageControls({
   );
 }
 
-const getPartBaseKey = (messageId: string, part: ChatMessagePart) => {
+const getPartBaseKey = (messageId: string, part: ChatMessagePart, index: number) => {
   const baseType = part.type;
 
   if ("toolCallId" in part && typeof part.toolCallId === "string") {
@@ -133,21 +134,21 @@ const getPartBaseKey = (messageId: string, part: ChatMessagePart) => {
   }
 
   if ("text" in part && typeof part.text === "string") {
-    return `${messageId}:${baseType}:${part.text.length}:${part.text.slice(0, 40)}`;
+    return `${messageId}:${baseType}:${index}`;
   }
 
   if ("url" in part && typeof part.url === "string") {
     return `${messageId}:${baseType}:${part.url}`;
   }
 
-  return `${messageId}:${baseType}:${JSON.stringify(part)}`;
+  return `${messageId}:${baseType}:${index}`;
 };
 
 const getRenderableParts = (messageId: string, parts: ChatMessagePart[]) => {
   const perMessageKeyCount = new Map<string, number>();
 
   return parts.map((part: ChatMessagePart, index: number) => {
-    const baseKey = getPartBaseKey(messageId, part);
+    const baseKey = getPartBaseKey(messageId, part, index);
     const seenCount = perMessageKeyCount.get(baseKey) ?? 0;
     perMessageKeyCount.set(baseKey, seenCount + 1);
 
@@ -204,16 +205,22 @@ export function ChatMessages({
                   </LazyReasoningBlock>
                 </Suspense>
               ) : null}
-              {getRenderableParts(message.id, visibleParts).map(({ index, key, part }) => (
-                <MessagePart
-                  key={key}
-                  part={part}
-                  messageId={message.id}
-                  index={index}
-                  isStreaming={isStreamingMessage}
-                  onToolApprovalResponse={onToolApprovalResponse}
-                />
-              ))}
+              {getRenderableParts(message.id, visibleParts).map(({ index, key, part }) =>
+                part.type === "text" ? (
+                  <MessageResponse isAnimating={isStreamingMessage} key={key}>
+                    {part.text}
+                  </MessageResponse>
+                ) : (
+                  <MessagePart
+                    key={key}
+                    part={part}
+                    messageId={message.id}
+                    index={index}
+                    isStreaming={isStreamingMessage}
+                    onToolApprovalResponse={onToolApprovalResponse}
+                  />
+                ),
+              )}
               {sourceParts.length > 0 ? (
                 <Sources>
                   <SourcesTrigger count={sourceParts.length} />
@@ -253,7 +260,7 @@ export function ChatMessages({
       )}
       {error && onRetry && onClearError && (
         <div className="px-4">
-          <ErrorDisplay error={error} onRetry={() => void onRetry()} onClear={onClearError} />
+          <ErrorDisplay onRetry={() => void onRetry()} onClear={onClearError} />
         </div>
       )}
     </>

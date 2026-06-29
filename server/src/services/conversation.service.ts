@@ -1,4 +1,4 @@
-import { type MyUIMessage, safeValidateMyUIMessages } from "@chat-app/shared";
+import { coerceCompatibleMyUIMessages, type MyUIMessage } from "@chat-app/shared";
 import type { UIMessage } from "ai";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
@@ -70,15 +70,7 @@ export const loadConversationMessages = async (chatId: string | undefined, userI
 		role: isUIMessageRole(message.role) ? message.role : "user"
 	}));
 
-	const validation = await safeValidateMyUIMessages(rawMessages);
-
-	if (!validation.success) {
-		throw new HTTPException(HttpStatusCodes.INTERNAL_SERVER_ERROR, {
-			message: "Saved conversation messages are incompatible with the current chat schema"
-		});
-	}
-
-	return validation.data;
+	return coerceCompatibleMyUIMessages(rawMessages);
 };
 
 export const saveConversation = async (chatId: string | undefined, uiMessages: UIMessage[], userId: string) => {

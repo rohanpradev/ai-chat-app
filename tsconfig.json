@@ -12,6 +12,7 @@
 		"moduleResolution": "bundler",
 		"noEmit": true,
 		"noFallthroughCasesInSwitch": true,
+		"noUncheckedIndexedAccess": true,
 		"noUncheckedSideEffectImports": true,
 		"paths": {
 			"@chat-app/shared": ["./shared/index.ts"],

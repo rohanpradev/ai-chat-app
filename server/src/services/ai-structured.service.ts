@@ -79,7 +79,9 @@ const structuredTelemetry = ({
 					provider,
 					tags: ["ai", "structured-output", functionId],
 					userId
-				}
+				},
+				recordInputs: false,
+				recordOutputs: false
 			}
 		: undefined;
 

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_VERSION=1.3.14
+ARG BUN_VERSION=1
 ARG BUN_DISTRO=debian13
 ARG BUN_DEV_IMAGE=dhi.io/bun:${BUN_VERSION}-${BUN_DISTRO}-dev
 ARG BUN_RUNTIME_IMAGE=dhi.io/bun:${BUN_VERSION}-${BUN_DISTRO}

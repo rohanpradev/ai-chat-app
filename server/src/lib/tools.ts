@@ -247,7 +247,6 @@ export const tools = {
 			{ input: { q: "site:kubernetes.io pod disruption budget v1 docs" } }
 		],
 		inputSchema: zodSchema(serperInputSchema),
-		needsApproval: true,
 		outputSchema: zodSchema(serperOutputSchema),
 		strict: true,
 		title: "Web Search",

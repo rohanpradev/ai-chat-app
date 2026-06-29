@@ -51,7 +51,10 @@ const matchJsxTag = (code: string) => {
     return null;
   }
 
-  const [fullMatch, tagName, attributes, selfClosing] = match;
+  const [fullMatch, tagName, attributes = "", selfClosing] = match;
+  if (!tagName) {
+    return null;
+  }
 
   let type: "self-closing" | "closing" | "opening";
   if (selfClosing) {
