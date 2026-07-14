@@ -216,13 +216,15 @@ services:
         VITE_SENTRY_TRACES_SAMPLE_RATE: ${VITE_SENTRY_TRACES_SAMPLE_RATE:-0.1}
         VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE: ${VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE:-0}
         VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE: ${VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE:-0.1}
-        SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
         SENTRY_ORG: ${SENTRY_ORG:-}
         SENTRY_PROJECT: ${SENTRY_PROJECT:-}
         SENTRY_RELEASE: ${SENTRY_RELEASE:-}
         BASE_API_SLUG: ${BASE_API_SLUG:-api}
         SERVER_HOST: server
         SERVER_PORT: ${SERVER_PORT:-3000}
+      secrets:
+        - source: sentry_auth_token
+          target: SENTRY_AUTH_TOKEN
     container_name: chat-app-client
     read_only: true
     tmpfs:
@@ -435,6 +437,10 @@ services:
         reservations:
           memory: 512M
           cpus: "0.5"
+
+secrets:
+  sentry_auth_token:
+    environment: SENTRY_AUTH_TOKEN
 
 networks:
   # Public-facing edge network used only by Traefik, the client, and the API.
