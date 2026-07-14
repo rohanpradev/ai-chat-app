@@ -75,7 +75,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.sonar.outputs.enabled == 'true'
-        run: bun install --frozen-lockfile
+        run: bun ci
 
       - name: Generate client coverage
         if: steps.sonar.outputs.enabled == 'true'

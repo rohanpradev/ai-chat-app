@@ -7,7 +7,7 @@ Use the root README for setup and deployment. Most commands are intended to run 
 ## Development
 
 ```bash
-bun install --frozen-lockfile
+bun ci
 bun run --filter @chat-app/server dev
 ```
 
@@ -18,6 +18,7 @@ The API listens on `SERVER_PORT`, defaulting to `3000`.
 ```bash
 bun run --filter @chat-app/server typecheck
 bun run --filter @chat-app/server test
+bun run --filter @chat-app/server build
 ```
 
 ## Database

@@ -27,6 +27,11 @@ export const jsonContent = <T>(schema: T, description: string) => ({
 	description
 });
 
+export const jsonBody = <T>(schema: T, description: string) => ({
+	...jsonContent(schema, description),
+	required: true as const
+});
+
 export const createMessageObjectSchema = (exampleMessage = "Hello World") =>
 	z
 		.object({

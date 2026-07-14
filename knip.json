@@ -49,7 +49,7 @@
 	"treatConfigHintsAsErrors": true,
 	"workspaces": {
 		".": {
-			"ignoreBinaries": ["helm", "kubectl", "make"]
+			"ignoreBinaries": ["kubectl", "make"]
 		},
 		"client": {
 			"ignoreBinaries": ["vite!"],

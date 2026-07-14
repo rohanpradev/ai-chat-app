@@ -24,9 +24,11 @@ const textEncoder = new TextEncoder();
 const getUserId = (c: Parameters<AppRouteHandler<ListDocumentsRoute>>[0]) => c.get("jwtPayload").sub.id;
 
 const asBadRequest = (error: unknown, fallback: string) =>
-	new HTTPException(HttpStatusCodes.BAD_REQUEST, {
-		message: error instanceof Error ? error.message : fallback
-	});
+	error instanceof HTTPException
+		? error
+		: new HTTPException(HttpStatusCodes.BAD_REQUEST, {
+				message: error instanceof Error ? error.message : fallback
+			});
 
 export const listDocuments: AppRouteHandler<ListDocumentsRoute> = async (c) => {
 	const documents = await listEmbeddingDocuments(getUserId(c));

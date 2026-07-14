@@ -56,6 +56,7 @@ export const ChatRequestSchema = z
 		messages: UIMessagesArraySchema.min(1, {
 			error: "No messages provided",
 		})
+			.max(200, { error: "Chat history cannot exceed 200 messages" })
 			.optional()
 			.describe("Full chat message history"),
 		model: z.string().min(1).optional().describe("AI model to use"),
@@ -66,6 +67,9 @@ export const ChatRequestSchema = z
 	.loose()
 	.refine((request) => Boolean(request.message || request.messages?.length), {
 		error: "No messages provided",
+	})
+	.refine((request) => JSON.stringify(request).length <= 20 * 1024 * 1024, {
+		error: "Chat request payload is too large",
 	});
 
 export const AvailableModelsResponseSchema = z
@@ -77,6 +81,22 @@ export const AvailableModelsResponseSchema = z
 		description: "Available AI models for chat generation",
 		title: "AvailableModelsResponse",
 	});
+
+const usageMeterSchema = z.object({
+	limit: z.number().int().positive(),
+	used: z.number().int().nonnegative(),
+});
+
+export const AIUsageResponseSchema = z
+	.object({
+		data: z.object({
+			ai: z.object({ requests: usageMeterSchema, tokens: usageMeterSchema }),
+			embedding: z.object({ storageBytes: usageMeterSchema, tokens: usageMeterSchema }),
+			resetsAt: z.iso.datetime(),
+		}),
+		message: z.string(),
+	})
+	.openapi({ description: "Current authenticated user's daily AI and embedding usage", title: "AIUsageResponse" });
 
 const tokenUsageSchema = z
 	.object({
@@ -213,6 +233,7 @@ export const AIEvaluationResponseSchema = z
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 export type AvailableModelsResponse = z.infer<typeof AvailableModelsResponseSchema>;
+export type AIUsageResponse = z.infer<typeof AIUsageResponseSchema>;
 export type AIPlanOutput = z.infer<typeof AIPlanOutputSchema>;
 export type AIPlanRequest = z.infer<typeof AIPlanRequestSchema>;
 export type AIPlanResponse = z.infer<typeof AIPlanResponseSchema>;

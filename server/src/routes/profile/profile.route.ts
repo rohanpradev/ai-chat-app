@@ -48,7 +48,8 @@ export const updateUserProfile = createRoute({
 				"multipart/form-data": {
 					schema: UpdateProfileRequestSchema
 				}
-			}
+			},
+			required: true
 		}
 	},
 	responses: {

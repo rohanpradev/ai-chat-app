@@ -10,8 +10,10 @@ import {
 	timestamp,
 	uniqueIndex,
 	uuid,
-	varchar
+	varchar,
+	vector
 } from "drizzle-orm/pg-core";
+import { EMBEDDING_DIMENSIONS } from "@/lib/embedding-config";
 
 export const users = pgTable(
 	"users",
@@ -182,6 +184,7 @@ export const messages = pgTable(
 		metadata: json("metadata"),
 		order: integer("order").notNull(),
 		parts: json("parts").notNull(),
+		revision: integer("revision").notNull().default(1),
 		role: varchar("role", { length: 20 }).notNull(),
 		schemaVersion: integer("schema_version").notNull().default(1)
 	},
@@ -190,6 +193,28 @@ export const messages = pgTable(
 		index("messages_chat_order_idx").on(table.chatId, table.order),
 		index("messages_created_at_idx").on(table.createdAt),
 		index("messages_role_idx").on(table.role)
+	]
+);
+
+export const messageRevisions = pgTable(
+	"message_revision",
+	{
+		chatId: varchar("chat_id", { length: 255 })
+			.notNull()
+			.references(() => chats.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		id: uuid("id").primaryKey().defaultRandom(),
+		messageId: varchar("message_id", { length: 255 }).notNull(),
+		metadata: json("metadata"),
+		order: integer("order").notNull(),
+		parts: json("parts").notNull(),
+		revision: integer("revision").notNull(),
+		role: varchar("role", { length: 20 }).notNull(),
+		schemaVersion: integer("schema_version").notNull()
+	},
+	(table) => [
+		uniqueIndex("message_revisions_message_revision_idx").on(table.messageId, table.revision),
+		index("message_revisions_chat_created_idx").on(table.chatId, table.createdAt)
 	]
 );
 
@@ -242,7 +267,7 @@ export const embeddingChunks = pgTable(
 		documentId: varchar("document_id", { length: 255 })
 			.references(() => embeddingDocuments.id, { onDelete: "cascade" })
 			.notNull(),
-		embedding: json("embedding").$type<number[]>().notNull(),
+		embedding: vector("embedding", { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
 		id: varchar("id", { length: 255 })
 			.primaryKey()
 			.$defaultFn(() => generateId()),
@@ -255,7 +280,34 @@ export const embeddingChunks = pgTable(
 	(table) => [
 		index("embedding_chunks_document_id_idx").on(table.documentId),
 		uniqueIndex("embedding_chunks_document_index_idx").on(table.documentId, table.chunkIndex),
-		index("embedding_chunks_user_id_idx").on(table.userId)
+		index("embedding_chunks_user_id_idx").on(table.userId),
+		index("embedding_chunks_embedding_hnsw_idx").using("hnsw", table.embedding.op("vector_cosine_ops"))
+	]
+);
+
+export const usageEvents = pgTable(
+	"usage_event",
+	{
+		category: varchar("category", { length: 40 }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		id: uuid("id").primaryKey().defaultRandom(),
+		inputTokens: integer("input_tokens").notNull().default(0),
+		model: varchar("model", { length: 120 }),
+		outputTokens: integer("output_tokens").notNull().default(0),
+		requestId: varchar("request_id", { length: 255 }).notNull(),
+		reservedTokens: integer("reserved_tokens").notNull().default(0),
+		resourceBytes: integer("resource_bytes").notNull().default(0),
+		scope: varchar("scope", { length: 20 }).notNull(),
+		status: varchar("status", { length: 20 }).notNull().default("reserved"),
+		totalTokens: integer("total_tokens").notNull().default(0),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+		userId: uuid("user_id")
+			.references(() => users.id, { onDelete: "cascade" })
+			.notNull()
+	},
+	(table) => [
+		uniqueIndex("usage_events_request_id_idx").on(table.requestId),
+		index("usage_events_user_scope_created_idx").on(table.userId, table.scope, table.createdAt)
 	]
 );
 

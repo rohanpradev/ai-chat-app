@@ -108,6 +108,7 @@ const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentP
 				activeTools,
 				experimental_toolApprovalSecret: env.AI_TOOL_APPROVAL_SECRET,
 				instructions: buildAgentInstructions(baseInstructions, activeTools),
+				maxOutputTokens: 4096,
 				model: resolveModel(resolvedModel.id),
 				telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel }),
 				toolApproval: buildToolApprovalSettings(activeTools)

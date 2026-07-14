@@ -23,8 +23,7 @@ export function pinoLogger(): AppMiddleware {
 						status: c.res.status
 					},
 					...getActiveObservabilityBinding()
-				}),
-				reqId: () => Bun.randomUUIDv7()
+				})
 			},
 			pino: pino(
 				{

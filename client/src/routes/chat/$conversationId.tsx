@@ -1,5 +1,8 @@
 import { coerceCompatibleMyUIMessages } from "@chat-app/shared";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { useEffect, useRef } from "react";
+import { z } from "zod";
 import {
   Conversation,
   ConversationContent,
@@ -14,7 +17,14 @@ import { getAiModelsQuery } from "@/queries/getAiModels";
 import { getConversationQuery } from "@/queries/getConversation";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
 
+const conversationSearchSchema = z.object({
+  autoSend: z.literal("1").optional().catch(undefined),
+  prompt: z.string().max(4_000).optional().catch(undefined),
+  redirect: z.string().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/chat/$conversationId")({
+  validateSearch: zodValidator(conversationSearchSchema),
   loader: async ({ context, params }) => {
     const chatQuery = getConversationQuery(params.conversationId);
 
@@ -100,7 +110,10 @@ export const Route = createFileRoute("/chat/$conversationId")({
 
 function ConversationChat() {
   const { conversationId } = Route.useParams();
+  const { autoSend, prompt } = Route.useSearch();
   const { initialMessages } = Route.useLoaderData();
+  const navigate = useNavigate();
+  const autoSendStartedRef = useRef(false);
   const {
     addToolApprovalResponse,
     agentMode,
@@ -122,13 +135,35 @@ function ConversationChat() {
     webSearch,
   } = useAgentChat({
     conversationId,
+    initialInput: initialMessages.length === 0 ? prompt : undefined,
     initialMessages,
   });
+
+  useEffect(() => {
+    if (autoSend !== "1" || !prompt || initialMessages.length > 0 || autoSendStartedRef.current) {
+      return;
+    }
+
+    autoSendStartedRef.current = true;
+    setInput("");
+    void sendPromptMessage({ files: [], text: prompt })
+      .catch(() => setInput(prompt))
+      .finally(() => {
+        void navigate({
+          params: { conversationId },
+          replace: true,
+          search: { autoSend: undefined, prompt: undefined, redirect: undefined },
+          to: Route.to,
+        });
+      });
+  }, [autoSend, conversationId, initialMessages.length, navigate, prompt, sendPromptMessage, setInput]);
+  const hasMessages = messages.length > 0;
+  const canDownloadConversation = hasMessages && status !== "submitted" && status !== "streaming";
 
   return (
     <>
       <Conversation className="flex-1">
-        <ConversationContent className="pb-6">
+        <ConversationContent className={hasMessages ? "pb-6 pr-16" : "pb-6"}>
           <ChatMessages
             messages={messages}
             status={status}
@@ -138,11 +173,13 @@ function ConversationChat() {
             onToolApprovalResponse={addToolApprovalResponse}
           />
         </ConversationContent>
-        {messages.length > 0 ? <ConversationDownload aria-label="Download conversation" messages={messages} /> : null}
+        {canDownloadConversation ? (
+          <ConversationDownload aria-label="Download conversation" messages={messages} />
+        ) : null}
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="border-t p-6">
+      <div className="border-t p-3 sm:p-6">
         <ChatInput
           availableModels={availableModels}
           input={input}

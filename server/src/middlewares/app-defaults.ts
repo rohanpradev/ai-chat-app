@@ -1,4 +1,5 @@
 import type { ErrorHandler, MiddlewareHandler, NotFoundHandler } from "hono";
+import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 import env from "@/utils/env";
@@ -35,25 +36,31 @@ export const notFound: NotFoundHandler = (c) => {
 };
 
 export const onError: ErrorHandler = (error, c) => {
-	const currentStatus =
-		"status" in error && typeof error.status === "number" ? error.status : c.newResponse(null).status;
-	const statusCode =
-		currentStatus === HttpStatusCodes.OK
-			? HttpStatusCodes.INTERNAL_SERVER_ERROR
-			: (currentStatus as ContentfulStatusCode);
+	const isHttpException = error instanceof HTTPException;
+	const statusCode = isHttpException ? (error.status as ContentfulStatusCode) : HttpStatusCodes.INTERNAL_SERVER_ERROR;
 	const logger = c.get("logger");
 	const isServerError = statusCode >= HttpStatusCodes.INTERNAL_SERVER_ERROR;
 
 	if (logger) {
-		logger.error(
-			{
-				error,
-				method: c.req.method,
-				path: c.req.path,
-				statusCode
-			},
-			"Request failed"
-		);
+		const logContext = {
+			error,
+			method: c.req.method,
+			path: c.req.path,
+			statusCode
+		};
+
+		if (isServerError) {
+			logger.error(logContext, "Request failed");
+		} else {
+			logger.warn(logContext, "Request rejected");
+		}
+	}
+
+	if (isHttpException) {
+		const exceptionResponse = error.getResponse();
+		for (const [name, value] of exceptionResponse.headers) {
+			c.header(name, value);
+		}
 	}
 
 	return c.json(

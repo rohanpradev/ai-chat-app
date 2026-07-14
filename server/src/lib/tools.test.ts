@@ -31,8 +31,14 @@ describe("serper tool", () => {
 							title: "OpenAI Docs"
 						},
 						{
-							link: "notaurl",
+							link: "javascript:alert(document.domain)",
 							position: 2,
+							snippet: "This result should be filtered out",
+							title: "Unsafe result"
+						},
+						{
+							link: "notaurl",
+							position: 3,
 							snippet: "This result should be filtered out",
 							title: "Broken result"
 						}

@@ -5,10 +5,29 @@ import * as HttpStatusCodes from "@/lib/http-status-codes";
 import type { AppRouteHandler } from "@/lib/types";
 import type {
 	CreateConversationRoute,
+	DeleteConversationRoute,
 	GetConversationRoute,
 	GetConversationsRoute,
 	UpdateConversationRoute
 } from "@/routes/conversations/conversations.route";
+
+export const deleteConversation: AppRouteHandler<DeleteConversationRoute> = async (c) => {
+	const userJwt = c.get("jwtPayload").sub;
+	const { id } = c.req.valid("param");
+	const [deletedChat] = await db
+		.delete(chats)
+		.where(and(eq(chats.id, id), eq(chats.userId, userJwt.id)))
+		.returning({ id: chats.id });
+
+	if (!deletedChat) {
+		return c.json({ message: "Conversation not found" }, HttpStatusCodes.NOT_FOUND);
+	}
+
+	return c.json({
+		data: deletedChat,
+		message: "Conversation deleted successfully"
+	});
+};
 
 export const createConversation: AppRouteHandler<CreateConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
@@ -76,6 +95,7 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 					id: true,
 					metadata: true,
 					parts: true,
+					revision: true,
 					role: true,
 					schemaVersion: true
 				},
@@ -98,6 +118,7 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 		id: message.id,
 		metadata: message.metadata ?? undefined,
 		parts: (Array.isArray(message.parts) ? message.parts : []) as unknown[],
+		revision: message.revision,
 		role: message.role,
 		schemaVersion: message.schemaVersion
 	}));

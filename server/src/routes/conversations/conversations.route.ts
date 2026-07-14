@@ -3,6 +3,7 @@ import {
 	ChatErrorResponseSchema,
 	CreateConversationRequestSchema,
 	CreateConversationResponseSchema,
+	DeleteConversationResponseSchema,
 	GetConversationResponseSchema,
 	GetConversationsResponseSchema,
 	UpdateConversationRequestSchema,
@@ -11,7 +12,7 @@ import {
 import { createRoute, z } from "@hono/zod-openapi";
 import { asRouteMiddleware } from "@/lib/hono-compat";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
-import { jsonContent } from "@/lib/openapi";
+import { jsonBody, jsonContent } from "@/lib/openapi";
 import { authMiddleware } from "@/middlewares/auth-middleware";
 
 const tags = ["Conversations"];
@@ -33,7 +34,7 @@ export const createConversationRoute = createRoute({
 	middleware: [authenticated],
 	path: "/conversations",
 	request: {
-		body: jsonContent(CreateConversationRequestSchema, "Conversation creation data")
+		body: jsonBody(CreateConversationRequestSchema, "Conversation creation data")
 	},
 	responses: {
 		[HttpStatusCodes.CREATED]: jsonContent(CreateConversationResponseSchema, "Conversation created"),
@@ -82,13 +83,33 @@ export const getConversationRoute = createRoute({
 });
 export type GetConversationRoute = typeof getConversationRoute;
 
+export const deleteConversationRoute = createRoute({
+	description: "Delete a conversation and all of its messages",
+	method: "delete",
+	middleware: [authenticated],
+	path: "/conversations/{id}",
+	request: {
+		params: conversationIdParam
+	},
+	responses: {
+		[HttpStatusCodes.OK]: jsonContent(DeleteConversationResponseSchema, "Conversation deleted"),
+		[HttpStatusCodes.NOT_FOUND]: jsonContent(ChatErrorResponseSchema, "Conversation not found"),
+		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(ChatErrorResponseSchema, "Unauthorized")
+	},
+	security: [{ CookieAuth: [] }],
+	summary: "Delete conversation",
+	tags
+});
+
+export type DeleteConversationRoute = typeof deleteConversationRoute;
+
 export const updateConversationRoute = createRoute({
 	description: "Update conversation by ID",
 	method: "put",
 	middleware: [authenticated],
 	path: "/conversations/{id}",
 	request: {
-		body: jsonContent(UpdateConversationRequestSchema, "Conversation update data"),
+		body: jsonBody(UpdateConversationRequestSchema, "Conversation update data"),
 		params: conversationIdParam
 	},
 	responses: {

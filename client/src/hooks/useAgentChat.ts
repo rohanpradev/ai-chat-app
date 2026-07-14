@@ -25,13 +25,18 @@ import { convertFilesToDataURLs } from "@/utils/fileUtils";
 
 interface UseAgentChatOptions {
   conversationId?: string;
+  initialInput?: string;
   initialMessages?: MyUIMessage[];
 }
 
 const aiStreamApiPath = `${apiBasePath}${apiClient.ai["text-stream"].$path()}`;
 
-export function useAgentChat({ conversationId, initialMessages = [] }: Readonly<UseAgentChatOptions>) {
-  const [input, setInput] = useState("");
+export function useAgentChat({
+  conversationId,
+  initialInput = "",
+  initialMessages = [],
+}: Readonly<UseAgentChatOptions>) {
+  const [input, setInput] = useState(initialInput);
   const [agentMode, setAgentMode] = useState<AgentMode>(defaultAgentMode);
   const [model, setModel] = useState<AIModelId>(defaultModelId);
   const [webSearch, setWebSearch] = useState(false);

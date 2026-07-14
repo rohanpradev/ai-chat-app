@@ -48,8 +48,8 @@ const toOptionalUrl = (value: unknown): string | undefined => {
 	}
 
 	try {
-		new URL(url);
-		return url;
+		const parsed = new URL(url);
+		return parsed.protocol === "http:" || parsed.protocol === "https:" ? url : undefined;
 	} catch {
 		return undefined;
 	}

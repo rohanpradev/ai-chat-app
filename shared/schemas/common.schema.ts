@@ -53,6 +53,7 @@ export const ModelSchema = z
 		id: z.string().describe("Model ID"),
 		name: z.string().describe("Display name of the model"),
 		provider: z.enum(providers).describe("AI provider (e.g., openai, anthropic, google)"),
+		source: z.enum(["api", "fallback", "override"]).optional().describe("How the deployment resolved the model"),
 	})
 	.openapi({
 		description: "AI Model information",

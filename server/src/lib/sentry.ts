@@ -76,6 +76,6 @@ export function setupSentryForHono(app: AppOpenAPI) {
 	initializeSentry();
 
 	Sentry.setupHonoErrorHandler(app as Parameters<typeof Sentry.setupHonoErrorHandler>[0], {
-		shouldHandleError: (context) => context.req.path !== "/health" && context.res.status >= 500
+		shouldHandleError: (context) => !["/health", "/ready"].includes(context.req.path) && context.res.status >= 500
 	});
 }

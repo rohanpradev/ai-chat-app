@@ -5,6 +5,8 @@ metadata:
   labels:
     {{- include "chat-app.labels" . | nindent 4 }}
 data:
+  AI_DAILY_REQUEST_LIMIT: {{ .Values.config.env.AI_DAILY_REQUEST_LIMIT | quote }}
+  AI_DAILY_TOKEN_LIMIT: {{ .Values.config.env.AI_DAILY_TOKEN_LIMIT | quote }}
   BASE_API_SLUG: {{ .Values.config.env.BASE_API_SLUG | quote }}
   BETTER_AUTH_URL: {{ .Values.config.env.BETTER_AUTH_URL | quote }}
   CLIENT_URL: {{ .Values.config.env.CLIENT_URL | quote }}
@@ -13,6 +15,8 @@ data:
   DB_NAME: {{ .Values.config.env.DB_NAME | quote }}
   DB_PORT: {{ default .Values.config.env.DB_PORT .Values.externalDatabase.port | quote }}
   DB_USER: {{ .Values.config.env.DB_USER | quote }}
+  EMBEDDING_DAILY_TOKEN_LIMIT: {{ .Values.config.env.EMBEDDING_DAILY_TOKEN_LIMIT | quote }}
+  EMBEDDING_STORAGE_BYTE_LIMIT: {{ .Values.config.env.EMBEDDING_STORAGE_BYTE_LIMIT | quote }}
   DOMAIN: {{ .Values.config.env.DOMAIN | quote }}
   LOG_LEVEL: {{ .Values.config.env.LOG_LEVEL | quote }}
   NODE_ENV: {{ .Values.config.env.NODE_ENV | quote }}

@@ -6,3 +6,5 @@ import env from "@/utils/env";
 const client = new SQL(env.DB_URL);
 
 export const db = drizzle({ client, schema });
+
+export const closeDatabase = () => client.close({ timeout: 5 });

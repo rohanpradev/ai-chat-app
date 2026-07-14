@@ -43,10 +43,13 @@ export const userProfile: AppRouteHandler<UserProfileRoute> = async (c) => {
 	return c.json(
 		{
 			data: {
+				createdAt: user.createdAt.toISOString(),
 				email: user.email,
+				emailVerified: user.emailVerified,
 				id: user.id,
 				name: user.name,
-				profileImage: user.image
+				profileImage: user.image,
+				updatedAt: user.updatedAt.toISOString()
 			},
 			message: "User profile retrieved successfully"
 		},
@@ -65,22 +68,33 @@ export const patchUserProfile: AppRouteHandler<UpdateUserProfileRoute> = async (
 			message: "User not found"
 		});
 
-	const { name, profileImage = null } = c.req.valid("form");
+	const { name, profileImage, removeProfileImage } = c.req.valid("form");
 
-	const updatedData: { name: string; image?: string } = {
+	if (profileImage && removeProfileImage === "true") {
+		throw new HTTPException(HttpStatusCodes.BAD_REQUEST, {
+			message: "Choose a new profile image or remove the current image, not both"
+		});
+	}
+
+	const updatedData: { name: string; image?: string | null } = {
 		name
 	};
 
 	if (profileImage) {
 		validateProfileImage(profileImage);
 		updatedData.image = await fileToDataUrl(profileImage);
+	} else if (removeProfileImage === "true") {
+		updatedData.image = null;
 	}
 
 	const [updatedUser] = await db.update(users).set(updatedData).where(eq(users.id, user.id)).returning({
+		createdAt: users.createdAt,
 		email: users.email,
+		emailVerified: users.emailVerified,
 		id: users.id,
 		name: users.name,
-		profileImage: users.image
+		profileImage: users.image,
+		updatedAt: users.updatedAt
 	});
 
 	if (!updatedUser) {
@@ -93,7 +107,11 @@ export const patchUserProfile: AppRouteHandler<UpdateUserProfileRoute> = async (
 
 	return c.json(
 		{
-			data: updatedUser,
+			data: {
+				...updatedUser,
+				createdAt: updatedUser.createdAt.toISOString(),
+				updatedAt: updatedUser.updatedAt.toISOString()
+			},
 			message: "User profile updated successfully"
 		},
 		HttpStatusCodes.OK

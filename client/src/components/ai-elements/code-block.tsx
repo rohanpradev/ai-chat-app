@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { highlightCompactCode, normalizeCompactLanguage } from "@/lib/streamdown-code-plugin";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import type { ComponentProps, CSSProperties, HTMLAttributes } from "react";
 import {
@@ -21,13 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type {
-  BundledLanguage,
-  BundledTheme,
-  HighlighterGeneric,
-  ThemedToken,
-} from "shiki";
-import { bundledLanguages, createHighlighter } from "shiki";
+import type { ThemedToken } from "@shikijs/types";
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
 // oxlint-disable-next-line eslint(no-bitwise)
@@ -39,8 +34,8 @@ const isUnderline = (fontStyle: number | undefined) =>
   fontStyle && fontStyle & 4;
 
 // Transform tokens to include pre-computed keys to avoid noArrayIndexKey lint
-type CodeBlockLanguage = BundledLanguage | "ansi" | (string & {});
-type HighlightLanguage = BundledLanguage | "ansi";
+type CodeBlockLanguage = string;
+type HighlightLanguage = string;
 
 interface KeyedToken {
   token: ThemedToken;
@@ -132,12 +127,6 @@ const CodeBlockContext = createContext<CodeBlockContextType>({
   code: "",
 });
 
-// Highlighter cache (singleton per language)
-const highlighterCache = new Map<
-  string,
-  Promise<HighlighterGeneric<BundledLanguage, BundledTheme>>
->();
-
 // Token cache
 const tokensCache = new Map<string, TokenizedCode>();
 
@@ -151,6 +140,24 @@ const getTokensCacheKey = (code: string, language: HighlightLanguage) => {
 };
 
 const TEXT_LANGUAGE_ALIASES = new Set(["plain", "plaintext", "text", "txt"]);
+const ANSI_COLORS: Record<number, string> = {
+  30: "#000000",
+  31: "#dc2626",
+  32: "#16a34a",
+  33: "#ca8a04",
+  34: "#2563eb",
+  35: "#9333ea",
+  36: "#0891b2",
+  37: "#e5e7eb",
+  90: "#6b7280",
+  91: "#ef4444",
+  92: "#22c55e",
+  93: "#eab308",
+  94: "#3b82f6",
+  95: "#a855f7",
+  96: "#06b6d4",
+  97: "#ffffff",
+};
 
 const normalizeLanguage = (language: CodeBlockLanguage): HighlightLanguage | null => {
   const normalized = language.toLowerCase();
@@ -163,25 +170,8 @@ const normalizeLanguage = (language: CodeBlockLanguage): HighlightLanguage | nul
     return "ansi";
   }
 
-  return normalized in bundledLanguages ? (normalized as BundledLanguage) : null;
-};
 
-const getHighlighter = (
-  language: HighlightLanguage
-): Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> => {
-  const cached = highlighterCache.get(language);
-  if (cached) {
-    return cached;
-  }
-
-  // ANSI highlighting is built into Shiki and does not need a grammar loaded.
-  const highlighterPromise = createHighlighter({
-    langs: language === "ansi" ? [] : [language],
-    themes: ["github-light", "github-dark"],
-  });
-
-  highlighterCache.set(language, highlighterPromise);
-  return highlighterPromise;
+  return normalizeCompactLanguage(normalized) ?? null;
 };
 
 // Create raw tokens for immediate display while highlighting loads
@@ -200,6 +190,41 @@ const createRawTokens = (code: string): TokenizedCode => ({
   ),
 });
 
+const createAnsiTokens = (code: string): TokenizedCode => {
+  let color: string | undefined;
+  let fontStyle = 0;
+  const tokens = code.split("\n").map((line) => {
+    const lineTokens: ThemedToken[] = [];
+    let cursor = 0;
+    for (const match of line.matchAll(/\u001b\[([0-9;]*)m/g)) {
+      if ((match.index ?? 0) > cursor) {
+        lineTokens.push({ color: color ?? "inherit", content: line.slice(cursor, match.index), fontStyle, offset: cursor });
+      }
+      for (const codeValue of (match[1] || "0").split(";").map(Number)) {
+        if (codeValue === 0) {
+          color = undefined;
+          fontStyle = 0;
+        } else if (codeValue === 1) {
+          fontStyle |= 2;
+        } else if (codeValue === 3) {
+          fontStyle |= 1;
+        } else if (codeValue === 4) {
+          fontStyle |= 4;
+        } else if (ANSI_COLORS[codeValue]) {
+          color = ANSI_COLORS[codeValue];
+        }
+      }
+      cursor = (match.index ?? 0) + match[0].length;
+    }
+    if (cursor < line.length) {
+      lineTokens.push({ color: color ?? "inherit", content: line.slice(cursor), fontStyle, offset: cursor });
+    }
+    return lineTokens;
+  });
+
+  return { bg: "transparent", fg: "inherit", tokens };
+};
+
 // Synchronous highlight with callback for async results
 export const highlightCode = (
   code: string,
@@ -211,6 +236,10 @@ export const highlightCode = (
 
   if (!highlightLanguage) {
     return createRawTokens(code);
+  }
+
+  if (highlightLanguage === "ansi") {
+    return createAnsiTokens(code);
   }
 
   const tokensCacheKey = getTokensCacheKey(code, highlightLanguage);
@@ -230,17 +259,13 @@ export const highlightCode = (
   }
 
   // Start highlighting in background - fire-and-forget async pattern
-  getHighlighter(highlightLanguage)
+  const highlighting = highlightCompactCode(code, highlightLanguage);
+  if (!highlighting) {
+    return createRawTokens(code);
+  }
+  highlighting
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
-    .then((highlighter) => {
-      const result = highlighter.codeToTokens(code, {
-        lang: highlightLanguage,
-        themes: {
-          dark: "github-dark",
-          light: "github-light",
-        },
-      });
-
+    .then((result) => {
       const tokenized: TokenizedCode = {
         bg: result.bg ?? "transparent",
         fg: result.fg ?? "inherit",

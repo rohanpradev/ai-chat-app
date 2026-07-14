@@ -10,7 +10,7 @@ export interface AIModelDefinition {
 	name: string;
 	ownedBy?: string;
 	provider: AIProvider;
-	source?: "api" | "fallback";
+	source?: "api" | "fallback" | "override";
 }
 
 export const modelCatalog: AIModelDefinition[] = [

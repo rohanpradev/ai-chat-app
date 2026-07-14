@@ -12,6 +12,7 @@ export const myUIMessageMetadataSchema = z
 		createdAt: isoDatetimeSchema.optional(),
 		finishReason: z.enum(["stop", "length", "content-filter", "tool-calls", "error", "other"]).optional(),
 		model: z.string().optional(),
+		requestedModel: z.string().optional(),
 		totalTokens: z.number().optional(),
 	})
 	.optional();

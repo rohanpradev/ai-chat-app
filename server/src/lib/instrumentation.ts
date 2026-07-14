@@ -11,6 +11,7 @@ import pino from "pino";
 import env from "@/utils/env";
 
 let sdk: NodeSDK | null = null;
+let shutdownPromise: Promise<void> | null = null;
 export const isTelemetryEnabled = Boolean(env.LANGFUSE_SECRET_KEY && env.LANGFUSE_PUBLIC_KEY);
 
 const logger = pino({
@@ -52,25 +53,26 @@ export function initializeTelemetry(): NodeSDK | null {
 
 		logger.info("Telemetry initialized successfully");
 
-		const shutdown = async (signal: NodeJS.Signals) => {
-			try {
-				await sdk?.shutdown();
-				logger.info({ signal }, "SDK shut down successfully");
-			} catch (error) {
-				logger.error({ error, signal }, "Error shutting down SDK");
-			}
-		};
-
-		process.once("SIGINT", () => {
-			void shutdown("SIGINT");
-		});
-		process.once("SIGTERM", () => {
-			void shutdown("SIGTERM");
-		});
-
 		return sdk;
 	} catch (error) {
 		logger.error({ error }, "Failed to initialize telemetry");
 		return null;
 	}
+}
+
+export function shutdownTelemetry(signal: NodeJS.Signals): Promise<void> {
+	if (!sdk) {
+		return Promise.resolve();
+	}
+
+	shutdownPromise ??= sdk
+		.shutdown()
+		.then(() => {
+			logger.info({ signal }, "Telemetry shut down successfully");
+		})
+		.catch((error: unknown) => {
+			logger.error({ error, signal }, "Failed to shut down telemetry");
+		});
+
+	return shutdownPromise;
 }

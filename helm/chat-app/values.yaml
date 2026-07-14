@@ -23,9 +23,9 @@ images:
     digest: ""
     pullPolicy: IfNotPresent
   db:
-    registry: dhi.io
-    repository: postgres
-    tag: "18"
+    registry: docker.io
+    repository: pgvector/pgvector
+    tag: pg18
     digest: ""
     pullPolicy: Always
   redis:
@@ -37,12 +37,16 @@ images:
 
 config:
   env:
+    AI_DAILY_REQUEST_LIMIT: "200"
+    AI_DAILY_TOKEN_LIMIT: "1000000"
     BASE_API_SLUG: api
     BETTER_AUTH_URL: ""
     CLIENT_URL: https://app.docker.localhost
     DB_NAME: chatapp
     DB_PORT: "5432"
     DB_USER: username
+    EMBEDDING_DAILY_TOKEN_LIMIT: "1000000"
+    EMBEDDING_STORAGE_BYTE_LIMIT: "104857600"
     DOMAIN: app.docker.localhost
     LOG_LEVEL: info
     NODE_ENV: production
@@ -79,6 +83,7 @@ secrets:
       GITHUB_CLIENT_SECRET: ""
       AI_TOOL_APPROVAL_SECRET: ""
       OPENAI_API_KEY: ""
+      OPENAI_MODEL_OVERRIDES: ""
       SERPER_API_KEY: ""
       LANGFUSE_PUBLIC_KEY: ""
       LANGFUSE_SECRET_KEY: ""
@@ -174,7 +179,7 @@ server:
     timeoutSeconds: 3
   readinessProbe:
     httpGet:
-      path: /health
+      path: /ready
       port: http
     initialDelaySeconds: 5
     periodSeconds: 10

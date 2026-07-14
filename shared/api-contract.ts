@@ -3,11 +3,13 @@ import {
 	type AIEvaluationResponse,
 	AIPlanRequestSchema,
 	type AIPlanResponse,
+	type AIUsageResponse,
 	type AvailableModelsResponse,
 	ChatRequestSchema,
 } from "@chat-app/shared/schemas/ai.schema";
 import type {
 	CreateConversationResponse,
+	DeleteConversationResponse,
 	GetConversationResponse,
 	GetConversationsResponse,
 	UpdateConversationResponse,
@@ -45,6 +47,7 @@ const routeParamsSchema = z.object({
 
 export const apiContract = new Hono()
 	.get("/ai/models", (c) => c.json({} as AvailableModelsResponse, 200))
+	.get("/ai/usage", (c) => c.json({} as AIUsageResponse, 200))
 	.post("/ai/plan", zValidator("json", AIPlanRequestSchema), (c) => c.json({} as AIPlanResponse, 200))
 	.post("/ai/evaluate", zValidator("json", AIEvaluationRequestSchema), (c) => c.json({} as AIEvaluationResponse, 200))
 	.post("/ai/text-stream", zValidator("json", ChatRequestSchema), (c) => c.text("", 200))
@@ -60,6 +63,9 @@ export const apiContract = new Hono()
 		zValidator("param", routeParamsSchema),
 		zValidator("json", UpdateConversationRequestSchema),
 		(c) => c.json({} as UpdateConversationResponse, 200),
+	)
+	.delete("/conversations/:id", zValidator("param", routeParamsSchema), (c) =>
+		c.json({} as DeleteConversationResponse, 200),
 	)
 	.get("/embeddings/documents", (c) => c.json({} as EmbeddingDocumentsResponse, 200))
 	.delete("/embeddings/documents/:id", zValidator("param", routeParamsSchema), (c) =>

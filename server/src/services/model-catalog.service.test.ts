@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { filterAvailableChatModels } from "@/services/model-catalog.service";
+import { filterAvailableChatModels, parseOpenAIModelOverrides } from "@/services/model-catalog.service";
 
 describe("filterAvailableChatModels", () => {
 	it("keeps stable chat-capable models and removes specialized or snapshot-only ids", () => {
@@ -29,5 +29,26 @@ describe("filterAvailableChatModels", () => {
 
 		expect(models.map((model) => model.id)).toEqual(["gpt-5-mini"]);
 		expect(models[0]?.name).toBe("GPT-5 Mini");
+	});
+});
+
+describe("parseOpenAIModelOverrides", () => {
+	it("normalizes comma-separated model ids into deduplicated OpenAI catalog entries", () => {
+		const models = parseOpenAIModelOverrides("gpt-5.5, gpt-5.5-mini, gpt-5.5");
+
+		expect(models).toEqual([
+			{
+				id: "gpt-5.5",
+				name: "GPT 5.5",
+				provider: "openai",
+				source: "override"
+			},
+			{
+				id: "gpt-5.5-mini",
+				name: "GPT 5.5 Mini",
+				provider: "openai",
+				source: "override"
+			}
+		]);
 	});
 });

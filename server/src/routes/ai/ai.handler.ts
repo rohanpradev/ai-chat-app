@@ -11,11 +11,14 @@ import type {
 	AIStreamRoute,
 	EvaluateOutputRoute,
 	GeneratePlanRoute,
-	GetAvailableModelsRoute
+	GetAvailableModelsRoute,
+	GetUsageRoute
 } from "@/routes/ai/ai.route";
 import { evaluateAIOutput, generateStructuredPlan } from "@/services/ai-structured.service";
 import { loadConversationMessages, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
+import { estimateTokens, getUsageSummary, reserveUsage, settleUsage } from "@/services/usage.service";
+import { resolveModelSelection } from "@/utils/index";
 
 const streamingProxyHeaders = {
 	"Cache-Control": "no-cache, no-transform",
@@ -40,6 +43,12 @@ export const getAvailableModels: AppRouteHandler<GetAvailableModelsRoute> = asyn
 		message: "Available AI models retrieved successfully"
 	});
 };
+
+export const getUsage: AppRouteHandler<GetUsageRoute> = async (c) =>
+	c.json({
+		data: await getUsageSummary(c.get("jwtPayload").sub.id),
+		message: "AI usage retrieved successfully"
+	});
 
 export const generatePlan: AppRouteHandler<GeneratePlanRoute> = async (c) => {
 	const requestBody = c.req.valid("json");
@@ -87,18 +96,37 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	}
 
 	const validatedMessages = validation.data;
+	if (validatedMessages.some((message) => message.role === "system")) {
+		throw new HTTPException(HttpStatusCodes.BAD_REQUEST, {
+			message: "Client-authored system messages are not allowed"
+		});
+	}
 	const normalizedMessages = normalizeMessagesForAgent(validatedMessages);
 	const logger = c.get("logger");
 	const selectedAgentMode = resolveAgentMode(agentMode);
+	const resolvedModel = await resolveModelSelection(model);
 	const responseCreatedAt = new Date().toISOString();
+	const usageRequestId = await reserveUsage({
+		category: "chat-stream",
+		estimatedTokens: estimateTokens(validatedMessages) + 4096,
+		model: resolvedModel.id,
+		scope: "ai",
+		userId: userJwt.id
+	});
+	let inputTokens = 0;
+	let outputTokens = 0;
+	let totalTokens = 0;
 	const telemetryMetadata = {
 		agentMode: selectedAgentMode,
+		model: resolvedModel.id,
+		modelProvider: resolvedModel.provider,
 		requestedModel: model
 	};
 	const messageMetadata = {
 		...(coalescedChatId ? { conversationId: coalescedChatId } : {}),
 		createdAt: responseCreatedAt,
-		model
+		model: resolvedModel.id,
+		...(model !== resolvedModel.id ? { requestedModel: model } : {})
 	};
 	const runAgentStream = () =>
 		createAgentUIStreamResponse({
@@ -114,6 +142,9 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 				}
 
 				if (part.type === "finish") {
+					inputTokens = part.totalUsage.inputTokens ?? inputTokens;
+					outputTokens = part.totalUsage.outputTokens ?? outputTokens;
+					totalTokens = part.totalUsage.totalTokens ?? totalTokens;
 					return {
 						...messageMetadata,
 						finishReason: part.finishReason,
@@ -128,13 +159,18 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 				return "The assistant request failed. Please retry.";
 			},
 			onFinish: async ({ isAborted, messages: finalMessages }) => {
+				await Promise.all([
+					saveConversation(coalescedChatId, finalMessages, userJwt.id),
+					settleUsage(usageRequestId, { inputTokens, outputTokens, totalTokens })
+				]);
 				if (isAborted) {
-					return;
+					logger.debug({ selectedAgentMode }, "Persisted cancelled AI agent stream");
 				}
-
-				await saveConversation(coalescedChatId, finalMessages, userJwt.id);
 			},
 			onStepEnd: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
+				inputTokens += usage.inputTokens ?? 0;
+				outputTokens += usage.outputTokens ?? 0;
+				totalTokens += usage.totalTokens ?? 0;
 				logger.debug(
 					{
 						finishReason,
@@ -149,7 +185,7 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 			},
 			options: {
 				conversationId: coalescedChatId,
-				requestedModel: model,
+				requestedModel: resolvedModel.id,
 				toolNames,
 				userId: userJwt.id
 			},

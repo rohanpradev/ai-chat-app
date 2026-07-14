@@ -125,7 +125,7 @@ make validate
 Install dependencies:
 
 ```bash
-bun install --frozen-lockfile
+bun ci
 ```
 
 Run the client and server directly:
@@ -153,6 +153,7 @@ bun run typecheck
 bun run test
 bun run security:check
 bun run build
+bun run check:deploy
 ```
 
 Or run the combined check:
@@ -162,6 +163,8 @@ bun run check
 ```
 
 ## Docker
+
+The Compose stack uses public upstream images by default so a fresh local setup does not require private registry credentials. Production can override `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` to Docker Hardened Images or digest-pinned images.
 
 Start the full local stack:
 
@@ -185,8 +188,16 @@ make clean
 URLs:
 
 - App: `https://localhost`
-- API health: `https://localhost/health`
+- App/Nginx health: `https://localhost/health`
+- API health through the proxy: `https://localhost/api/health`
 - Langfuse Cloud: `https://cloud.langfuse.com`
+
+Validate the Docker and deployment configuration without starting the stack:
+
+```bash
+docker compose config --quiet
+bun run check:deploy
+```
 
 ## Kubernetes
 
@@ -219,9 +230,15 @@ make k8s-cleanup
 make k8s-stop
 ```
 
+The chart renders client/server Deployments, PostgreSQL and Redis StatefulSets, a migration Job, Services, NetworkPolicies, HPA, PDB, probes, optional Gateway API HTTPRoutes, and optional Traefik Middleware CRDs. Local generated values use public Postgres/Redis images and local app images with `pullPolicy: Never`; production values can override every image by registry, tag, or digest.
+
+See `k8s/README.md` for the full Kubernetes runbook.
+
 ## Bun Workspaces
 
 Dependency versions shared across workspaces are defined in the root `catalog` field and referenced with `catalog:` from package manifests.
+
+Use `bun ci` in CI and clean local installs. It is equivalent to a frozen-lockfile install and fails when `package.json` and `bun.lock` drift.
 
 TypeScript checks run through the official TypeScript native preview (`tsgo`) from `@typescript/native-preview`:
 
@@ -234,6 +251,7 @@ The repo uses Bun's isolated linker:
 ```toml
 [install]
 linker = "isolated"
+minimumReleaseAge = 259200
 ```
 
 This matters for Docker. The production images copy:
@@ -246,6 +264,8 @@ Without both parts, imports from `/app/server` or `/app/shared` can fail at runt
 ## AI and Tools
 
 The server uses the AI SDK for streaming responses. The model catalog lives in `shared/models.ts`.
+
+Use `OPENAI_MODEL_OVERRIDES` for comma-separated account-specific or newly released OpenAI model IDs that should appear in the selector before the live model catalog reports them. Keep the default model in `shared/models.ts` unless the candidate passes the eval checklist.
 
 Web search is exposed through the `serper` tool. It is approval-gated, so the UI must explicitly approve a tool call before the server continues the stream.
 
@@ -264,6 +284,7 @@ Langfuse telemetry is initialized only when credentials are present. AI SDK tele
 ## Common Commands
 
 ```bash
+bun ci
 make setup             # create .env from .env.example
 make validate          # check required env vars
 make local             # run client and server directly
@@ -272,9 +293,13 @@ make stop              # stop Docker Compose stack
 bun run security:check # dependency audit plus supply-chain indicator scan
 make kubernetes        # full local Kubernetes + Traefik run
 make k8s-status        # Kubernetes status and URLs
+make deploy-check      # Compose + Dockerfile + Helm/Kubernetes validation
 make clean-generated   # remove generated local artifacts
 bun run check          # lint, typecheck, and tests
-bun run k8s:validate   # strict Helm lint and Gateway-aware template render
+bun run test:e2e       # desktop and mobile Chromium journeys
+bun run build:report    # production build plus enforced JS bundle budgets
+bun run check:ci       # audit, supply-chain scan, knip, tests, builds, deployment checks
+bun run k8s:validate   # alias for the deployment checker
 docker compose config --quiet
 ```
 

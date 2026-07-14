@@ -24,6 +24,12 @@
 	},
 	"overrides": [
 		{
+			"assist": { "enabled": false },
+			"formatter": { "enabled": false },
+			"includes": ["test-results/**", "playwright-report/**"],
+			"linter": { "enabled": false }
+		},
+		{
 			"assist": {
 				"enabled": false
 			},

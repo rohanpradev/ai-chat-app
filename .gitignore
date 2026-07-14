@@ -190,3 +190,5 @@ dist
 
 .tanstack/
 .scannerwork/
+playwright-report/
+test-results/
