@@ -8,6 +8,16 @@ images:
   migrate:
     tag: latest
     pullPolicy: Never
+  db:
+    registry: ""
+    repository: pgvector/pgvector
+    tag: pg18
+    pullPolicy: IfNotPresent
+  redis:
+    registry: ""
+    repository: redis
+    tag: "8"
+    pullPolicy: IfNotPresent
 
 config:
   env:
@@ -38,6 +48,7 @@ secrets:
       GITHUB_CLIENT_ID: ""
       GITHUB_CLIENT_SECRET: ""
       OPENAI_API_KEY: local-test-openai-key
+      OPENAI_MODEL_OVERRIDES: ""
       SERPER_API_KEY: ""
       LANGFUSE_PUBLIC_KEY: ""
       LANGFUSE_SECRET_KEY: ""

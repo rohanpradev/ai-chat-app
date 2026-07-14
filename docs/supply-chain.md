@@ -5,7 +5,7 @@
 The repository uses Bun workspaces, an isolated linker, and a committed `bun.lock`.
 
 ```bash
-bun install --frozen-lockfile
+bun ci
 ```
 
 `bunfig.toml` sets `minimumReleaseAge = 259200`, which delays fresh resolution of newly published npm versions for 72 hours. This reduces exposure to fast-moving package compromises where malicious versions are published and removed within hours.
@@ -16,10 +16,12 @@ bun install --frozen-lockfile
 bun run audit
 bun run security:supply-chain
 bun run security:check
+bun run check:deploy
 ```
 
 - `bun audit` checks known vulnerability advisories.
 - `security:supply-chain` checks `bun.lock` for known Shai-Hulud/Mini Shai-Hulud affected versions relevant to this stack and scans the repo for known artifact filenames.
+- `check:deploy` validates Docker Compose syntax, Dockerfile build checks when Docker is reachable, strict Helm linting, Gateway-aware chart rendering, and rendered Kubernetes hardening markers.
 - CI runs `security:check` and GitHub dependency review on pull requests.
 
 ## Dependency Update Rules
@@ -38,8 +40,8 @@ If a compromised npm package is suspected:
 2. Check `bun.lock` for affected versions and run `bun run security:supply-chain`.
 3. Search CI logs for unexpected outbound network calls, publish attempts, or new workflow files.
 4. Rotate GitHub tokens, npm tokens, cloud credentials, OpenAI keys, Sentry tokens, Langfuse keys, database passwords, Redis credentials, and Kubernetes service account tokens available to affected hosts.
-5. Reinstall dependencies on a clean machine with `bun install --frozen-lockfile`.
-6. Rebuild Docker images without cache and redeploy only after tests, audit, and smoke checks pass.
+5. Reinstall dependencies on a clean machine with `bun ci`.
+6. Rebuild Docker images without cache and redeploy only after tests, audit, deployment validation, and smoke checks pass.
 
 ## Current TanStack Note
 

@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { Toaster } from "@/components/ui/sonner";
 import { createAuthContext, loadUser } from "@/lib/auth";
 import { initializeSentry, SentryErrorBoundary } from "@/lib/sentry";
 import { installVitePreloadErrorHandler } from "@/lib/vite-preload";
@@ -79,6 +80,7 @@ function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="chat-app-theme">
       <RouterProvider router={router} />
+      <Toaster closeButton position="top-right" />
     </ThemeProvider>
   );
 }

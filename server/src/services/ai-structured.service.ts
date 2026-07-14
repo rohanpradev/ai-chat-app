@@ -11,6 +11,7 @@ import {
 } from "@chat-app/shared";
 import { generateText, Output } from "ai";
 import { isTelemetryEnabled } from "@/lib/instrumentation";
+import { estimateTokens, reserveUsage, settleUsage } from "@/services/usage.service";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
 interface StructuredGenerationMetadata {
@@ -102,42 +103,54 @@ export const generateStructuredPlan = async (
 	]
 		.filter((section): section is string => Boolean(section))
 		.join("\n\n");
-
-	const result = await generateText({
-		abortSignal,
-		maxRetries: 1,
-		model: resolveModel(resolvedModel.id),
-		output: Output.object({
-			description:
-				"A concise execution plan for routing an AI task, selecting tools, identifying risks, and defining evaluation checks.",
-			name: "AIWorkPlan",
-			schema: AIPlanOutputSchema
-		}),
-		prompt,
-		system: [
-			"You are an AI work planner for a Bun and JavaScript AI platform.",
-			"Return practical, schema-valid planning data only.",
-			"Prefer the research agent and live web tool only when the task requires verification, freshness, or multi-step synthesis.",
-			"Keep steps concrete enough that another agent or engineer can execute them."
-		].join("\n"),
-		telemetry: structuredTelemetry({
-			functionId: "ai-structured-plan",
-			model: resolvedModel.id,
-			provider: resolvedModel.provider,
-			userId
-		}),
-		temperature: 0.2
+	const usageRequestId = await reserveUsage({
+		category: "structured-plan",
+		estimatedTokens: estimateTokens(prompt) + 2048,
+		model: resolvedModel.id,
+		scope: "ai",
+		userId
 	});
 
-	return {
-		data: result.output,
-		metadata: buildMetadata({
+	try {
+		const result = await generateText({
+			abortSignal,
+			maxOutputTokens: 2048,
+			maxRetries: 1,
+			model: resolveModel(resolvedModel.id),
+			output: Output.object({
+				description:
+					"A concise execution plan for routing an AI task, selecting tools, identifying risks, and defining evaluation checks.",
+				name: "AIWorkPlan",
+				schema: AIPlanOutputSchema
+			}),
+			prompt,
+			system: [
+				"You are an AI work planner for a Bun and JavaScript AI platform.",
+				"Return practical, schema-valid planning data only.",
+				"Prefer the research agent and live web tool only when the task requires verification, freshness, or multi-step synthesis.",
+				"Keep steps concrete enough that another agent or engineer can execute them."
+			].join("\n"),
+			telemetry: structuredTelemetry({
+				functionId: "ai-structured-plan",
+				model: resolvedModel.id,
+				provider: resolvedModel.provider,
+				userId
+			}),
+			temperature: 0.2
+		});
+		const metadata = buildMetadata({
 			finishReason: result.finishReason,
 			model: resolvedModel.id,
 			provider: resolvedModel.provider,
 			usage: result.usage
-		})
-	};
+		});
+		await settleUsage(usageRequestId, metadata.usage);
+
+		return { data: result.output, metadata };
+	} catch (error) {
+		await settleUsage(usageRequestId, { status: "failed" });
+		throw error;
+	}
 };
 
 export const evaluateAIOutput = async (
@@ -155,41 +168,53 @@ export const evaluateAIOutput = async (
 	]
 		.filter((section): section is string => Boolean(section))
 		.join("\n\n");
-
-	const result = await generateText({
-		abortSignal,
-		maxRetries: 1,
-		model: resolveModel(resolvedModel.id),
-		output: Output.object({
-			description:
-				"A production LLM-as-judge result with a normalized score, review label, risks, strengths, and actionable fixes.",
-			name: "AIEvaluation",
-			schema: AIEvaluationOutputSchema
-		}),
-		prompt,
-		system: [
-			"You are an evaluator for a production AI application.",
-			"Judge only the supplied output against the supplied input, context, reference, and rubric.",
-			"Reward grounded, complete, safe, instruction-following answers.",
-			"Penalize unsupported claims, missing caveats, unsafe guidance, and failure to answer.",
-			"Use score 1 for excellent, 0.5 for mixed, and 0 for unusable or unsafe output."
-		].join("\n"),
-		telemetry: structuredTelemetry({
-			functionId: "ai-evaluate-output",
-			model: resolvedModel.id,
-			provider: resolvedModel.provider,
-			userId
-		}),
-		temperature: 0
+	const usageRequestId = await reserveUsage({
+		category: "structured-evaluation",
+		estimatedTokens: estimateTokens(prompt) + 2048,
+		model: resolvedModel.id,
+		scope: "ai",
+		userId
 	});
 
-	return {
-		data: result.output,
-		metadata: buildMetadata({
+	try {
+		const result = await generateText({
+			abortSignal,
+			maxOutputTokens: 2048,
+			maxRetries: 1,
+			model: resolveModel(resolvedModel.id),
+			output: Output.object({
+				description:
+					"A production LLM-as-judge result with a normalized score, review label, risks, strengths, and actionable fixes.",
+				name: "AIEvaluation",
+				schema: AIEvaluationOutputSchema
+			}),
+			prompt,
+			system: [
+				"You are an evaluator for a production AI application.",
+				"Judge only the supplied output against the supplied input, context, reference, and rubric.",
+				"Reward grounded, complete, safe, instruction-following answers.",
+				"Penalize unsupported claims, missing caveats, unsafe guidance, and failure to answer.",
+				"Use score 1 for excellent, 0.5 for mixed, and 0 for unusable or unsafe output."
+			].join("\n"),
+			telemetry: structuredTelemetry({
+				functionId: "ai-evaluate-output",
+				model: resolvedModel.id,
+				provider: resolvedModel.provider,
+				userId
+			}),
+			temperature: 0
+		});
+		const metadata = buildMetadata({
 			finishReason: result.finishReason,
 			model: resolvedModel.id,
 			provider: resolvedModel.provider,
 			usage: result.usage
-		})
-	};
+		});
+		await settleUsage(usageRequestId, metadata.usage);
+
+		return { data: result.output, metadata };
+	} catch (error) {
+		await settleUsage(usageRequestId, { status: "failed" });
+		throw error;
+	}
 };

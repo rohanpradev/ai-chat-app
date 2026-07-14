@@ -69,10 +69,16 @@ const listBuilder = {
 const searchBuilder = {
 	from: () => ({
 		innerJoin: () => ({
-			where: async () => searchRows
+			where: () => ({
+				orderBy: () => ({
+					limit: async (limit: number) => searchRows.slice(0, limit)
+				})
+			})
 		})
 	})
 };
+
+const vector = (first: number, second: number) => [first, second, ...Array.from({ length: 1534 }, () => 0)];
 
 mock.module("@ai-sdk/openai", () => ({
 	openai: {
@@ -92,6 +98,20 @@ mock.module("@/db", () => ({
 	}
 }));
 
+mock.module("@/services/usage.service", () => ({
+	estimateTokens: () => 10,
+	getUsageSummary: mock(async () => ({
+		ai: { requests: { limit: 200, used: 0 }, tokens: { limit: 1_000_000, used: 0 } },
+		embedding: {
+			storageBytes: { limit: 104_857_600, used: 0 },
+			tokens: { limit: 1_000_000, used: 0 }
+		},
+		resetsAt: "2026-07-15T00:00:00.000Z"
+	})),
+	reserveUsage: mock(async () => "usage-test"),
+	settleUsage: mock(async () => {})
+}));
+
 const paragraph = (label: string) => `${label}: ${"semantic retrieval context ".repeat(34)}${label} conclusion.`;
 
 beforeEach(() => {
@@ -101,7 +121,7 @@ beforeEach(() => {
 	searchRows = [];
 	currentEmbeddingModel = new MockEmbeddingModelV4({
 		doEmbed: async ({ values }: DoEmbedOptions) => ({
-			embeddings: values.map((_, index) => [index + 1, index + 0.25, index + 0.5]),
+			embeddings: values.map((_, index) => vector(index + 1, index + 0.25)),
 			usage: { tokens: values.length * 11 },
 			warnings: []
 		}),
@@ -135,23 +155,23 @@ describe("embedding service", () => {
 		expect(currentEmbeddingModel.doEmbedCalls[0]?.values[1]).toContain("beta");
 		expect(currentEmbeddingModel.doEmbedCalls[0]?.values[2]).toContain("gamma");
 
-		expect(insertedDocumentValues?.embeddingDimensions).toBe(3);
+		expect(insertedDocumentValues?.embeddingDimensions).toBe(1536);
 		expect(insertedDocumentValues?.embeddingModel).toBe("text-embedding-3-small");
 		expect(insertedDocumentValues?.chunkCount).toBe(3);
-		expect(insertedChunkValues.map((chunk) => chunk.embedding)).toEqual([
-			[1, 0.25, 0.5],
-			[2, 1.25, 1.5],
-			[3, 2.25, 2.5]
+		expect(insertedChunkValues.map((chunk) => (chunk.embedding as number[]).slice(0, 2))).toEqual([
+			[1, 0.25],
+			[2, 1.25],
+			[3, 2.25]
 		]);
 		expect(result.usage).toEqual({ tokens: 33 });
-		expect(result.dimensions).toBe(3);
+		expect(result.dimensions).toBe(1536);
 		expect(result.document.id).toBe("doc_test");
 	});
 
 	it("embeds search queries once and ranks stored chunks by cosine similarity", async () => {
 		currentEmbeddingModel = new MockEmbeddingModelV4({
 			doEmbed: async ({ values }: DoEmbedOptions) => ({
-				embeddings: values.map(() => [1, 0]),
+				embeddings: values.map(() => vector(1, 0)),
 				usage: { tokens: 7 },
 				warnings: []
 			}),
@@ -164,7 +184,7 @@ describe("embedding service", () => {
 				chunkIndex: 1,
 				content: "Related context",
 				documentId: "doc_a",
-				embedding: [0.6, 0.8],
+				score: 1,
 				sourceName: "related.md",
 				title: "Related"
 			},
@@ -173,7 +193,7 @@ describe("embedding service", () => {
 				chunkIndex: 0,
 				content: "Exact context",
 				documentId: "doc_a",
-				embedding: [1, 0],
+				score: 0.6,
 				sourceName: "exact.md",
 				title: "Exact"
 			},
@@ -182,7 +202,7 @@ describe("embedding service", () => {
 				chunkIndex: 2,
 				content: "Unrelated context",
 				documentId: "doc_b",
-				embedding: [0, 1],
+				score: 0,
 				sourceName: "unrelated.md",
 				title: "Unrelated"
 			}
@@ -199,10 +219,10 @@ describe("embedding service", () => {
 		expect(embeddingModelIds).toEqual(["text-embedding-3-small"]);
 		expect(currentEmbeddingModel.doEmbedCalls).toHaveLength(1);
 		expect(currentEmbeddingModel.doEmbedCalls[0]?.values).toEqual(["find the exact context"]);
-		expect(result.dimensions).toBe(2);
-		expect(result.results.map((item) => item.chunkId)).toEqual(["chunk_exact", "chunk_related"]);
+		expect(result.dimensions).toBe(1536);
+		expect(result.results.map((item) => item.chunkId)).toEqual(["chunk_related", "chunk_exact"]);
 		expect(result.results[0]?.score).toBeCloseTo(1, 5);
 		expect(result.results[1]?.score).toBeCloseTo(0.6, 5);
-		expect(result.results[0]?.content).toBe("Exact context");
+		expect(result.results[0]?.content).toBe("Related context");
 	});
 });

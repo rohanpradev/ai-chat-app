@@ -564,6 +564,9 @@ export const PromptInput = ({
         .filter(Boolean);
 
       return patterns.some((pattern) => {
+        if (pattern.startsWith(".")) {
+          return f.name.toLowerCase().endsWith(pattern.toLowerCase());
+        }
         if (pattern.endsWith("/*")) {
           // e.g: image/* -> image/
           const prefix = pattern.slice(0, -1);
@@ -579,6 +582,12 @@ export const PromptInput = ({
     (fileList: File[] | FileList) => {
       const incoming = [...fileList];
       const accepted = incoming.filter((f) => matchesAccept(f));
+      if (accepted.length > 0 && accepted.length < incoming.length) {
+        onError?.({
+          code: "accept",
+          message: "Some files were skipped because their type is not supported.",
+        });
+      }
       if (incoming.length && accepted.length === 0) {
         onError?.({
           code: "accept",
@@ -589,6 +598,12 @@ export const PromptInput = ({
       const withinSize = (f: File) =>
         maxFileSize ? f.size <= maxFileSize : true;
       const sized = accepted.filter(withinSize);
+      if (sized.length > 0 && sized.length < accepted.length) {
+        onError?.({
+          code: "max_file_size",
+          message: `Some files were skipped because they exceed ${Math.floor((maxFileSize ?? 0) / 1024 / 1024)} MB.`,
+        });
+      }
       if (accepted.length > 0 && sized.length === 0) {
         onError?.({
           code: "max_file_size",
@@ -643,6 +658,12 @@ export const PromptInput = ({
     (fileList: File[] | FileList) => {
       const incoming = [...fileList];
       const accepted = incoming.filter((f) => matchesAccept(f));
+      if (accepted.length > 0 && accepted.length < incoming.length) {
+        onError?.({
+          code: "accept",
+          message: "Some files were skipped because their type is not supported.",
+        });
+      }
       if (incoming.length && accepted.length === 0) {
         onError?.({
           code: "accept",
@@ -653,6 +674,12 @@ export const PromptInput = ({
       const withinSize = (f: File) =>
         maxFileSize ? f.size <= maxFileSize : true;
       const sized = accepted.filter(withinSize);
+      if (sized.length > 0 && sized.length < accepted.length) {
+        onError?.({
+          code: "max_file_size",
+          message: `Some files were skipped because they exceed ${Math.floor((maxFileSize ?? 0) / 1024 / 1024)} MB.`,
+        });
+      }
       if (accepted.length > 0 && sized.length === 0) {
         onError?.({
           code: "max_file_size",

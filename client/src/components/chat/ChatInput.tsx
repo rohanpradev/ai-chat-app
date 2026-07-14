@@ -9,6 +9,7 @@ import {
 import type { ChatStatus } from "ai";
 import { GlobeIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
+import { toast } from "sonner";
 import {
   Attachment,
   AttachmentInfo,
@@ -107,7 +108,7 @@ export function ChatInput({
   showAgentGuide = false,
   status,
 }: Readonly<ChatInputProps>) {
-  const handleSubmit = (message: PromptInputMessage) => {
+  const handleSubmit = async (message: PromptInputMessage) => {
     const text = message.text.trim();
     const hasText = Boolean(text);
     const hasAttachments = Boolean(message.files?.length);
@@ -116,8 +117,8 @@ export function ChatInput({
       return;
     }
 
+    await onMessageSend({ ...message, text });
     setInput("");
-    return onMessageSend({ ...message, text });
   };
 
   const handleAgentModeChange = (value: string) => {
@@ -149,11 +150,11 @@ export function ChatInput({
         className="mt-0"
         multiple
         accept="image/*,application/pdf,.txt,.md,.json,.js,.ts,.tsx,.jsx,.py,.java,.cpp,.c,.html,.css,.xml,.csv"
-        maxFiles={10}
-        maxFileSize={10 * 1024 * 1024}
+        maxFiles={3}
+        maxFileSize={5 * 1024 * 1024}
         onError={(err) => {
           const errorMessage = typeof err === "object" && "message" in err ? err.message : "File upload error";
-          console.error("File upload error:", errorMessage);
+          toast.error(errorMessage);
         }}
       >
         <PromptInputAttachmentsDisplay />
@@ -164,8 +165,8 @@ export function ChatInput({
             value={input}
           />
         </PromptInputBody>
-        <PromptInputFooter>
-          <PromptInputTools>
+        <PromptInputFooter className="flex-wrap">
+          <PromptInputTools className="flex-wrap">
             <PromptInputActionMenu>
               <PromptInputActionMenuTrigger />
               <PromptInputActionMenuContent>
@@ -173,12 +174,17 @@ export function ChatInput({
                 <PromptInputActionAddScreenshot />
               </PromptInputActionMenuContent>
             </PromptInputActionMenu>
-            <PromptInputButton variant={webSearch ? "default" : "ghost"} onClick={() => setWebSearch(!webSearch)}>
+            <PromptInputButton
+              aria-label="Toggle web search"
+              aria-pressed={webSearch}
+              variant={webSearch ? "default" : "ghost"}
+              onClick={() => setWebSearch(!webSearch)}
+            >
               <GlobeIcon size={16} />
-              <span>Web Search</span>
+              <span className="hidden sm:inline">Web Search</span>
             </PromptInputButton>
             <PromptInputSelect onValueChange={handleAgentModeChange} value={agentMode}>
-              <PromptInputSelectTrigger>
+              <PromptInputSelectTrigger aria-label="Agent mode">
                 <PromptInputSelectValue />
               </PromptInputSelectTrigger>
               <PromptInputSelectContent>
@@ -190,7 +196,7 @@ export function ChatInput({
               </PromptInputSelectContent>
             </PromptInputSelect>
             <PromptInputSelect onValueChange={handleModelChange} value={model}>
-              <PromptInputSelectTrigger>
+              <PromptInputSelectTrigger aria-label="AI model">
                 <PromptInputSelectValue />
               </PromptInputSelectTrigger>
               <PromptInputSelectContent>

@@ -6,7 +6,17 @@
 2. The server validates the request with shared Zod schemas.
 3. The selected agent mode resolves to an AI SDK agent.
 4. The agent streams UI-message parts back through SSE.
-5. Completed conversations are persisted for the authenticated user.
+5. Completed conversations update a current-message projection and append immutable message revisions.
+
+Conversation writes take a PostgreSQL advisory transaction lock per chat, which prevents two server replicas from interleaving revisions. Regeneration and resumed streams update the current projection without erasing prior message bodies. Deleting a conversation remains a deliberate cascade over both current messages and their revision history.
+
+## Retrieval and Usage Control
+
+Document chunks use `vector(1536)` and an HNSW cosine index provided by pgvector. Similarity filtering, ordering, and limiting run in PostgreSQL; vectors are not loaded into application memory for ranking.
+
+AI and embedding calls reserve quota in `usage_event` before contacting a provider, then settle provider-reported token usage. PostgreSQL advisory locks make daily limits consistent across replicas. Reservations older than 15 minutes stop consuming token or upload capacity, protecting users from a crashed worker. `GET /{BASE_API_SLUG}/ai/usage` exposes daily request/token usage, embedding token usage, storage usage, and the UTC reset time.
+
+Default limits can be overridden with `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, `EMBEDDING_DAILY_TOKEN_LIMIT`, and `EMBEDDING_STORAGE_BYTE_LIMIT`.
 
 ## Structured AI Endpoints
 
@@ -39,7 +49,9 @@ The major provider docs are converging on the same patterns:
 - Evals, traces, and feedback loops before model upgrades
 - Human approval for sensitive tools
 
-The codebase already uses AI SDK agents, streaming, shared schemas, structured output, tool approval, RAG, and Langfuse/OpenTelemetry. The next substantial product upgrades should be MCP tool registration, first-class eval fixtures, and richer generative UI cards for approved tool results.
+The codebase already uses AI SDK agents, streaming, shared schemas, structured output, tool approval, database-native RAG, durable usage metering, and Langfuse/OpenTelemetry. The next substantial product upgrades should be MCP tool registration, first-class eval fixtures, and richer generative UI cards for approved tool results.
+
+Model IDs are deliberately allowlisted. The shared fallback catalog lives in `shared/models.ts`, and deployments can add comma-separated account-specific IDs with `OPENAI_MODEL_OVERRIDES`. Streamed message metadata records the resolved model ID, with `requestedModel` included only when the request fell back to a different approved model.
 
 ## Observability
 
@@ -51,3 +63,4 @@ Langfuse telemetry is enabled only when credentials are configured. Sentry is op
 - Tool input/output must be schema validated.
 - Tools that reach the network, mutate data, execute code, or spend money must require approval.
 - Model output must not be trusted as authorization. Use authenticated user IDs from server-side session state.
+- Newly released model IDs should enter through `OPENAI_MODEL_OVERRIDES` first, then graduate into `shared/models.ts` only after evals and streaming/tool approval checks pass.

@@ -4,6 +4,7 @@ import {
 	AIPlanRequestSchema,
 	AIPlanResponseSchema,
 	AIStreamResponseHeaders,
+	AIUsageResponseSchema,
 	AvailableModelsResponseSchema,
 	ChatRequestSchema,
 	CommonBadRequestResponseSchema,
@@ -34,7 +35,8 @@ export const aiStream = createRoute({
 					schema: ChatRequestSchema
 				}
 			},
-			description: "Schema for AI chat requests with model selection and approved tool access"
+			description: "Schema for AI chat requests with model selection and approved tool access",
+			required: true
 		}
 	},
 	responses: {
@@ -81,6 +83,22 @@ export const getAvailableModels = createRoute({
 
 export type GetAvailableModelsRoute = typeof getAvailableModels;
 
+export const getUsage = createRoute({
+	description: "Returns daily AI token, request, embedding token, and vector storage usage for the signed-in user",
+	method: "get",
+	middleware: [authenticated],
+	path: "/ai/usage",
+	responses: {
+		[HttpStatusCodes.OK]: jsonContent(AIUsageResponseSchema, "Current AI usage"),
+		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(CommonUnauthorizedResponseSchema, "Unauthorized")
+	},
+	security: [{ CookieAuth: [] }],
+	summary: "Gets current quota usage.",
+	tags
+});
+
+export type GetUsageRoute = typeof getUsage;
+
 export const generatePlan = createRoute({
 	description:
 		"Generates a schema-validated AI task plan for routing, tool selection, risk analysis, and evaluation checks.",
@@ -94,7 +112,8 @@ export const generatePlan = createRoute({
 					schema: AIPlanRequestSchema
 				}
 			},
-			description: "Prompt and optional context to convert into a structured execution plan"
+			description: "Prompt and optional context to convert into a structured execution plan",
+			required: true
 		}
 	},
 	responses: {
@@ -123,7 +142,8 @@ export const evaluateOutput = createRoute({
 					schema: AIEvaluationRequestSchema
 				}
 			},
-			description: "Input/output pair plus optional evidence and rubric"
+			description: "Input/output pair plus optional evidence and rubric",
+			required: true
 		}
 	},
 	responses: {

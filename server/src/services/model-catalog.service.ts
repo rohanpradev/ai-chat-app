@@ -23,6 +23,12 @@ let cachedModelCatalog:
 	  }
 	| undefined;
 
+const modelNameAcronyms = new Map([
+	["api", "API"],
+	["gpt", "GPT"],
+	["tts", "TTS"]
+]);
+
 const mergeUniqueModels = (models: readonly AIModelDefinition[]): AIModelDefinition[] => {
 	const modelMap = new Map<string, AIModelDefinition>();
 
@@ -35,7 +41,31 @@ const mergeUniqueModels = (models: readonly AIModelDefinition[]): AIModelDefinit
 	return [...modelMap.values()];
 };
 
-const fallbackModels = mergeUniqueModels(getModelsByProvider("openai"));
+const formatModelDisplayName = (id: string): string =>
+	id
+		.split(/[-_]/)
+		.filter(Boolean)
+		.map((part) => modelNameAcronyms.get(part.toLowerCase()) ?? `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+		.join(" ");
+
+export const parseOpenAIModelOverrides = (value: string | undefined): AIModelDefinition[] =>
+	mergeUniqueModels(
+		(value ?? "")
+			.split(",")
+			.map((modelId) => modelId.trim())
+			.filter(Boolean)
+			.map((id) => ({
+				id,
+				name: formatModelDisplayName(id),
+				provider: "openai" as const,
+				source: "override" as const
+			}))
+	);
+
+const fallbackModels = mergeUniqueModels([
+	...getModelsByProvider("openai"),
+	...parseOpenAIModelOverrides(env.OPENAI_MODEL_OVERRIDES)
+]);
 const fallbackOrderLookup = new Map(fallbackModels.map((model, index) => [model.id, index]));
 const fallbackModelLookup = new Map(fallbackModels.map((model) => [model.id, model]));
 

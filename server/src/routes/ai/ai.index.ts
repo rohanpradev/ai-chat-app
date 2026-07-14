@@ -4,6 +4,7 @@ import * as routes from "@/routes/ai/ai.route";
 
 const router = createRouter()
 	.openapi(routes.getAvailableModels, handlers.getAvailableModels)
+	.openapi(routes.getUsage, handlers.getUsage)
 	.openapi(routes.generatePlan, handlers.generatePlan)
 	.openapi(routes.evaluateOutput, handlers.evaluateOutput)
 	.openapi(routes.aiStream, handlers.aiStream);

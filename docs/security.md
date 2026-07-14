@@ -43,5 +43,5 @@ Traefik provides:
 - Enable GitHub secret scanning and push protection.
 - Enable Dependabot alerts and review dependency PRs manually.
 - Use image digests for production base images when possible.
-- Run `bun run security:check`, `bun run check`, Docker validation, and Helm validation before release.
+- Run `bun run security:check`, `bun run check`, and `bun run check:deploy` before release.
 - Keep API keys in runtime secrets only; never use `VITE_` variables for private server credentials.

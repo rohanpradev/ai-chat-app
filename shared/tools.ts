@@ -7,7 +7,13 @@ export {
 	webSearchToolId,
 } from "@chat-app/shared/tool-ids";
 
-const urlSchema = z.string().url();
+const urlSchema = z
+	.string()
+	.url()
+	.refine((value) => {
+		const protocol = new URL(value).protocol;
+		return protocol === "http:" || protocol === "https:";
+	}, "URL must use HTTP or HTTPS");
 
 export const deepSearchInputSchema = z.object({
 	maxResults: z.number().optional().describe("Maximum number of results"),
@@ -21,6 +27,7 @@ export const serperInputSchema = z.object({
 	q: z
 		.string()
 		.min(1)
+		.max(500)
 		.describe(
 			"Focused web search query. Rewrite the user's request into concise search terms with entities, dates, and site filters when helpful.",
 		),

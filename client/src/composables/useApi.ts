@@ -81,6 +81,10 @@ export const getApiClient = () => {
         const result = await parseApiResponse(apiClient.ai.models.$get());
         return result.data;
       },
+      usage: async () => {
+        const result = await parseApiResponse(apiClient.ai.usage.$get());
+        return result.data;
+      },
       plan: async (payload: InferRequestType<typeof apiClient.ai.plan.$post>["json"]) => {
         return parseApiResponse(apiClient.ai.plan.$post({ json: payload }));
       },
@@ -91,6 +95,14 @@ export const getApiClient = () => {
     conversations: {
       create: async (payload: InferRequestType<typeof apiClient.conversations.$post>["json"]) => {
         const result = await parseApiResponse(apiClient.conversations.$post({ json: payload }));
+        return result.data;
+      },
+      delete: async (id: string) => {
+        const result = await parseApiResponse(
+          apiClient.conversations[":id"].$delete({
+            param: { id },
+          }),
+        );
         return result.data;
       },
       get: async (id: string) => {

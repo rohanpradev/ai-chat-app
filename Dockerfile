@@ -46,7 +46,6 @@ ARG VITE_SENTRY_RELEASE=
 ARG VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
 ARG VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE=0
 ARG VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=0.1
-ARG SENTRY_AUTH_TOKEN=
 ARG SENTRY_ORG=
 ARG SENTRY_PROJECT=
 ARG SENTRY_RELEASE=
@@ -64,7 +63,6 @@ ENV VITE_API_URL=${VITE_API_URL} \
     VITE_SENTRY_TRACES_SAMPLE_RATE=${VITE_SENTRY_TRACES_SAMPLE_RATE} \
     VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE=${VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE} \
     VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=${VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE} \
-    SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN} \
     SENTRY_ORG=${SENTRY_ORG} \
     SENTRY_PROJECT=${SENTRY_PROJECT} \
     SENTRY_RELEASE=${SENTRY_RELEASE}
@@ -75,7 +73,8 @@ COPY --link client/ ./client/
 # Build client
 WORKDIR /app/client
 RUN bun -e 'const fs = require("node:fs"); const replacements = { BASE_API_SLUG: process.env.BASE_API_SLUG ?? "api", SERVER_HOST: process.env.SERVER_HOST ?? "server", SERVER_PORT: process.env.SERVER_PORT ?? "3000" }; let config = fs.readFileSync("nginx.conf", "utf8"); for (const [key, value] of Object.entries(replacements)) config = config.replaceAll("${" + key + "}", value); fs.writeFileSync("nginx.generated.conf", config);'
-RUN bun run build
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN,required=false \
+  SENTRY_AUTH_TOKEN="$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || true)" bun run build
 
 # Stage 5: Server build.
 FROM build-deps AS server-build

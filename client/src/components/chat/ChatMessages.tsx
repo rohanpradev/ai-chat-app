@@ -168,9 +168,11 @@ export function ChatMessages({
   onClearError,
   onToolApprovalResponse,
 }: Readonly<ChatMessagesProps>) {
+  const showEmptyState = messages.length === 0 && (status === "ready" || status === "error");
+
   return (
     <>
-      {messages.length === 0 && (
+      {showEmptyState && (
         <ConversationEmptyState
           icon={<MessageSquareIcon className="size-10" />}
           title="What can I help you with today?"

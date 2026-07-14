@@ -11,6 +11,7 @@ AI chat application built with Bun, React, Hono, PostgreSQL, Redis, Kubernetes, 
 - [AI Architecture](./docs/ai-architecture.md): Agents, tools, streaming, observability, and safety boundaries.
 - [Model Policy](./docs/model-policy.md): Model catalog, upgrade rules, and AI SDK channel policy.
 - [Eval Checklist](./docs/evals.md): Required checks before AI behavior changes.
+- [Kubernetes Runbook](./k8s/README.md): Helm values, Gateway mode, image policy, smoke tests, and troubleshooting.
 
 ## Important Source Files
 
@@ -25,13 +26,15 @@ AI chat application built with Bun, React, Hono, PostgreSQL, Redis, Kubernetes, 
 - `client/nginx.conf`: Production client and API proxy configuration.
 - `compose.yml`: Local Docker and Traefik stack.
 - `helm/chat-app/`: Kubernetes chart.
+- `scripts/check-deployments.mjs`: Compose, Dockerfile, Helm, and rendered Kubernetes validation.
 
 ## Operational Commands
 
 ```bash
-bun install --frozen-lockfile
+bun ci
 bun run security:check
 bun run check
 bun run build
+bun run check:deploy
 bun run k8s:validate
 ```

@@ -7,6 +7,8 @@ const distAssetsDir = new URL("../client/dist/assets/", import.meta.url);
 const assetDirectoryPath = fileURLToPath(distAssetsDir);
 
 const formatKiB = (bytes) => `${(bytes / 1024).toFixed(2)} KiB`;
+const totalJavaScriptBudgetBytes = Number(process.env.BUNDLE_MAX_TOTAL_JS_KIB ?? 16 * 1024) * 1024;
+const singleJavaScriptBudgetBytes = Number(process.env.BUNDLE_MAX_SINGLE_JS_KIB ?? 1536) * 1024;
 
 const rows = readdirSync(assetDirectoryPath)
 	.filter((entry) => entry.endsWith(".js") || entry.endsWith(".css"))
@@ -36,4 +38,16 @@ for (const asset of topAssets) {
 	console.log(
 		`${asset.file.padEnd(40)} ${asset.type.toUpperCase().padEnd(3)} raw ${formatKiB(asset.rawBytes).padStart(10)} gzip ${formatKiB(asset.gzipBytes).padStart(10)}`,
 	);
+}
+
+const oversizedAsset = rows.find((row) => row.type === "js" && row.rawBytes > singleJavaScriptBudgetBytes);
+if (totalJavaScriptBytes > totalJavaScriptBudgetBytes || oversizedAsset) {
+	console.error("Client bundle budget exceeded.");
+	if (totalJavaScriptBytes > totalJavaScriptBudgetBytes) {
+		console.error(`Total JS must stay below ${formatKiB(totalJavaScriptBudgetBytes)}.`);
+	}
+	if (oversizedAsset) {
+		console.error(`${oversizedAsset.file} must stay below ${formatKiB(singleJavaScriptBudgetBytes)}.`);
+	}
+	process.exit(1);
 }

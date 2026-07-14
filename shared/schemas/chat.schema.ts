@@ -19,6 +19,7 @@ const MessageSchema = z
 		id: z.string(),
 		metadata: z.unknown().optional(),
 		parts: z.array(z.unknown()),
+		revision: z.number().int().positive().optional(),
 		role: z.string(),
 		schemaVersion: z.number().int().positive().optional(),
 	})
@@ -56,7 +57,7 @@ export const GetConversationResponseSchema = z
 
 export const CreateConversationRequestSchema = z
 	.object({
-		title: z.string().optional().describe("Optional conversation title"),
+		title: z.string().trim().min(1).max(200).optional().describe("Optional conversation title"),
 	})
 	.openapi({
 		description: "Create conversation request",
@@ -75,7 +76,7 @@ export const CreateConversationResponseSchema = z
 
 export const UpdateConversationRequestSchema = z
 	.object({
-		title: z.string().describe("Updated conversation title"),
+		title: z.string().trim().min(1).max(200).describe("Updated conversation title"),
 	})
 	.openapi({
 		description: "Update conversation request",
@@ -92,6 +93,16 @@ export const UpdateConversationResponseSchema = z
 		title: "UpdateConversationResponse",
 	});
 
+export const DeleteConversationResponseSchema = z
+	.object({
+		data: z.object({ id: z.string().describe("Deleted conversation ID") }),
+		message: z.string().describe("Success message"),
+	})
+	.openapi({
+		description: "Conversation deletion response",
+		title: "DeleteConversationResponse",
+	});
+
 export const ChatErrorResponseSchema = CommonErrorResponseSchema;
 export const ChatBadRequestResponseSchema = CommonBadRequestResponseSchema;
 
@@ -103,5 +114,6 @@ export type GetConversationsResponse = z.infer<typeof GetConversationsResponseSc
 export type GetConversationResponse = z.infer<typeof GetConversationResponseSchema>;
 export type UpdateConversationRequest = z.infer<typeof UpdateConversationRequestSchema>;
 export type UpdateConversationResponse = z.infer<typeof UpdateConversationResponseSchema>;
+export type DeleteConversationResponse = z.infer<typeof DeleteConversationResponseSchema>;
 export type ChatErrorResponse = z.infer<typeof ChatErrorResponseSchema>;
 export type ChatBadRequestResponse = z.infer<typeof ChatBadRequestResponseSchema>;

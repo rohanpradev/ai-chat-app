@@ -40,6 +40,7 @@ Run this checklist before changing prompts, tools, model defaults, AI SDK major 
 ## Release Checks
 
 ```bash
+bun ci
 bun run security:check
 bun run lint
 bun run typecheck
@@ -52,3 +53,11 @@ For Kubernetes changes:
 ```bash
 bun run k8s:validate
 ```
+
+## Model Upgrade Smoke Test
+
+- Add the candidate to `OPENAI_MODEL_OVERRIDES` and confirm it appears in `GET /{BASE_API_SLUG}/ai/models`.
+- Run the same prompts on the current default and the candidate model.
+- Compare quality, tool-call precision, latency, total tokens, and user-facing tone.
+- Confirm persisted assistant metadata records the resolved model ID.
+- Do not change `defaultModelId` until chat streaming, tool approval, RAG, structured planning, and LLM-as-judge evals all pass.

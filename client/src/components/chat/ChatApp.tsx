@@ -53,6 +53,8 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
     stop,
     webSearch,
   } = useAgentChat({});
+  const hasMessages = messages.length > 0;
+  const canDownloadConversation = hasMessages && status !== "submitted" && status !== "streaming";
 
   const handleSuggestionClick = (suggestion: string) => {
     void sendMessage({ text: suggestion });
@@ -67,7 +69,7 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
           <ChatHeader user={user} onLogout={() => logout()} />
 
           <Conversation className="flex-1">
-            <ConversationContent className="pb-6">
+            <ConversationContent className={hasMessages ? "pb-6 pr-16" : "pb-6"}>
               <ChatMessages
                 messages={messages}
                 status={status}
@@ -77,7 +79,7 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
                 onToolApprovalResponse={addToolApprovalResponse}
               />
             </ConversationContent>
-            {messages.length > 0 ? (
+            {canDownloadConversation ? (
               <ConversationDownload aria-label="Download conversation" messages={messages} />
             ) : null}
             <ConversationScrollButton />

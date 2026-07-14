@@ -26,7 +26,6 @@ DOCKER_TRAEFIK_DASHBOARD_URL ?= https://traefik.$(DOMAIN)
 K8S_BUILD_ARGS ?=
 
 RECREATABLE_DIRS := \
-	.turbo \
 	.vite \
 	coverage \
 	dist \
@@ -49,7 +48,10 @@ RECREATABLE_FILES := \
 	helm/chat-app/values.local.yaml \
 	k8s/traefik-values.generated.yaml
 
-.PHONY: help setup validate start stop restart status logs clean clean-k8s clean-docker clean-local clean-runtime clean-generated build dev health local local-stop docker docker-stop kubernetes kubernetes-stop k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
+.DEFAULT_GOAL := help
+.DELETE_ON_ERROR:
+
+.PHONY: help setup validate start stop restart status logs clean clean-k8s clean-docker clean-local clean-runtime clean-generated build dev health local local-stop deploy-check docker docker-stop kubernetes kubernetes-stop k8s-prerequisites k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
 
 # Default target
 help: ## Show this help message
@@ -213,12 +215,15 @@ local: ## Start local development using cloud services from .env.local
 
 local-stop: clean-local ## Stop local development services
 
+deploy-check: ## Validate Docker Compose plus Helm/Kubernetes manifests
+	@bun run check:deploy
+
 # Docker aliases
 docker: start ## Alias for Docker Compose start
 docker-stop: stop ## Stop Docker Compose services
 
 # Kubernetes Commands
-kubernetes: ## Complete local Kubernetes setup and deployment
+kubernetes: k8s-prerequisites ## Complete local Kubernetes setup and deployment
 	@if [ "$(K8S_GATEWAY_ENABLED)" = "true" ] || [ "$(K8S_GATEWAY_ENABLED)" = "TRUE" ]; then \
 		echo "Bootstrapping Traefik for Gateway mode..."; \
 		$(MAKE) --no-print-directory k8s-traefik; \
@@ -233,6 +238,14 @@ kubernetes: ## Complete local Kubernetes setup and deployment
 	@$(MAKE) --no-print-directory k8s-status
 
 kubernetes-stop: clean-k8s clean-runtime ## Clean Kubernetes app resources and stop local Kubernetes runtime
+
+k8s-prerequisites: ## Verify required local Kubernetes tools and cluster access
+	@command -v docker >/dev/null 2>&1 || { echo "docker is required" >&2; exit 1; }
+	@command -v kubectl >/dev/null 2>&1 || { echo "kubectl is required" >&2; exit 1; }
+	@command -v helm >/dev/null 2>&1 || { echo "helm is required" >&2; exit 1; }
+	@docker info >/dev/null 2>&1 || { echo "Docker is not reachable; start Docker Desktop or OrbStack" >&2; exit 1; }
+	@kubectl cluster-info >/dev/null 2>&1 || { echo "Kubernetes is not reachable for context '$$(kubectl config current-context 2>/dev/null || echo unknown)'" >&2; exit 1; }
+	@echo "Prerequisites ready (context: $$(kubectl config current-context))."
 
 k8s-setup: ## Create Helm local values override from template
 	@echo "Preparing Helm values..."

@@ -1,9 +1,9 @@
 import { coerceCompatibleMyUIMessages, type MyUIMessage } from "@chat-app/shared";
 import type { UIMessage } from "ai";
-import { eq } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { db } from "@/db";
-import { chats, messages } from "@/db/schema";
+import { chats, messageRevisions, messages } from "@/db/schema";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 
 const MESSAGE_SCHEMA_VERSION = 1;
@@ -40,6 +40,16 @@ export const mergeConversationMessages = <TMessage extends Pick<UIMessage, "id">
 
 	return mergedMessages;
 };
+
+type StoredMessage = typeof messages.$inferSelect;
+
+const sameJson = (left: unknown, right: unknown) => JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+
+const messageChanged = (stored: StoredMessage, incoming: UIMessage, order: number) =>
+	stored.order !== order ||
+	stored.role !== incoming.role ||
+	!sameJson(stored.parts, incoming.parts) ||
+	!sameJson(stored.metadata, incoming.metadata);
 
 export const loadConversationMessages = async (chatId: string | undefined, userId: string): Promise<MyUIMessage[]> => {
 	if (!chatId) {
@@ -82,6 +92,8 @@ export const saveConversation = async (chatId: string | undefined, uiMessages: U
 	const now = new Date();
 
 	await db.transaction(async (tx) => {
+		// Serialize writers for one conversation across all Kubernetes replicas.
+		await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${chatId}))`);
 		const existingChat = await tx.query.chats.findFirst({
 			where: eq(chats.id, chatId)
 		});
@@ -95,8 +107,6 @@ export const saveConversation = async (chatId: string | undefined, uiMessages: U
 					updatedAt: now
 				})
 				.where(eq(chats.id, chatId));
-
-			await tx.delete(messages).where(eq(messages.chatId, chatId));
 		} else {
 			await tx.insert(chats).values({
 				createdAt: now,
@@ -107,21 +117,76 @@ export const saveConversation = async (chatId: string | undefined, uiMessages: U
 			});
 		}
 
-		if (uiMessages.length === 0) {
-			return;
+		const storedMessages = await tx.select().from(messages).where(eq(messages.chatId, chatId));
+		const storedById = new Map(storedMessages.map((message) => [message.id, message]));
+		const newMessages: Array<typeof messages.$inferInsert> = [];
+		const changedMessages: Array<{ incoming: UIMessage; order: number; revision: number }> = [];
+
+		for (const [order, incoming] of uiMessages.entries()) {
+			const stored = storedById.get(incoming.id);
+			if (!stored) {
+				newMessages.push({
+					chatId,
+					createdAt: now,
+					id: incoming.id,
+					metadata: incoming.metadata ?? null,
+					order,
+					parts: incoming.parts,
+					revision: 1,
+					role: incoming.role,
+					schemaVersion: MESSAGE_SCHEMA_VERSION
+				});
+				changedMessages.push({ incoming, order, revision: 1 });
+				continue;
+			}
+
+			if (messageChanged(stored, incoming, order)) {
+				changedMessages.push({ incoming, order, revision: stored.revision + 1 });
+			}
 		}
 
-		await tx.insert(messages).values(
-			uiMessages.map((message, index) => ({
-				chatId,
-				createdAt: now,
-				id: message.id,
-				metadata: message.metadata ?? null,
-				order: index,
-				parts: message.parts,
-				role: message.role,
-				schemaVersion: MESSAGE_SCHEMA_VERSION
-			}))
-		);
+		if (newMessages.length > 0) {
+			await tx.insert(messages).values(newMessages);
+		}
+
+		for (const changed of changedMessages) {
+			if (changed.revision > 1) {
+				await tx
+					.update(messages)
+					.set({
+						metadata: changed.incoming.metadata ?? null,
+						order: changed.order,
+						parts: changed.incoming.parts,
+						revision: changed.revision,
+						role: changed.incoming.role,
+						schemaVersion: MESSAGE_SCHEMA_VERSION
+					})
+					.where(eq(messages.id, changed.incoming.id));
+			}
+		}
+
+		if (changedMessages.length > 0) {
+			await tx.insert(messageRevisions).values(
+				changedMessages.map(({ incoming, order, revision }) => ({
+					chatId,
+					messageId: incoming.id,
+					metadata: incoming.metadata ?? null,
+					order,
+					parts: incoming.parts,
+					revision,
+					role: incoming.role,
+					schemaVersion: MESSAGE_SCHEMA_VERSION
+				}))
+			);
+		}
+
+		const incomingIds = uiMessages.map((message) => message.id);
+		if (storedMessages.length > 0 && incomingIds.length === 0) {
+			await tx.delete(messages).where(eq(messages.chatId, chatId));
+			return;
+		}
+		if (storedMessages.length > 0 && incomingIds.length > 0) {
+			await tx.delete(messages).where(and(eq(messages.chatId, chatId), notInArray(messages.id, incomingIds)));
+		}
 	});
 };

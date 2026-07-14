@@ -1,5 +1,7 @@
 import type { OpenAPIHono, RouteConfig, RouteHandler } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
+import type { RequestIdVariables } from "hono/request-id";
+import type { SecureHeadersVariables } from "hono/secure-headers";
 import type { PinoLogger } from "hono-pino";
 
 export interface UserDetails {
@@ -25,12 +27,13 @@ export interface JWTPayload {
 }
 
 export interface AppBindings {
-	Variables: {
-		logger: PinoLogger;
-		jwtPayload: JWTPayload;
-		session: SessionDetails;
-		user: UserDetails;
-	};
+	Variables: RequestIdVariables &
+		SecureHeadersVariables & {
+			logger: PinoLogger;
+			jwtPayload: JWTPayload;
+			session: SessionDetails;
+			user: UserDetails;
+		};
 }
 
 export type AppOpenAPI = OpenAPIHono<AppBindings>;

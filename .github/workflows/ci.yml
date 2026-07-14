@@ -35,7 +35,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun ci
 
       - name: Review dependency changes
         if: github.event_name == 'pull_request'
@@ -69,7 +69,7 @@ jobs:
           (cd server && bun run test)
 
   validate-kubernetes:
-    name: Validate Helm Chart
+    name: Validate Deployments
     runs-on: ubuntu-latest
     needs: lint-and-test
 
@@ -86,7 +86,7 @@ jobs:
         uses: azure/setup-helm@v5.0.0
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun ci
 
       - name: Create CI .env
         run: |
@@ -120,8 +120,8 @@ jobs:
           TRAEFIK_LOG_LEVEL=INFO
           EOF
 
-      - name: Validate Kubernetes chart
-        run: bun run k8s:validate
+      - name: Validate deployment manifests
+        run: bun run check:deploy
 
   build-client:
     name: Build Client
@@ -138,7 +138,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun ci
 
       - name: Build client and report asset sizes
         run: cd client && bun run build:report
@@ -158,15 +158,48 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun ci
 
-      - name: Build check (no explicit build for Bun)
-        run: bun run --filter @chat-app/server typecheck
+      - name: Build server bundle
+        run: bun run build:server
+
+  browser-e2e:
+    name: Browser E2E
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Install Chromium
+        run: bun run test:e2e:install
+
+      - name: Run browser journeys
+        run: bun run test:e2e
+
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results/playwright
+          retention-days: 7
 
   docker:
     name: Docker Build & Test
     runs-on: ubuntu-latest
-    needs: [build-client, build-server, validate-kubernetes]
+    needs: [build-client, build-server, browser-e2e, validate-kubernetes]
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -302,7 +335,7 @@ jobs:
           tags: chat-app-client:latest
           build-args: |
             BUN_DEV_IMAGE=oven/bun:${{ env.BUN_VERSION }}-alpine
-            NGINX_IMAGE=nginx:1.31.2-alpine
+            NGINX_IMAGE=nginx:1-alpine
           cache-from: type=gha,scope=client
           cache-to: type=gha,scope=client,mode=max
 

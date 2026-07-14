@@ -1,5 +1,6 @@
 import {
 	CommonBadRequestResponseSchema,
+	CommonErrorResponseSchema,
 	CommonNotFoundResponseSchema,
 	CommonUnauthorizedResponseSchema,
 	EmbeddingDeleteResponseSchema,
@@ -17,11 +18,15 @@ import { bodyLimit } from "hono/body-limit";
 import { MAX_EMBEDDING_UPLOAD_BYTES } from "@/lib/embedding-config";
 import { asRouteMiddleware } from "@/lib/hono-compat";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
-import { jsonContent } from "@/lib/openapi";
+import { jsonBody, jsonContent } from "@/lib/openapi";
 import { authMiddleware } from "@/middlewares/auth-middleware";
+import { embeddingIngestRateLimit, embeddingRagRateLimit, embeddingSearchRateLimit } from "@/middlewares/rate-limit";
 
 const tags = ["Embeddings"];
 const authenticated = asRouteMiddleware(authMiddleware);
+const ingestLimiter = asRouteMiddleware(embeddingIngestRateLimit);
+const ragLimiter = asRouteMiddleware(embeddingRagRateLimit);
+const searchLimiter = asRouteMiddleware(embeddingSearchRateLimit);
 const uploadBodyLimit = asRouteMiddleware(
 	bodyLimit({
 		maxSize: MAX_EMBEDDING_UPLOAD_BYTES + 1024 * 1024,
@@ -56,7 +61,7 @@ export const listDocuments = createRoute({
 export const deleteDocument = createRoute({
 	description: "Delete a vectorized document and all stored chunks",
 	method: "delete",
-	middleware: [authenticated],
+	middleware: [authenticated, ingestLimiter],
 	path: "/embeddings/documents/{id}",
 	request: {
 		params: documentParamsSchema
@@ -77,11 +82,12 @@ export const ingestText = createRoute({
 	middleware: [authenticated],
 	path: "/embeddings/ingest",
 	request: {
-		body: jsonContent(EmbeddingIngestTextRequestSchema, "Text content to vectorize")
+		body: jsonBody(EmbeddingIngestTextRequestSchema, "Text content to vectorize")
 	},
 	responses: {
 		[HttpStatusCodes.CREATED]: jsonContent(EmbeddingIngestResponseSchema, "Vectorized document"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
+		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many ingestion requests"),
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(CommonUnauthorizedResponseSchema, "Unauthorized")
 	},
 	security: [{ CookieAuth: [] }],
@@ -92,7 +98,7 @@ export const ingestText = createRoute({
 export const uploadDocument = createRoute({
 	description: "Upload a PDF or text-like file, extract text, split it into chunks, and store embeddings",
 	method: "post",
-	middleware: [authenticated, uploadBodyLimit],
+	middleware: [authenticated, ingestLimiter, uploadBodyLimit],
 	path: "/embeddings/upload",
 	request: {
 		body: {
@@ -101,13 +107,15 @@ export const uploadDocument = createRoute({
 					schema: EmbeddingUploadRequestSchema
 				}
 			},
-			description: "PDF or text-like file upload"
+			description: "PDF or text-like file upload",
+			required: true
 		}
 	},
 	responses: {
 		[HttpStatusCodes.CREATED]: jsonContent(EmbeddingIngestResponseSchema, "Vectorized uploaded document"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid upload"),
 		[HttpStatusCodes.PAYLOAD_TOO_LARGE]: jsonContent(CommonBadRequestResponseSchema, "Upload too large"),
+		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many ingestion requests"),
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(CommonUnauthorizedResponseSchema, "Unauthorized")
 	},
 	security: [{ CookieAuth: [] }],
@@ -118,14 +126,15 @@ export const uploadDocument = createRoute({
 export const searchEmbeddings = createRoute({
 	description: "Embed a query and return the most similar stored document chunks",
 	method: "post",
-	middleware: [authenticated],
+	middleware: [authenticated, searchLimiter],
 	path: "/embeddings/search",
 	request: {
-		body: jsonContent(EmbeddingSearchRequestSchema, "Semantic search request")
+		body: jsonBody(EmbeddingSearchRequestSchema, "Semantic search request")
 	},
 	responses: {
 		[HttpStatusCodes.OK]: jsonContent(EmbeddingSearchResponseSchema, "Semantic search results"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
+		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many search requests"),
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(CommonUnauthorizedResponseSchema, "Unauthorized")
 	},
 	security: [{ CookieAuth: [] }],
@@ -136,14 +145,15 @@ export const searchEmbeddings = createRoute({
 export const rag = createRoute({
 	description: "Retrieve matching embedded chunks and generate a grounded answer with citations",
 	method: "post",
-	middleware: [authenticated],
+	middleware: [authenticated, ragLimiter],
 	path: "/embeddings/rag",
 	request: {
-		body: jsonContent(RagRequestSchema, "RAG request")
+		body: jsonBody(RagRequestSchema, "RAG request")
 	},
 	responses: {
 		[HttpStatusCodes.OK]: jsonContent(RagResponseSchema, "Grounded answer with source chunks"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
+		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many RAG requests"),
 		[HttpStatusCodes.UNAUTHORIZED]: jsonContent(CommonUnauthorizedResponseSchema, "Unauthorized")
 	},
 	security: [{ CookieAuth: [] }],

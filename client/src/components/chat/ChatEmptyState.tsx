@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useId, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -116,24 +117,29 @@ function SvglLogo({ alt, className, route }: Readonly<SvglLogoProps>) {
 
 export function ChatEmptyState() {
   const navigate = useNavigate();
-  const [title, setTitle] = useState("");
+  const [prompt, setPrompt] = useState("");
   const { mutate: createChat, status } = useCreateChat();
-  const titleId = useId();
+  const promptId = useId();
 
-  const handleCreateChat = (customTitle?: string) => {
-    const chatTitle = customTitle || title.trim() || "New Chat";
+  const handleCreateChat = (options?: { prompt?: string; title?: string }) => {
+    const message = options?.prompt?.trim() || prompt.trim();
+    if (!message) {
+      return;
+    }
+
+    const chatTitle = options?.title || message.slice(0, 80);
     createChat(chatTitle, {
       onSuccess: (response) => {
         if (response?.id) {
           navigate({
             to: ConversationRoute.to,
             params: { conversationId: response.id },
-            search: { redirect: undefined },
+            search: { autoSend: "1", prompt: message, redirect: undefined },
           });
         }
       },
       onError: (error) => {
-        console.error("Failed to create chat:", error);
+        toast.error(error instanceof Error ? error.message : "Couldn’t start the conversation.");
       },
     });
   };
@@ -173,7 +179,15 @@ export function ChatEmptyState() {
               <Card
                 key={starter.id}
                 className="group cursor-pointer overflow-hidden border-border/70 bg-card/85 backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:border-foreground/20 hover:shadow-xl"
-                onClick={() => handleCreateChat(starter.prompt)}
+                onClick={() => handleCreateChat({ prompt: starter.prompt, title: starter.title })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleCreateChat({ prompt: starter.prompt, title: starter.title });
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <CardContent className="p-6">
                   <div className="flex h-full flex-col gap-5">
@@ -201,17 +215,17 @@ export function ChatEmptyState() {
 
         <Card className="mx-auto max-w-xl border-border/70 bg-card/90 shadow-lg backdrop-blur">
           <CardHeader className="text-center">
-            <CardTitle className="text-lg">Or name the work yourself</CardTitle>
-            <CardDescription>Create a chat with a focused title and continue from there.</CardDescription>
+            <CardTitle className="text-lg">Or ask your own question</CardTitle>
+            <CardDescription>Your first message will create and start the conversation.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor={titleId}>Chat Title (Optional)</Label>
+              <Label htmlFor={promptId}>Prompt</Label>
               <Input
-                id={titleId}
-                placeholder="Enter a title for your chat"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                id={promptId}
+                placeholder="What do you want to work on?"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
                 disabled={status === "pending"}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -220,8 +234,12 @@ export function ChatEmptyState() {
                 }}
               />
             </div>
-            <Button onClick={() => handleCreateChat()} className="w-full" disabled={status === "pending"}>
-              {status === "pending" ? "Creating..." : "Start new chat"}
+            <Button
+              onClick={() => handleCreateChat()}
+              className="w-full"
+              disabled={status === "pending" || !prompt.trim()}
+            >
+              {status === "pending" ? "Starting…" : "Start conversation"}
             </Button>
           </CardContent>
         </Card>

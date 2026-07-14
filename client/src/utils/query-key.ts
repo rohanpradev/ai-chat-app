@@ -10,6 +10,7 @@ export const PROFILE_QUERY_KEY = {
 export const CHAT_QUERY_KEY = {
   chats: ["conversations"] as const, // Used by existing conversation queries
   createChat: ["conversations", "create"] as const, // Used by create conversation mutation
+  deleteChat: ["conversations", "delete"] as const,
   loadConversation: ["conversations", "load"] as const,
   conversation: (id: string) => ["conversations", id] as const, // For individual chat queries
 };
@@ -23,6 +24,7 @@ export const AUTH_QUERY_KEY = {
 
 export const AI_QUERY_KEY = {
   models: ["ai", "models"] as const,
+  usage: ["ai", "usage"] as const,
 };
 
 export const EMBEDDING_QUERY_KEY = {

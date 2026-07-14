@@ -3,11 +3,13 @@ import type { MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
-import { etag } from "hono/etag";
+import { etag, RETAINED_304_HEADERS } from "hono/etag";
+import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { asAppErrorHandler, asAppMiddleware, asAppNotFoundHandler } from "@/lib/hono-compat";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
+import { isShuttingDown } from "@/lib/lifecycle";
 import { defaultHook } from "@/lib/openapi";
 import { setupSentryForHono } from "@/lib/sentry";
 import type { AppBindings } from "@/lib/types";
@@ -22,7 +24,16 @@ export function createRouter() {
 export function createApp() {
 	const app = createRouter();
 	const useAppMiddleware = (middleware: MiddlewareHandler<AppBindings, "*">) => app.use("*", middleware);
+	const apiPathPrefix = `/${env.BASE_API_SLUG}`;
 
+	useAppMiddleware(
+		asAppMiddleware(
+			requestId({
+				generator: () => Bun.randomUUIDv7(),
+				limitLength: 128
+			})
+		)
+	);
 	setupSentryForHono(app);
 
 	useAppMiddleware(asAppMiddleware(serveEmojiFavicon("🔥")));
@@ -87,7 +98,7 @@ export function createApp() {
 			secFetchSite: ["same-origin", "same-site", "none"]
 		})
 	);
-	const authPathPrefix = `/${env.BASE_API_SLUG}/auth/`;
+	const authPathPrefix = `${apiPathPrefix}/auth/`;
 
 	useAppMiddleware(async (c, next) => {
 		if (c.req.path.startsWith(authPathPrefix)) {
@@ -98,10 +109,73 @@ export function createApp() {
 		await csrfMiddleware(c, next);
 	});
 
-	useAppMiddleware(asAppMiddleware(etag()));
-	useAppMiddleware(asAppMiddleware(timeout(180_000)));
+	const etagMiddleware = asAppMiddleware(
+		etag({
+			retainedHeaders: [
+				...RETAINED_304_HEADERS,
+				"access-control-allow-credentials",
+				"access-control-allow-origin",
+				"x-request-id"
+			]
+		})
+	);
+	useAppMiddleware(async (c, next) => {
+		if (c.req.method !== "GET" && c.req.method !== "HEAD") {
+			await next();
+			return;
+		}
 
-	app.get("/health", (c) => c.json({ status: "ok" }));
+		await next();
+
+		const contentType = c.res.headers.get("content-type")?.toLowerCase();
+		const cacheControl = c.res.headers.get("cache-control")?.toLowerCase();
+		const isSuccessfulResponse = c.res.status >= 200 && c.res.status < 300 && c.res.status !== 204;
+		const isEventStream = contentType?.startsWith("text/event-stream") ?? false;
+		const forbidsStorage = cacheControl?.split(",").some((directive) => directive.trim() === "no-store") ?? false;
+
+		if (!isSuccessfulResponse || isEventStream || forbidsStorage) {
+			return;
+		}
+
+		await etagMiddleware(c, async () => {});
+	});
+
+	useAppMiddleware(async (c, next) => {
+		await next();
+
+		const isApiResponse = c.req.path.startsWith(`${apiPathPrefix}/`);
+		const isHealthCheck = c.req.path === `${apiPathPrefix}/health`;
+		if (isApiResponse && !isHealthCheck) {
+			c.header("Cache-Control", "no-store");
+		}
+	});
+
+	const requestTimeout = asAppMiddleware(timeout(180_000));
+	const aiStreamPath = `${apiPathPrefix}/ai/text-stream`;
+	useAppMiddleware(async (c, next) => {
+		if (c.req.path === aiStreamPath) {
+			await next();
+			return;
+		}
+
+		await requestTimeout(c, next);
+	});
+
+	const healthResponse = { status: "ok" } as const;
+	const readyResponse = { status: "ready" } as const;
+	const shuttingDownResponse = { status: "shutting_down" } as const;
+	app.get("/health", (c) => c.json(healthResponse));
+	app.get(`${apiPathPrefix}/health`, (c) => c.json(healthResponse));
+	app.get("/ready", (c) =>
+		isShuttingDown()
+			? c.json(shuttingDownResponse, HttpStatusCodes.SERVICE_UNAVAILABLE)
+			: c.json(readyResponse, HttpStatusCodes.OK)
+	);
+	app.get(`${apiPathPrefix}/ready`, (c) =>
+		isShuttingDown()
+			? c.json(shuttingDownResponse, HttpStatusCodes.SERVICE_UNAVAILABLE)
+			: c.json(readyResponse, HttpStatusCodes.OK)
+	);
 
 	app.notFound(asAppNotFoundHandler(notFound));
 	app.onError(asAppErrorHandler(onError));

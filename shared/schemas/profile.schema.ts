@@ -1,26 +1,27 @@
 import { z } from "@hono/zod-openapi";
 
-export const UserProfileDataSchema = z.object({
+const profileFields = {
+	createdAt: z.iso.datetime().describe("Account creation timestamp"),
 	email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
+	emailVerified: z.boolean().describe("Whether the email address has been verified"),
 	id: z.uuid().describe("The unique identifier of the user").openapi({ format: "uuid", type: "string" }),
 	name: z.string().describe("The username of the user"),
 	profileImage: z.string().nullable().optional().describe("URL to the profile picture"),
-});
+	updatedAt: z.iso.datetime().describe("Profile update timestamp"),
+} as const;
 
-export const BasicUserProfileDataSchema = z.object({
-	email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
-	id: z.uuid().describe("The unique identifier of the user").openapi({ format: "uuid", type: "string" }),
-	name: z.string().describe("The username of the user"),
-	profileImage: z.string().nullable().optional().describe("URL to the profile picture"),
-});
+export const UserProfileDataSchema = z.object(profileFields);
+
+export const BasicUserProfileDataSchema = z.object(profileFields);
 
 export const UpdateProfileRequestSchema = z.object({
-	name: z.string().min(3).max(30).describe("The new name of the user"),
+	name: z.string().trim().min(3).max(30).describe("The new name of the user"),
 	profileImage: z
 		.instanceof(File)
 		.optional()
 		.describe("Profile picture file")
 		.openapi({ format: "binary", type: "string" }),
+	removeProfileImage: z.enum(["true", "false"]).optional().describe("Set to true to remove the current profile picture"),
 });
 
 export const GetProfileResponseSchema = z.object({
