@@ -75,7 +75,7 @@ test("creates a conversation from a prompt and completes a streamed response", a
 	await page.getByRole("button", { name: "Start conversation" }).click();
 
 	await expect(page).toHaveURL(/\/chat\/chat-e2e/);
-	await expect(page.getByText("Build a resilient AI platform")).toBeVisible();
+	await expect(page.locator(".is-user").getByText("Build a resilient AI platform", { exact: true })).toBeVisible();
 	await expect(page.getByText("Production-ready answer")).toBeVisible();
 });
 
