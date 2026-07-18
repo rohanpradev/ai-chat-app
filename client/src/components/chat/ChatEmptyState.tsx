@@ -1,4 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
+import { ArrowUpRight, Code2, Database, Rocket, Sparkles } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,112 +10,47 @@ import { Label } from "@/components/ui/label";
 import { useCreateChat } from "@/queries/createChat";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 
-type SvglRoute = string | { dark: string; light: string };
-
-interface SvglLogoProps {
-  alt: string;
-  className?: string;
-  route: SvglRoute;
-}
-
-const svgl = {
-  bun: "https://svgl.app/library/bun.svg",
-  docker: "https://svgl.app/library/docker.svg",
-  drizzle: {
-    dark: "https://svgl.app/library/drizzle-orm_dark.svg",
-    light: "https://svgl.app/library/drizzle-orm_light.svg",
-  },
-  hono: "https://svgl.app/library/hono.svg",
-  kubernetes: "https://svgl.app/library/kubernetes.svg",
-  openai: {
-    dark: "https://svgl.app/library/openai_dark.svg",
-    light: "https://svgl.app/library/openai.svg",
-  },
-  postgresql: "https://svgl.app/library/postgresql.svg",
-  react: {
-    dark: "https://svgl.app/library/react_dark.svg",
-    light: "https://svgl.app/library/react_light.svg",
-  },
-  redis: "https://svgl.app/library/redis.svg",
-  typescript: "https://svgl.app/library/typescript.svg",
-  vercel: {
-    dark: "https://svgl.app/library/vercel_dark.svg",
-    light: "https://svgl.app/library/vercel.svg",
-  },
-} satisfies Record<string, SvglRoute>;
-
 const CONVERSATION_STARTERS = [
   {
     description: "Design streaming chats, tool calls, message persistence, and typed UI parts.",
-    icons: [
-      { alt: "OpenAI", route: svgl.openai },
-      { alt: "Vercel", route: svgl.vercel },
-    ],
+    icon: Sparkles,
+    iconClassName: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
     id: "ai-sdk-architect",
     prompt: "Help me design a production-ready AI SDK chat flow with persistence and tools",
     title: "AI SDK architect",
   },
   {
     description: "Untangle React, TypeScript, routing, forms, and frontend performance.",
-    icons: [
-      { alt: "React", route: svgl.react },
-      { alt: "TypeScript", route: svgl.typescript },
-    ],
+    icon: Code2,
+    iconClassName: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
     id: "frontend-review",
     prompt: "Review my React and TypeScript frontend for performance and code quality",
     title: "Frontend review",
   },
   {
     description: "Plan schemas, migrations, caching, and safe conversation storage.",
-    icons: [
-      { alt: "Drizzle ORM", route: svgl.drizzle },
-      { alt: "PostgreSQL", route: svgl.postgresql },
-      { alt: "Redis", route: svgl.redis },
-    ],
+    icon: Database,
+    iconClassName: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
     id: "data-layer",
     prompt: "Help me improve a Drizzle, PostgreSQL, and Redis data layer without breaking production",
     title: "Data layer",
   },
   {
     description: "Check runtime, containers, Helm, Kubernetes rollout safety, and delivery risk.",
-    icons: [
-      { alt: "Bun", route: svgl.bun },
-      { alt: "Docker", route: svgl.docker },
-      { alt: "Kubernetes", route: svgl.kubernetes },
-    ],
+    icon: Rocket,
+    iconClassName: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
     id: "ship-it",
     prompt: "Help me harden a Bun, Docker, and Kubernetes deployment",
     title: "Ship it",
   },
-];
-
-const HERO_LOGOS = [
-  { alt: "OpenAI", route: svgl.openai },
-  { alt: "React", route: svgl.react },
-  { alt: "Hono", route: svgl.hono },
-  { alt: "Drizzle ORM", route: svgl.drizzle },
-  { alt: "PostgreSQL", route: svgl.postgresql },
-  { alt: "Kubernetes", route: svgl.kubernetes },
-];
-
-function SvglLogo({ alt, className, route }: Readonly<SvglLogoProps>) {
-  if (typeof route === "string") {
-    return <img src={route} alt={alt} className={className} loading="lazy" decoding="async" />;
-  }
-
-  return (
-    <>
-      <img src={route.light} alt={alt} className={`${className ?? ""} dark:hidden`} loading="lazy" decoding="async" />
-      <img
-        src={route.dark}
-        alt={alt}
-        className={`${className ?? ""} hidden dark:block`}
-        loading="lazy"
-        decoding="async"
-      />
-    </>
-  );
-}
+] satisfies Array<{
+  description: string;
+  icon: LucideIcon;
+  iconClassName: string;
+  id: string;
+  prompt: string;
+  title: string;
+}>;
 
 export function ChatEmptyState() {
   const navigate = useNavigate();
@@ -146,29 +83,22 @@ export function ChatEmptyState() {
 
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4 sm:p-6">
-      <div className="-top-32 -left-24 absolute h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl" />
-      <div className="-right-24 -bottom-24 absolute h-80 w-80 rounded-full bg-amber-400/15 blur-3xl" />
+      <div className="-top-32 -left-24 absolute h-72 w-72 rounded-full bg-violet-500/15 blur-3xl" />
+      <div className="-right-24 -bottom-24 absolute h-80 w-80 rounded-full bg-cyan-400/15 blur-3xl" />
 
       <div className="relative w-full max-w-6xl space-y-8">
         <div className="mx-auto max-w-3xl space-y-5 text-center">
-          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border bg-background/80 px-3 py-2 shadow-sm backdrop-blur">
-            {HERO_LOGOS.map((logo) => (
-              <span key={logo.alt} className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 p-2">
-                <SvglLogo alt={logo.alt} route={logo.route} className="h-full w-full object-contain" />
-              </span>
-            ))}
+          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border bg-background/80 px-3 py-1.5 text-sm shadow-sm backdrop-blur">
+            <Sparkles aria-hidden="true" className="size-4 text-violet-500" />
+            <span className="font-medium">AI SDK 7 · TypeScript 7</span>
           </div>
           <div className="space-y-3">
-            <p className="font-medium text-muted-foreground text-sm uppercase tracking-[0.35em]">
-              Production AI workspace
-            </p>
             <h1 className="text-balance font-bold text-4xl tracking-tight sm:text-6xl">
-              Start with the stack this app actually runs.
+              Build, debug, and ship with context.
             </h1>
           </div>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Use the assistant for AI SDK flows, frontend polish, database safety, and deployment work across the same
-            tools powering this codebase.
+            Work through AI flows, frontend polish, database safety, and delivery decisions in one focused workspace.
           </p>
         </div>
 
@@ -176,39 +106,33 @@ export function ChatEmptyState() {
           <h2 className="text-center font-semibold text-2xl">What should we improve first?</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {CONVERSATION_STARTERS.map((starter) => (
-              <Card
+              <button
+                className="h-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 key={starter.id}
-                className="group cursor-pointer overflow-hidden border-border/70 bg-card/85 backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:border-foreground/20 hover:shadow-xl"
                 onClick={() => handleCreateChat({ prompt: starter.prompt, title: starter.title })}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    handleCreateChat({ prompt: starter.prompt, title: starter.title });
-                  }
-                }}
-                role="button"
-                tabIndex={0}
+                type="button"
               >
-                <CardContent className="p-6">
-                  <div className="flex h-full flex-col gap-5">
-                    <div className="flex items-center gap-2">
-                      {starter.icons.map((icon) => (
-                        <span
-                          key={icon.alt}
-                          className="flex h-11 w-11 items-center justify-center rounded-2xl border bg-background p-2.5 shadow-sm transition-transform group-hover:-rotate-3"
-                        >
-                          <SvglLogo alt={icon.alt} route={icon.route} className="h-full w-full object-contain" />
-                        </span>
-                      ))}
+                <Card className="group h-full overflow-hidden border-border/70 bg-card/85 backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:border-foreground/20 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                  <CardContent className="p-6">
+                    <div className="flex h-full flex-col gap-5">
+                      <span className={`flex size-11 items-center justify-center rounded-2xl ${starter.iconClassName}`}>
+                        <starter.icon aria-hidden="true" className="size-5" />
+                      </span>
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-xl">{starter.title}</h3>
+                        <p className="text-muted-foreground text-sm leading-6">{starter.description}</p>
+                      </div>
+                      <span className="mt-auto flex items-center gap-1 font-medium text-sm text-primary">
+                        Start this path
+                        <ArrowUpRight
+                          aria-hidden="true"
+                          className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
+                        />
+                      </span>
                     </div>
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-xl">{starter.title}</h3>
-                      <p className="text-muted-foreground text-sm leading-6">{starter.description}</p>
-                    </div>
-                    <span className="mt-auto font-medium text-sm text-primary">Start this path -&gt;</span>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </button>
             ))}
           </div>
         </div>

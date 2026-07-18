@@ -1,4 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { AUTH_PASSWORD_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH } from "@chat-app/shared";
 import { betterAuth } from "better-auth";
 import { openAPI } from "better-auth/plugins";
 import { db } from "@/db";
@@ -39,7 +40,7 @@ export const auth = betterAuth({
 		trustedProxyHeaders: env.NODE_ENV === "production",
 		useSecureCookies
 	},
-	appName: "Chat App",
+	appName: "ChatFlow",
 	basePath: authBasePath,
 	baseURL: authBaseURL,
 	database: drizzleAdapter(db, {
@@ -55,8 +56,8 @@ export const auth = betterAuth({
 	}),
 	emailAndPassword: {
 		enabled: true,
-		maxPasswordLength: 100,
-		minPasswordLength: 6,
+		maxPasswordLength: AUTH_PASSWORD_MAX_LENGTH,
+		minPasswordLength: AUTH_PASSWORD_MIN_LENGTH,
 		password: {
 			hash: (password) => Bun.password.hash(password),
 			verify: ({ hash, password }) => Bun.password.verify(password, hash)

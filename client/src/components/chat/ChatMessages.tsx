@@ -4,7 +4,6 @@ import { CheckIcon, CopyIcon, FileTextIcon, MessageSquareIcon, RefreshCcwIcon } 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
-import { Loader } from "@/components/ai-elements/loader";
 import {
   Message,
   MessageAction,
@@ -16,6 +15,7 @@ import {
 import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { ErrorDisplay } from "@/components/chat/ErrorDisplay";
 import { MessagePart } from "@/components/chat/MessagePart";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ChatMessagesProps {
   messages: MyUIMessage[];
@@ -195,7 +195,7 @@ export function ChatMessages({
 
         return (
           <Message key={message.id} from={message.role}>
-            <MessageContent>
+            <MessageContent className="group-[.is-user]:rounded-[24px] group-[.is-user]:px-5">
               {reasoningText ? (
                 <Suspense fallback={<div className="text-muted-foreground text-sm">{reasoningText}</div>}>
                   <LazyReasoningBlock
@@ -254,8 +254,8 @@ export function ChatMessages({
         <Message from="assistant">
           <MessageContent>
             <div className="flex items-center gap-2" role="status" aria-live="polite">
-              <Loader />
-              Waiting for the first token...
+              <Spinner aria-hidden="true" />
+              Thinking…
             </div>
           </MessageContent>
         </Message>

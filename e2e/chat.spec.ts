@@ -63,7 +63,24 @@ test("redirects an unauthenticated visitor to login", async ({ page }) => {
 	await page.goto("/chat");
 
 	await expect(page).toHaveURL(/\/login/);
+	await expect(page).toHaveTitle("ChatFlow");
+	await expect(page.getByRole("img", { name: "ChatFlow" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+});
+
+test("enforces the current password minimum before registration", async ({ page }) => {
+	await page.route("**/api/auth/get-session", (route) => route.fulfill(json({ message: "Unauthorized" }, 401)));
+	await page.goto("/register");
+
+	await page.getByLabel("Full Name").fill("Test Person");
+	await page.getByLabel("Email address").fill("test@example.com");
+	await page.getByLabel("Password", { exact: true }).fill("1234567");
+	await page.getByLabel("Confirm Password").fill("1234567");
+	await page.getByRole("button", { name: "Create account" }).click();
+
+	await expect(
+		page.getByRole("main").getByText("Password must be at least 8 characters", { exact: true }),
+	).toBeVisible();
 });
 
 test("creates a conversation from a prompt and completes a streamed response", async ({ page }) => {

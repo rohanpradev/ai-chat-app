@@ -1,13 +1,16 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
 
+import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GitHub } from "@/components/ui/github-icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { ApiRequestError } from "@/composables/useApi";
 import { useUserLogin } from "@/composables/useLoginUser";
 import { authClient } from "@/lib/auth-client";
 import { redirectSearchValidator } from "@/lib/router-search";
@@ -35,14 +38,11 @@ interface LoginState {
 }
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const MAX_LOGIN_ATTEMPTS = 5;
-
 function LoginComponent() {
   const search = Route.useSearch();
   const { mutateAsync } = useUserLogin(search.redirect);
   const [showPassword, setShowPassword] = useState(false);
   const [isGithubPending, setIsGithubPending] = useState(false);
-  const [loginAttempts, setLoginAttempts] = useState(0);
   const emailId = useId();
   const passwordId = useId();
 
@@ -73,8 +73,6 @@ function LoginComponent() {
 
     if (!password) {
       fieldErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      fieldErrors.password = "Password must be at least 6 characters";
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -85,22 +83,14 @@ function LoginComponent() {
 
     try {
       await mutateAsync({ email: email.trim(), password });
-      setLoginAttempts(0);
       return { success: true };
     } catch (error: unknown) {
-      const newAttempts = loginAttempts + 1;
-      setLoginAttempts(newAttempts);
-
-      if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
-        toast.error(`Too many failed attempts. Account locked for 15 minutes.`);
-        return { error: "Account locked due to multiple failed attempts" };
-      }
-
-      const remainingAttempts = MAX_LOGIN_ATTEMPTS - newAttempts;
       const errorMessage =
-        error instanceof Error && error.message?.includes("credentials")
-          ? `Invalid email or password. ${remainingAttempts} attempts remaining.`
-          : "Login failed. Please try again.";
+        error instanceof ApiRequestError && error.status === 429
+          ? "Too many sign-in attempts. Please wait a moment and try again."
+          : error instanceof Error && error.message?.includes("credentials")
+            ? "Invalid email or password."
+            : "Login failed. Please try again.";
 
       toast.error(errorMessage);
       return { error: "Login failed" };
@@ -112,16 +102,14 @@ function LoginComponent() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
-          </div>
+        <div className="mb-4 flex justify-center">
+          <BrandMark className="size-12 rounded-2xl" label="ChatFlow" />
         </div>
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h2>
         <p className="mt-2 text-sm text-muted-foreground">Sign in to your account to continue</p>
       </div>
 
-      <Card className="border-0 shadow-xl">
+      <Card className="rounded-3xl border-border/70 bg-card/90 shadow-2xl shadow-black/5 backdrop-blur dark:shadow-black/20">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-xl text-center">Sign in</CardTitle>
           <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
@@ -131,11 +119,11 @@ function LoginComponent() {
           <Button
             type="button"
             variant="outline"
-            className="mb-4 h-11 w-full text-base font-medium"
+            className="mb-4 h-11 w-full rounded-xl text-base font-medium"
             disabled={isPending || isGithubPending}
             onClick={signInWithGithub}
           >
-            {isGithubPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GitHub className="mr-2 h-4 w-4" />}
+            {isGithubPending ? <Spinner aria-hidden="true" className="mr-2" /> : <GitHub className="mr-2 h-4 w-4" />}
             Continue with GitHub
           </Button>
 
@@ -156,7 +144,8 @@ function LoginComponent() {
                 type="email"
                 placeholder="Enter your email address"
                 disabled={isPending}
-                className={`transition-colors ${
+                aria-invalid={Boolean(state?.fieldErrors?.email)}
+                className={`h-11 rounded-xl transition-colors ${
                   state?.fieldErrors?.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
                 }`}
                 autoComplete="email"
@@ -176,7 +165,8 @@ function LoginComponent() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   disabled={isPending}
-                  className={`pr-10 transition-colors ${
+                  aria-invalid={Boolean(state?.fieldErrors?.password)}
+                  className={`h-11 rounded-xl pr-10 transition-colors ${
                     state?.fieldErrors?.password ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
                   }`}
                   autoComplete="current-password"
@@ -187,6 +177,7 @@ function LoginComponent() {
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isPending}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -194,10 +185,15 @@ function LoginComponent() {
               {state?.fieldErrors?.password && <p className="text-sm text-red-600">{state.fieldErrors.password}</p>}
             </div>
 
-            <Button type="submit" className="w-full h-11 text-base font-medium" disabled={isPending}>
+            <Button
+              aria-busy={isPending}
+              type="submit"
+              className="h-11 w-full rounded-xl text-base font-medium"
+              disabled={isPending}
+            >
               {isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner aria-hidden="true" className="mr-2" />
                   Signing in...
                 </>
               ) : (

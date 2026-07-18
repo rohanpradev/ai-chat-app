@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chat App Engineering"
+  short_description: "Build and verify this AI chat application"
+  default_prompt: "Use $chat-app-engineering to implement and verify a change in this repository."

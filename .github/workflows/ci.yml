@@ -19,6 +19,8 @@ concurrency:
 
 env:
   BUN_VERSION: 1.3.14
+  HELM_VERSION: 4.2.3
+  KUBE_VERSION: 1.36.2
 
 jobs:
   lint-and-test:
@@ -83,7 +85,9 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Setup Helm
-        uses: azure/setup-helm@v5.0.0
+        uses: azure/setup-helm@v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
 
       - name: Install dependencies
         run: bun ci
@@ -335,7 +339,7 @@ jobs:
           tags: chat-app-client:latest
           build-args: |
             BUN_DEV_IMAGE=oven/bun:${{ env.BUN_VERSION }}-alpine
-            NGINX_IMAGE=nginx:1-alpine
+            NGINX_IMAGE=nginx:1.31.3-alpine3.24
           cache-from: type=gha,scope=client
           cache-to: type=gha,scope=client,mode=max
 

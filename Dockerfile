@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_VERSION=1
+ARG BUN_VERSION=1.3.14
 ARG BUN_DISTRO=debian13
 ARG BUN_DEV_IMAGE=dhi.io/bun:${BUN_VERSION}-${BUN_DISTRO}-dev
 ARG BUN_RUNTIME_IMAGE=dhi.io/bun:${BUN_VERSION}-${BUN_DISTRO}
-ARG NGINX_IMAGE=dhi.io/nginx:1
+ARG NGINX_IMAGE=dhi.io/nginx:1.31.3-debian13
 
 # Stage 1: Workspace manifests only.
 FROM ${BUN_DEV_IMAGE} AS workspace-manifests

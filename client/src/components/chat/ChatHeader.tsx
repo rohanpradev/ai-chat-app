@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bot, Loader2, LogOut, Plus, Sparkles, User as UserIcon } from "lucide-react";
+import { Loader2, LogOut, Plus, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ModeToggle } from "@/components/mode-toggle";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCreateChat } from "@/queries/createChat";
@@ -49,12 +50,7 @@ export function ChatHeader({ user, onLogout }: Readonly<ChatHeaderProps>) {
           className="size-9 md:hidden"
           title="Open navigation sidebar"
         />
-        <div aria-hidden="true" className="relative hidden sm:block">
-          <div className="rounded-lg bg-primary p-2.5">
-            <Bot className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <Sparkles className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 animate-pulse text-yellow-500 motion-reduce:animate-none" />
-        </div>
+        <BrandMark className="hidden size-10 sm:inline-flex" />
         <div className="min-w-0">
           <p className="truncate text-base font-semibold text-foreground sm:text-lg">ChatFlow</p>
           <p className="hidden truncate text-xs text-muted-foreground sm:block">

@@ -89,7 +89,12 @@ function PromptSubmit({ input, onStop, status }: Readonly<{ input: string; onSto
   const isGenerating = status === "submitted" || status === "streaming";
 
   return (
-    <PromptInputSubmit disabled={!input.trim() && !hasAttachments && !isGenerating} onStop={onStop} status={status} />
+    <PromptInputSubmit
+      className="rounded-full"
+      disabled={!input.trim() && !hasAttachments && !isGenerating}
+      onStop={onStop}
+      status={status}
+    />
   );
 }
 
@@ -134,7 +139,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="space-y-3">
       {showAgentGuide ? (
         <Suspense fallback={null}>
           <LazyAgentModePanel
@@ -147,7 +152,7 @@ export function ChatInput({
       ) : null}
       <PromptInput
         onSubmit={handleSubmit}
-        className="mt-0"
+        className="mt-0 rounded-[28px] [&_[data-slot=input-group]]:rounded-[28px] [&_[data-slot=input-group]]:border-border/70 [&_[data-slot=input-group]]:bg-card/90 [&_[data-slot=input-group]]:shadow-lg [&_[data-slot=input-group]]:shadow-black/5 dark:[&_[data-slot=input-group]]:bg-card/70 dark:[&_[data-slot=input-group]]:shadow-black/20"
         multiple
         accept="image/*,application/pdf,.txt,.md,.json,.js,.ts,.tsx,.jsx,.py,.java,.cpp,.c,.html,.css,.xml,.csv"
         maxFiles={3}
@@ -160,15 +165,16 @@ export function ChatInput({
         <PromptInputAttachmentsDisplay />
         <PromptInputBody>
           <PromptInputTextarea
+            className="min-h-20 px-5 pt-5 text-base sm:text-base"
             disabled={status !== "ready" && status !== "error"}
             onChange={(e) => setInput(e.target.value)}
             value={input}
           />
         </PromptInputBody>
-        <PromptInputFooter className="flex-wrap">
-          <PromptInputTools className="flex-wrap">
+        <PromptInputFooter className="flex-wrap px-2.5 pb-2.5">
+          <PromptInputTools className="flex-wrap gap-1.5">
             <PromptInputActionMenu>
-              <PromptInputActionMenuTrigger />
+              <PromptInputActionMenuTrigger className="rounded-full" />
               <PromptInputActionMenuContent>
                 <PromptInputActionAddAttachments />
                 <PromptInputActionAddScreenshot />
@@ -177,6 +183,7 @@ export function ChatInput({
             <PromptInputButton
               aria-label="Toggle web search"
               aria-pressed={webSearch}
+              className="rounded-full"
               variant={webSearch ? "default" : "ghost"}
               onClick={() => setWebSearch(!webSearch)}
             >
@@ -184,7 +191,7 @@ export function ChatInput({
               <span className="hidden sm:inline">Web Search</span>
             </PromptInputButton>
             <PromptInputSelect onValueChange={handleAgentModeChange} value={agentMode}>
-              <PromptInputSelectTrigger aria-label="Agent mode">
+              <PromptInputSelectTrigger aria-label="Agent mode" className="rounded-full">
                 <PromptInputSelectValue />
               </PromptInputSelectTrigger>
               <PromptInputSelectContent>
@@ -196,7 +203,7 @@ export function ChatInput({
               </PromptInputSelectContent>
             </PromptInputSelect>
             <PromptInputSelect onValueChange={handleModelChange} value={model}>
-              <PromptInputSelectTrigger aria-label="AI model">
+              <PromptInputSelectTrigger aria-label="AI model" className="rounded-full">
                 <PromptInputSelectValue />
               </PromptInputSelectTrigger>
               <PromptInputSelectContent>

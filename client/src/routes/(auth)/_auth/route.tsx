@@ -1,4 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { Check, Sparkles } from "lucide-react";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { redirectSearchValidator } from "@/lib/router-search";
 import { Route as IndexRoute } from "@/routes/index";
 
@@ -14,103 +16,52 @@ export const Route = createFileRoute("/(auth)/_auth")({
 });
 
 function AuthLayout() {
+  const highlights = ["Typed streaming responses", "Approval-gated tools", "Secure conversation history"];
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex min-h-screen">
-        {/* Left side - Branding */}
-        <div className="hidden lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-8 xl:px-12">
-          <div className="mx-auto max-w-sm">
-            <div className="mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-label="AI Assistant logo"
-                  >
-                    <title>AI Assistant logo</title>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h1 className="text-2xl font-bold text-foreground">AI Assistant</h1>
-              </div>
+    <div className="min-h-dvh bg-background">
+      <div className="flex min-h-dvh">
+        <section className="relative hidden w-[48%] overflow-hidden border-r bg-gradient-to-br from-violet-500/[0.08] via-background to-cyan-500/[0.08] lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20">
+          <div className="-top-28 -left-28 absolute size-80 rounded-full bg-violet-500/15 blur-3xl" />
+          <div className="-right-28 -bottom-28 absolute size-96 rounded-full bg-cyan-500/15 blur-3xl" />
+
+          <div className="relative mx-auto max-w-lg">
+            <div className="mb-10 flex items-center gap-3">
+              <BrandMark className="size-11 rounded-2xl" />
+              <h1 className="text-xl font-semibold tracking-tight">ChatFlow</h1>
             </div>
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-foreground leading-tight">
-                Welcome to the future of AI-powered conversations
+
+            <div className="space-y-7">
+              <div className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1.5 text-sm shadow-sm backdrop-blur">
+                <Sparkles aria-hidden="true" className="size-4 text-violet-500" />
+                Built for focused AI work
+              </div>
+              <h2 className="text-balance font-bold text-4xl leading-tight tracking-tight xl:text-5xl">
+                One workspace for questions, tools, and decisions.
               </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Experience intelligent conversations, creative assistance, and powerful AI capabilities all in one
-                place.
+              <p className="max-w-md text-lg leading-relaxed text-muted-foreground">
+                Move from a rough idea to a clear, grounded next step without losing the context that got you there.
               </p>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-3 h-3 text-green-600 dark:text-green-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      aria-label="Check mark"
-                    >
-                      <title>Check mark</title>
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+              <div className="grid gap-3">
+                {highlights.map((highlight) => (
+                  <div className="flex items-center gap-3" key={highlight}>
+                    <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <Check aria-hidden="true" className="size-3.5" />
+                    </span>
+                    <span className="font-medium">{highlight}</span>
                   </div>
-                  <span className="text-foreground">Intelligent AI responses</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-3 h-3 text-green-600 dark:text-green-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      aria-label="Check mark"
-                    >
-                      <title>Check mark</title>
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-foreground">Secure and private</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-3 h-3 text-green-600 dark:text-green-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      aria-label="Check mark"
-                    >
-                      <title>Check mark</title>
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-foreground">24/7 availability</span>
-                </div>
+                ))}
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Right side - Auth forms */}
-        <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
-          <div className="mx-auto w-full max-w-sm lg:w-96">
+        <main className="relative flex flex-1 flex-col justify-center overflow-hidden bg-background/80 px-4 py-12 backdrop-blur sm:px-6 lg:px-14 xl:px-20">
+          <div className="-top-24 -right-24 absolute size-72 rounded-full bg-violet-500/10 blur-3xl lg:hidden" />
+          <div className="relative mx-auto w-full max-w-md">
             <Outlet />
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
