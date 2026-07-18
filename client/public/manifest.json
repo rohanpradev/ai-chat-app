@@ -1,10 +1,10 @@
 {
-	"short_name": "Chat App",
-	"name": "AI Chat Application",
+	"short_name": "ChatFlow",
+	"name": "ChatFlow AI Workspace",
 	"icons": [
 		{
 			"src": "favicon.svg",
-			"sizes": "32x32 16x16",
+			"sizes": "any",
 			"type": "image/svg+xml"
 		},
 		{
@@ -15,6 +15,6 @@
 	],
 	"start_url": ".",
 	"display": "standalone",
-	"theme_color": "#3B82F6",
+	"theme_color": "#6D5DFB",
 	"background_color": "#ffffff"
 }

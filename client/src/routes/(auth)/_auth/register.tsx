@@ -1,13 +1,16 @@
+import { AUTH_PASSWORD_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH } from "@chat-app/shared";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useActionState, useId, useState } from "react";
 import { toast } from "sonner";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GitHub } from "@/components/ui/github-icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { useUserRegister } from "@/composables/useRegisterUser";
 import { authClient } from "@/lib/auth-client";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
@@ -40,9 +43,6 @@ interface RegisterState {
 
 const MIN_NAME_LENGTH = 3;
 const MAX_NAME_LENGTH = 30;
-const MIN_PASSWORD_LENGTH = 6;
-const MAX_PASSWORD_LENGTH = 100;
-
 function RegisterForm() {
   const { mutateAsync } = useUserRegister();
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
@@ -93,10 +93,10 @@ function RegisterForm() {
 
     if (!password) {
       fieldErrors.password = "Password is required";
-    } else if (password.length < MIN_PASSWORD_LENGTH) {
-      fieldErrors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
-    } else if (password.length > MAX_PASSWORD_LENGTH) {
-      fieldErrors.password = `Password must be ${MAX_PASSWORD_LENGTH} characters or less`;
+    } else if (password.length < AUTH_PASSWORD_MIN_LENGTH) {
+      fieldErrors.password = `Password must be at least ${AUTH_PASSWORD_MIN_LENGTH} characters`;
+    } else if (password.length > AUTH_PASSWORD_MAX_LENGTH) {
+      fieldErrors.password = `Password must be ${AUTH_PASSWORD_MAX_LENGTH} characters or less`;
     }
 
     if (!confirmPassword) {
@@ -132,16 +132,14 @@ function RegisterForm() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-blue-600 rounded-xl flex items-center justify-center">
-            <UserPlus className="w-6 h-6 text-white" />
-          </div>
+        <div className="mb-4 flex justify-center">
+          <BrandMark className="size-12 rounded-2xl" label="ChatFlow" />
         </div>
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Create your account</h2>
         <p className="mt-2 text-sm text-muted-foreground">Join us and start your AI-powered journey</p>
       </div>
 
-      <Card className="border-0 shadow-xl">
+      <Card className="rounded-3xl border-border/70 bg-card/90 shadow-2xl shadow-black/5 backdrop-blur dark:shadow-black/20">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-xl text-center">Sign up</CardTitle>
           <CardDescription className="text-center">Create your account to get started</CardDescription>
@@ -151,11 +149,11 @@ function RegisterForm() {
           <Button
             type="button"
             variant="outline"
-            className="mb-4 h-11 w-full text-base font-medium"
+            className="mb-4 h-11 w-full rounded-xl text-base font-medium"
             disabled={isPending || isGithubPending}
             onClick={signUpWithGithub}
           >
-            {isGithubPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GitHub className="mr-2 h-4 w-4" />}
+            {isGithubPending ? <Spinner aria-hidden="true" className="mr-2" /> : <GitHub className="mr-2 h-4 w-4" />}
             Continue with GitHub
           </Button>
 
@@ -181,7 +179,7 @@ function RegisterForm() {
                 type="text"
                 placeholder="Enter your full name"
                 disabled={isPending}
-                className={`transition-colors ${
+                className={`h-11 rounded-xl transition-colors ${
                   state?.fieldErrors?.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
                 }`}
                 autoComplete="name"
@@ -202,7 +200,7 @@ function RegisterForm() {
                 type="email"
                 placeholder="Enter your email address"
                 disabled={isPending}
-                className={`transition-colors ${
+                className={`h-11 rounded-xl transition-colors ${
                   state?.fieldErrors?.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
                 }`}
                 autoComplete="email"
@@ -224,7 +222,7 @@ function RegisterForm() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a password"
                   disabled={isPending}
-                  className={`pr-10 transition-colors ${
+                  className={`h-11 rounded-xl pr-10 transition-colors ${
                     state?.fieldErrors?.password ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
                   }`}
                   autoComplete="new-password"
@@ -245,7 +243,7 @@ function RegisterForm() {
                 <p className="text-sm text-red-600">{state.fieldErrors.password}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Use {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters.
+                  Use {AUTH_PASSWORD_MIN_LENGTH}-{AUTH_PASSWORD_MAX_LENGTH} characters.
                 </p>
               )}
             </div>
@@ -261,7 +259,7 @@ function RegisterForm() {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm your password"
                   disabled={isPending}
-                  className={`pr-10 transition-colors ${
+                  className={`h-11 rounded-xl pr-10 transition-colors ${
                     state?.fieldErrors?.confirmPassword ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
                   }`}
                   autoComplete="new-password"
@@ -289,10 +287,15 @@ function RegisterForm() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11 text-base font-medium" disabled={isPending}>
+            <Button
+              aria-busy={isPending}
+              type="submit"
+              className="h-11 w-full rounded-xl text-base font-medium"
+              disabled={isPending}
+            >
               {isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner aria-hidden="true" className="mr-2" />
                   Creating account...
                 </>
               ) : (

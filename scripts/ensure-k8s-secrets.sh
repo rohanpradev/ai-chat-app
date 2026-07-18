@@ -325,12 +325,12 @@ images:
   db:
     registry: ""
     repository: pgvector/pgvector
-    tag: pg18
+    tag: 0.8.5-pg18-trixie
     pullPolicy: IfNotPresent
   redis:
     registry: ""
     repository: redis
-    tag: "8"
+    tag: 8.8.0-trixie
     pullPolicy: IfNotPresent
 
 config:

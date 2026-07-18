@@ -164,7 +164,7 @@ bun run check
 
 ## Docker
 
-The Compose stack uses public upstream images by default so a fresh local setup does not require private registry credentials. Production can override `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` to Docker Hardened Images or digest-pinned images.
+The Compose stack pins current public upstream images (Bun 1.3.14, Nginx 1.31.3, Traefik 3.7.8, pgvector 0.8.5 on PostgreSQL 18, and Redis 8.8.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` to Docker Hardened Images or digest-pinned images.
 
 Start the full local stack:
 
@@ -240,7 +240,7 @@ Dependency versions shared across workspaces are defined in the root `catalog` f
 
 Use `bun ci` in CI and clean local installs. It is equivalent to a frozen-lockfile install and fails when `package.json` and `bun.lock` drift.
 
-TypeScript checks run through the official TypeScript native preview (`tsgo`) from `@typescript/native-preview`:
+TypeScript checks run through the stable native TypeScript 7 compiler (`tsc`) from `typescript`:
 
 ```bash
 bun run typecheck

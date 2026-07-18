@@ -19,15 +19,15 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "test": "bun test --preload ./src/test/setup-env.ts",
-    "typecheck": "bun run typecheck:tsgo",
-    "typecheck:tsgo": "bunx --no-install --package @typescript/native-preview tsgo --noEmit --project tsconfig.json"
+    "typecheck": "bun run typecheck:tsc",
+    "typecheck:tsc": "bunx --no-install --package typescript tsc --noEmit --project tsconfig.json"
   },
   "engines": {
     "bun": ">=1.3.14"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.9",
-    "@ai-sdk/otel": "^1.0.18",
+    "@ai-sdk/openai": "^4.0.11",
+    "@ai-sdk/otel": "^1.0.28",
     "@better-auth/drizzle-adapter": "^1.6.23",
     "@chat-app/shared": "workspace:*",
     "@hono/zod-openapi": "catalog:",
@@ -36,7 +36,7 @@
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/sdk-node": "^0.220.0",
     "@scalar/hono-api-reference": "^0.11.9",
-    "@sentry/bun": "^10.64.0",
+    "@sentry/bun": "^10.65.0",
     "ai": "catalog:",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",

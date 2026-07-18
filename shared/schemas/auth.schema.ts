@@ -1,6 +1,8 @@
 import { z } from "@hono/zod-openapi";
 
 const MAX_PROFILE_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
+export const AUTH_PASSWORD_MIN_LENGTH = 8;
+export const AUTH_PASSWORD_MAX_LENGTH = 100;
 const ProfileImageDataUrlSchema = z
 	.string()
 	.max(MAX_PROFILE_IMAGE_DATA_URL_LENGTH, "Encoded profile image is too large")
@@ -23,10 +25,18 @@ export const UserDataSchema = z
 
 export const RegisterUserRequestSchema = z
 	.object({
-		confirmPassword: z.string().min(6).max(100).describe("Password confirmation"),
+		confirmPassword: z
+			.string()
+			.min(AUTH_PASSWORD_MIN_LENGTH)
+			.max(AUTH_PASSWORD_MAX_LENGTH)
+			.describe("Password confirmation"),
 		email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
 		name: z.string().min(3).max(30).describe("The username of the user"),
-		password: z.string().min(6).max(100).describe("The password for the user account"),
+		password: z
+			.string()
+			.min(AUTH_PASSWORD_MIN_LENGTH)
+			.max(AUTH_PASSWORD_MAX_LENGTH)
+			.describe("The password for the user account"),
 		profileImage: ProfileImageDataUrlSchema.optional()
 			.describe("Optional Base64 encoded profile image")
 			.openapi({ type: "string" }),
@@ -49,7 +59,7 @@ export const RegisterUserRequestSchema = z
 export const LoginUserRequestSchema = z
 	.object({
 		email: z.email().describe("The email address of the user").openapi({ format: "email", type: "string" }),
-		password: z.string().min(6).max(100).describe("The password for the user account"),
+		password: z.string().min(1).max(AUTH_PASSWORD_MAX_LENGTH).describe("The password for the user account"),
 	})
 	.openapi({
 		description: "Request body for logging in a user",

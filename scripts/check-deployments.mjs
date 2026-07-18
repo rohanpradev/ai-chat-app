@@ -7,7 +7,7 @@ const boolEnv = (name) => ["1", "true", "yes", "on"].includes((process.env[name]
 
 const packageJson = JSON.parse(await readFile(new URL("package.json", rootDir), "utf8"));
 const bunVersion = packageJson.packageManager?.replace(/^bun@/, "") || "1";
-const kubeVersion = process.env.KUBE_VERSION ?? "1.36.0";
+const kubeVersion = process.env.KUBE_VERSION ?? "1.36.2";
 
 const valuesFiles = [
 	"helm/chat-app/values.yaml",
@@ -95,7 +95,7 @@ if (dockerBuildChecksEnabled) {
 		"--build-arg",
 		`BUN_RUNTIME_IMAGE=${publicBunImage}`,
 		"--build-arg",
-		"NGINX_IMAGE=nginx:1-alpine",
+		"NGINX_IMAGE=nginx:1.31.3-alpine3.24",
 	];
 
 	run({
@@ -123,7 +123,7 @@ if (dockerBuildChecksEnabled) {
 const helmValueArgs = valuesFiles.flatMap((file) => ["-f", file]);
 
 run({
-	args: ["lint", "--strict", "helm/chat-app", ...helmValueArgs],
+	args: ["lint", "--strict", "--kube-version", kubeVersion, "helm/chat-app", ...helmValueArgs],
 	command: "helm",
 	name: "Helm lint",
 });
@@ -171,7 +171,9 @@ for (const [needle, label] of [
 	["kind: NetworkPolicy", "NetworkPolicies"],
 	["kind: HorizontalPodAutoscaler", "HPAs"],
 	["kind: PodDisruptionBudget", "PDBs"],
-	["pgvector/pgvector", "pgvector-enabled PostgreSQL image"],
+	["docker.io/pgvector/pgvector:0.8.5-pg18-trixie", "pgvector-enabled PostgreSQL image"],
+	["dhi.io/redis:8.8.0-debian13", "Redis image"],
+	["curlimages/curl:8.21.0", "Helm test image"],
 	["AI_DAILY_TOKEN_LIMIT", "AI quota configuration"],
 	["kind: HTTPRoute", "Gateway HTTPRoutes"],
 	["startupProbe:", "startup probes"],

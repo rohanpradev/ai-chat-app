@@ -10,9 +10,9 @@ import {
   ConfirmationRequest,
   ConfirmationTitle,
 } from "@/components/ai-elements/confirmation";
-import { Loader } from "@/components/ai-elements/loader";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import SerperResults from "@/components/chat/SerperResults";
+import { Spinner } from "@/components/ui/spinner";
 
 type ChatMessagePart = MyUIMessage["parts"][number];
 type ToolMessagePart = Extract<ChatMessagePart, { type: "tool-deepSearch" | "tool-serper" }>;
@@ -48,7 +48,7 @@ function ToolStateNotice({ state }: Readonly<{ state: ToolPartState }>) {
 
   return (
     <div className="flex items-center gap-2 rounded-md bg-muted/50 p-3 text-muted-foreground text-sm">
-      <Loader className="shrink-0" size={14} />
+      <Spinner aria-hidden="true" className="size-3.5 shrink-0" />
       <span>{description}</span>
     </div>
   );

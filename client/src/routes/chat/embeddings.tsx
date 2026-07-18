@@ -4,7 +4,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Database, FileText, Loader2, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import type { FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
-import { Loader } from "@/components/ai-elements/loader";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import {
   getEmbeddingDocumentsQuery,
@@ -59,7 +59,7 @@ function EmbeddingOperationStatus({
   return (
     <div className="rounded-lg border bg-muted/25 p-4">
       <div className="flex items-center gap-3">
-        <Loader className="shrink-0 text-primary" size={18} />
+        <Spinner aria-hidden="true" className="size-[18px] shrink-0 text-primary" />
         <div className="min-w-0">
           <p className="text-sm font-medium">{title}</p>
           <p className="text-xs text-muted-foreground">{detail}</p>

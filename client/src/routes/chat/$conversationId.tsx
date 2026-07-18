@@ -162,8 +162,10 @@ function ConversationChat() {
 
   return (
     <>
-      <Conversation className="flex-1">
-        <ConversationContent className={hasMessages ? "pb-6 pr-16" : "pb-6"}>
+      <Conversation className="flex-1 bg-gradient-to-b from-background via-background to-muted/20">
+        <ConversationContent
+          className={hasMessages ? "mx-auto w-full max-w-4xl pb-8 pt-6 pr-16" : "mx-auto w-full max-w-4xl pb-8 pt-6"}
+        >
           <ChatMessages
             messages={messages}
             status={status}
@@ -174,27 +176,33 @@ function ConversationChat() {
           />
         </ConversationContent>
         {canDownloadConversation ? (
-          <ConversationDownload aria-label="Download conversation" messages={messages} />
+          <ConversationDownload
+            aria-label="Download conversation"
+            className="z-10 bg-background/85 shadow-sm backdrop-blur"
+            messages={messages}
+          />
         ) : null}
-        <ConversationScrollButton />
+        <ConversationScrollButton className="bottom-6 bg-background/85 shadow-md backdrop-blur" />
       </Conversation>
 
-      <div className="border-t p-3 sm:p-6">
-        <ChatInput
-          availableModels={availableModels}
-          input={input}
-          setInput={setInput}
-          agentMode={agentMode}
-          setAgentMode={setAgentMode}
-          model={model}
-          setModel={setModel}
-          webSearch={webSearch}
-          setWebSearch={setWebSearch}
-          onMessageSend={sendPromptMessage}
-          onStop={stop}
-          showAgentGuide={showAgentGuide}
-          status={status}
-        />
+      <div className="shrink-0 border-t bg-background/90 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:px-6 sm:pb-5">
+        <div className="mx-auto w-full max-w-4xl">
+          <ChatInput
+            availableModels={availableModels}
+            input={input}
+            setInput={setInput}
+            agentMode={agentMode}
+            setAgentMode={setAgentMode}
+            model={model}
+            setModel={setModel}
+            webSearch={webSearch}
+            setWebSearch={setWebSearch}
+            onMessageSend={sendPromptMessage}
+            onStop={stop}
+            showAgentGuide={showAgentGuide}
+            status={status}
+          />
+        </div>
       </div>
     </>
   );

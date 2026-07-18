@@ -25,13 +25,13 @@ images:
   db:
     registry: docker.io
     repository: pgvector/pgvector
-    tag: pg18
+    tag: 0.8.5-pg18-trixie
     digest: ""
     pullPolicy: Always
   redis:
     registry: dhi.io
     repository: redis
-    tag: "8"
+    tag: 8.8.0-debian13
     digest: ""
     pullPolicy: Always
 
@@ -439,6 +439,6 @@ tests:
   image:
     registry: curlimages
     repository: curl
-    tag: latest
+    tag: 8.21.0
     digest: ""
     pullPolicy: IfNotPresent

@@ -4,7 +4,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, ClipboardCheck, FlaskConical, Loader2, RouteIcon, Sparkles } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { Loader } from "@/components/ai-elements/loader";
 import { MessageResponse } from "@/components/ai-elements/message";
 import {
   Plan,
@@ -30,6 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiRequestError } from "@/composables/useApi";
 import { cn } from "@/lib/utils";
@@ -143,7 +143,7 @@ function EndpointPending({ label }: Readonly<{ label: string }>) {
   return (
     <div className="rounded-lg border bg-muted/30 p-4">
       <div className="flex items-center gap-3">
-        <Loader className="text-primary" size={18} />
+        <Spinner aria-hidden="true" className="size-[18px] shrink-0 text-primary" />
         <div className="min-w-0">
           <p className="text-sm font-medium">{label}</p>
           <p className="text-xs text-muted-foreground">Waiting for a schema-valid AI SDK response.</p>
