@@ -78,7 +78,9 @@ test("enforces the current password minimum before registration", async ({ page 
 	await page.getByLabel("Confirm Password").fill("1234567");
 	await page.getByRole("button", { name: "Create account" }).click();
 
-	await expect(page.getByRole("main").getByText("Password must be at least 8 characters", { exact: true })).toBeVisible();
+	await expect(
+		page.getByRole("main").getByText("Password must be at least 8 characters", { exact: true }),
+	).toBeVisible();
 });
 
 test("creates a conversation from a prompt and completes a streamed response", async ({ page }) => {
