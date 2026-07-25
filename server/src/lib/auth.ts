@@ -64,6 +64,7 @@ export const auth = betterAuth({
 		}
 	},
 	plugins: [openAPI()],
+	secret: env.BETTER_AUTH_SECRET,
 	socialProviders: githubProvider,
 	trustedOrigins
 });

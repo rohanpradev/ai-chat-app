@@ -10,6 +10,8 @@ bun ci
 
 `bunfig.toml` sets `minimumReleaseAge = 259200`, which delays fresh resolution of newly published npm versions for 72 hours. This reduces exposure to fast-moving package compromises where malicious versions are published and removed within hours.
 
+`brace-expansion` is temporarily excluded from the age gate and pinned exactly to `5.0.8` in the root overrides because that release fixes high-severity advisory `GHSA-mh99-v99m-4gvg`. Remove the exemption after the fixed release has passed the normal 72-hour hold.
+
 ## Automated Checks
 
 ```bash

@@ -68,12 +68,27 @@ export function createApp() {
 		throw new Error("CORS_ORIGINS cannot include '*' in production when credentialed cookies are enabled");
 	}
 
+	const corsAllowHeaders = [
+		"Accept",
+		"Authorization",
+		"Baggage",
+		"Content-Type",
+		"Origin",
+		"Sentry-Trace",
+		"X-Request-ID",
+		"X-Requested-With"
+	];
+	const corsAllowMethods = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+	const corsExposeHeaders = ["Content-Length", "Content-Type", "X-Request-ID"];
 	const isAllowedOrigin = (origin: string) => allowAnyOrigin || allowedOrigins.includes(origin);
 
 	useAppMiddleware(
 		asAppMiddleware(
 			cors({
+				allowHeaders: corsAllowHeaders,
+				allowMethods: corsAllowMethods,
 				credentials: true,
+				exposeHeaders: corsExposeHeaders,
 				maxAge: 86400,
 				origin: (origin) => {
 					if (!origin) {

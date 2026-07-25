@@ -601,11 +601,11 @@ export const answerWithRag = async (userId: string, request: RagRequest, abortSi
 	try {
 		const answer = await generateText({
 			abortSignal,
+			instructions:
+				"You are a retrieval-augmented assistant. Be concise, grounded, and explicit about missing context. Do not invent citations.",
 			maxOutputTokens: 2048,
 			model: resolveModel(selectedModel.id),
 			prompt,
-			system:
-				"You are a retrieval-augmented assistant. Be concise, grounded, and explicit about missing context. Do not invent citations.",
 			temperature: 0.2
 		});
 

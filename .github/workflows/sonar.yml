@@ -26,9 +26,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Detect Sonar configuration
         id: sonar
@@ -69,7 +70,7 @@ jobs:
 
       - name: Setup Bun
         if: steps.sonar.outputs.enabled == 'true'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
@@ -87,7 +88,7 @@ jobs:
 
       - name: SonarQube Scan
         if: steps.sonar.outputs.enabled == 'true'
-        uses: SonarSource/sonarqube-scan-action@v8
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         with:
           args: ${{ steps.sonar.outputs.args }}
         env:

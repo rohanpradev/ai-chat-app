@@ -9,26 +9,35 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ChatIndexRouteImport } from './routes/chat/index'
-import { Route as ChatNewRouteImport } from './routes/chat/new'
-import { Route as ChatEmbeddingsRouteImport } from './routes/chat/embeddings'
-import { Route as ChatAiLabRouteImport } from './routes/chat/ai-lab'
-import { Route as ChatConversationIdRouteImport } from './routes/chat/$conversationId'
-import { Route as userProfileRouteImport } from './routes/(user)/profile'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as authAuthRouteRouteImport } from './routes/(auth)/_auth/route'
-import { Route as authAuthRegisterRouteImport } from './routes/(auth)/_auth/register'
+import { Route as userProfileRouteImport } from './routes/(user)/profile'
+import { Route as ChatIndexRouteImport } from './routes/chat/index'
+import { Route as ChatConversationIdRouteImport } from './routes/chat/$conversationId'
+import { Route as ChatAiLabRouteImport } from './routes/chat/ai-lab'
+import { Route as ChatEmbeddingsRouteImport } from './routes/chat/embeddings'
+import { Route as ChatNewRouteImport } from './routes/chat/new'
 import { Route as authAuthLoginRouteImport } from './routes/(auth)/_auth/login'
+import { Route as authAuthRegisterRouteImport } from './routes/(auth)/_auth/register'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatRoute = ChatRouteImport.update({
   id: '/chat',
   path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const authAuthRouteRoute = authAuthRouteRouteImport.update({
+  id: '/(auth)/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const userProfileRoute = userProfileRouteImport.update({
+  id: '/(user)/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
@@ -36,14 +45,9 @@ const ChatIndexRoute = ChatIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ChatRoute,
 } as any)
-const ChatNewRoute = ChatNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ChatRoute,
-} as any)
-const ChatEmbeddingsRoute = ChatEmbeddingsRouteImport.update({
-  id: '/embeddings',
-  path: '/embeddings',
+const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
+  id: '/$conversationId',
+  path: '/$conversationId',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatAiLabRoute = ChatAiLabRouteImport.update({
@@ -51,28 +55,24 @@ const ChatAiLabRoute = ChatAiLabRouteImport.update({
   path: '/ai-lab',
   getParentRoute: () => ChatRoute,
 } as any)
-const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
-  id: '/$conversationId',
-  path: '/$conversationId',
+const ChatEmbeddingsRoute = ChatEmbeddingsRouteImport.update({
+  id: '/embeddings',
+  path: '/embeddings',
   getParentRoute: () => ChatRoute,
 } as any)
-const userProfileRoute = userProfileRouteImport.update({
-  id: '/(user)/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authAuthRouteRoute = authAuthRouteRouteImport.update({
-  id: '/(auth)/_auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authAuthRegisterRoute = authAuthRegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => authAuthRouteRoute,
+const ChatNewRoute = ChatNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ChatRoute,
 } as any)
 const authAuthLoginRoute = authAuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => authAuthRouteRoute,
+} as any)
+const authAuthRegisterRoute = authAuthRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => authAuthRouteRoute,
 } as any)
 
@@ -161,13 +161,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/chat': {
-      id: '/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof ChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -175,46 +168,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chat/': {
-      id: '/chat/'
-      path: '/'
-      fullPath: '/chat/'
-      preLoaderRoute: typeof ChatIndexRouteImport
-      parentRoute: typeof ChatRoute
-    }
-    '/chat/new': {
-      id: '/chat/new'
-      path: '/new'
-      fullPath: '/chat/new'
-      preLoaderRoute: typeof ChatNewRouteImport
-      parentRoute: typeof ChatRoute
-    }
-    '/chat/embeddings': {
-      id: '/chat/embeddings'
-      path: '/embeddings'
-      fullPath: '/chat/embeddings'
-      preLoaderRoute: typeof ChatEmbeddingsRouteImport
-      parentRoute: typeof ChatRoute
-    }
-    '/chat/ai-lab': {
-      id: '/chat/ai-lab'
-      path: '/ai-lab'
-      fullPath: '/chat/ai-lab'
-      preLoaderRoute: typeof ChatAiLabRouteImport
-      parentRoute: typeof ChatRoute
-    }
-    '/chat/$conversationId': {
-      id: '/chat/$conversationId'
-      path: '/$conversationId'
-      fullPath: '/chat/$conversationId'
-      preLoaderRoute: typeof ChatConversationIdRouteImport
-      parentRoute: typeof ChatRoute
-    }
-    '/(user)/profile': {
-      id: '/(user)/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof userProfileRouteImport
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/_auth': {
@@ -224,18 +182,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authAuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(auth)/_auth/register': {
-      id: '/(auth)/_auth/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof authAuthRegisterRouteImport
-      parentRoute: typeof authAuthRouteRoute
+    '/(user)/profile': {
+      id: '/(user)/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof userProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat/': {
+      id: '/chat/'
+      path: '/'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/$conversationId': {
+      id: '/chat/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof ChatConversationIdRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/ai-lab': {
+      id: '/chat/ai-lab'
+      path: '/ai-lab'
+      fullPath: '/chat/ai-lab'
+      preLoaderRoute: typeof ChatAiLabRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/embeddings': {
+      id: '/chat/embeddings'
+      path: '/embeddings'
+      fullPath: '/chat/embeddings'
+      preLoaderRoute: typeof ChatEmbeddingsRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/chat/new': {
+      id: '/chat/new'
+      path: '/new'
+      fullPath: '/chat/new'
+      preLoaderRoute: typeof ChatNewRouteImport
+      parentRoute: typeof ChatRoute
     }
     '/(auth)/_auth/login': {
       id: '/(auth)/_auth/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof authAuthLoginRouteImport
+      parentRoute: typeof authAuthRouteRoute
+    }
+    '/(auth)/_auth/register': {
+      id: '/(auth)/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof authAuthRegisterRouteImport
       parentRoute: typeof authAuthRouteRoute
     }
   }
