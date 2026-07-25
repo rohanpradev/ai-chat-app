@@ -154,11 +154,7 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 
 				return undefined;
 			},
-			onError: (error: unknown) => {
-				logger.error({ error, selectedAgentMode }, "AI agent stream failed");
-				return "The assistant request failed. Please retry.";
-			},
-			onFinish: async ({ isAborted, messages: finalMessages }) => {
+			onEnd: async ({ isAborted, messages: finalMessages }) => {
 				await Promise.all([
 					saveConversation(coalescedChatId, finalMessages, userJwt.id),
 					settleUsage(usageRequestId, { inputTokens, outputTokens, totalTokens })
@@ -166,6 +162,10 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 				if (isAborted) {
 					logger.debug({ selectedAgentMode }, "Persisted cancelled AI agent stream");
 				}
+			},
+			onError: (error: unknown) => {
+				logger.error({ error, selectedAgentMode }, "AI agent stream failed");
+				return "The assistant request failed. Please retry.";
 			},
 			onStepEnd: ({ finishReason, stepNumber, toolCalls, toolResults, usage, warnings }) => {
 				inputTokens += usage.inputTokens ?? 0;

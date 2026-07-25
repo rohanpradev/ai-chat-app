@@ -114,6 +114,12 @@ export const generateStructuredPlan = async (
 	try {
 		const result = await generateText({
 			abortSignal,
+			instructions: [
+				"You are an AI work planner for a Bun and JavaScript AI platform.",
+				"Return practical, schema-valid planning data only.",
+				"Prefer the research agent and live web tool only when the task requires verification, freshness, or multi-step synthesis.",
+				"Keep steps concrete enough that another agent or engineer can execute them."
+			].join("\n"),
 			maxOutputTokens: 2048,
 			maxRetries: 1,
 			model: resolveModel(resolvedModel.id),
@@ -124,12 +130,6 @@ export const generateStructuredPlan = async (
 				schema: AIPlanOutputSchema
 			}),
 			prompt,
-			system: [
-				"You are an AI work planner for a Bun and JavaScript AI platform.",
-				"Return practical, schema-valid planning data only.",
-				"Prefer the research agent and live web tool only when the task requires verification, freshness, or multi-step synthesis.",
-				"Keep steps concrete enough that another agent or engineer can execute them."
-			].join("\n"),
 			telemetry: structuredTelemetry({
 				functionId: "ai-structured-plan",
 				model: resolvedModel.id,
@@ -179,6 +179,13 @@ export const evaluateAIOutput = async (
 	try {
 		const result = await generateText({
 			abortSignal,
+			instructions: [
+				"You are an evaluator for a production AI application.",
+				"Judge only the supplied output against the supplied input, context, reference, and rubric.",
+				"Reward grounded, complete, safe, instruction-following answers.",
+				"Penalize unsupported claims, missing caveats, unsafe guidance, and failure to answer.",
+				"Use score 1 for excellent, 0.5 for mixed, and 0 for unusable or unsafe output."
+			].join("\n"),
 			maxOutputTokens: 2048,
 			maxRetries: 1,
 			model: resolveModel(resolvedModel.id),
@@ -189,13 +196,6 @@ export const evaluateAIOutput = async (
 				schema: AIEvaluationOutputSchema
 			}),
 			prompt,
-			system: [
-				"You are an evaluator for a production AI application.",
-				"Judge only the supplied output against the supplied input, context, reference, and rubric.",
-				"Reward grounded, complete, safe, instruction-following answers.",
-				"Penalize unsupported claims, missing caveats, unsafe guidance, and failure to answer.",
-				"Use score 1 for excellent, 0.5 for mixed, and 0 for unusable or unsafe output."
-			].join("\n"),
 			telemetry: structuredTelemetry({
 				functionId: "ai-evaluate-output",
 				model: resolvedModel.id,

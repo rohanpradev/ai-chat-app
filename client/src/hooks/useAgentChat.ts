@@ -76,7 +76,7 @@ export function useAgentChat({
       console.error("AI chat request failed:", error);
     },
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-    experimental_throttle: 50,
+    throttle: 50,
     transport: transportRef.current,
   });
   const pendingApprovalIdsRef = useRef(new Set<string>());

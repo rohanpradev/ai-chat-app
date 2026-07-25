@@ -204,6 +204,33 @@ describe("App Creation", () => {
 		expect(response.headers.get("access-control-allow-credentials")).toBe("true");
 	});
 
+	it("keeps application and proxy CORS policies aligned for preflight requests", async () => {
+		const app = createApp();
+		const response = await app.request(`/${env.BASE_API_SLUG}/health`, {
+			headers: {
+				"Access-Control-Request-Headers": "Content-Type, X-Request-ID, Sentry-Trace, Baggage",
+				"Access-Control-Request-Method": "POST",
+				Origin: env.CLIENT_URL
+			},
+			method: "OPTIONS"
+		});
+		const allowedHeaders = response.headers
+			.get("access-control-allow-headers")
+			?.split(",")
+			.map((header) => header.trim().toLowerCase());
+		const allowedMethods = response.headers
+			.get("access-control-allow-methods")
+			?.split(",")
+			.map((method) => method.trim());
+
+		expect(response.status).toBe(204);
+		expect(response.headers.get("access-control-allow-origin")).toBe(env.CLIENT_URL);
+		expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+		expect(response.headers.get("access-control-max-age")).toBe("86400");
+		expect(allowedHeaders).toEqual(expect.arrayContaining(["baggage", "content-type", "sentry-trace", "x-request-id"]));
+		expect(allowedMethods).toEqual(expect.arrayContaining(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]));
+	});
+
 	it("does not grant credentialed CORS access to unknown origins", async () => {
 		const app = createApp();
 		const response = await app.request("/health", {

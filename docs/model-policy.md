@@ -8,7 +8,7 @@ The approved chat model catalog lives in `shared/models.ts`. The server may chec
 
 The only approved chat model is `gpt-5-mini`. The only approved embedding model is `text-embedding-3-small`.
 
-As of July 9, 2026, OpenAI's current public docs describe GPT-5.5 as the latest GPT-5 family model and recommend treating it as a tuned migration rather than a drop-in string replacement. This repo should evaluate GPT-5.5 through `OPENAI_MODEL_OVERRIDES` before changing `defaultModelId`.
+As of July 25, 2026, OpenAI's current public docs describe GPT-5.6 as the latest GPT-5 family. OpenAI's migration guidance maps an existing mini/balanced role to `gpt-5.6-terra`, while `gpt-5.6-sol` is the flagship quality-first option. This repo should evaluate the role-matched `gpt-5.6-terra` candidate through `OPENAI_MODEL_OVERRIDES` before changing `defaultModelId`; `gpt-5.6-sol` should be evaluated separately if the quality gain justifies its cost and latency.
 
 The default chat model should be capable of:
 
@@ -30,10 +30,11 @@ When changing `defaultModelId`, run the eval checklist in `docs/evals.md` and ve
 
 ## AI SDK Channel
 
-This repo currently tracks beta AI SDK packages. That can be useful for a flagship AI project, but it means SDK upgrades should be treated as migration work, not routine patch updates. For production stability, pin exact beta versions and keep the lockfile committed.
+This repo tracks the stable AI SDK 7 line. SDK major upgrades remain migration work; patch updates can use the normal dependency process, including the repository's release-age gate and committed lockfile. Before upgrading a major, verify the streaming protocol, tool approvals, persistence boundaries, UI message parts, and eval flows end to end.
 
 Relevant primary docs:
 
-- OpenAI latest model guide: `https://developers.openai.com/api/docs/guides/latest-model`
-- OpenAI prompt guidance: `https://developers.openai.com/api/docs/guides/prompt-guidance`
+- OpenAI latest model guide: `https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.6`
+- OpenAI GPT-5.6 migration guide: `https://developers.openai.com/api/docs/guides/upgrading-to-gpt-5p6-sol`
+- OpenAI GPT-5.6 prompting guidance: `https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6`
 - AI SDK tool calling: `https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling`
