@@ -19,7 +19,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "test": "bun test --preload ./src/test/setup-env.ts",
+    "test": "bun test --preload ./src/test/setup-env.ts --parallel=1",
     "typecheck": "bun run typecheck:tsc",
     "typecheck:tsc": "bunx --no-install --package typescript tsc --noEmit --project tsconfig.json"
   },
