@@ -28,6 +28,7 @@ read_env() {
 }
 
 APP_HOSTNAME="$(read_env K8S_APP_HOSTNAME)"
+K8S_APP_NAMESPACE="${K8S_APP_NAMESPACE:-$(read_env K8S_APP_NAMESPACE)}"
 TRAEFIK_DASHBOARD_HOSTNAME="$(read_env K8S_TRAEFIK_DASHBOARD_HOSTNAME)"
 TRAEFIK_NAMESPACE="$(read_env K8S_TRAEFIK_NAMESPACE)"
 TRAEFIK_GATEWAY_NAME="$(read_env K8S_TRAEFIK_GATEWAY_NAME)"
@@ -45,6 +46,7 @@ DOCKER_USERNAME="$(read_env DOCKER_USERNAME)"
 DOCKER_PASSWORD="$(read_env DOCKER_PASSWORD)"
 
 APP_HOSTNAME="${APP_HOSTNAME:-app.docker.localhost}"
+K8S_APP_NAMESPACE="${K8S_APP_NAMESPACE:-default}"
 TRAEFIK_DASHBOARD_HOSTNAME="${TRAEFIK_DASHBOARD_HOSTNAME:-traefik.docker.localhost}"
 TRAEFIK_NAMESPACE="${TRAEFIK_NAMESPACE:-traefik}"
 TRAEFIK_GATEWAY_NAME="${TRAEFIK_GATEWAY_NAME:-traefik-gateway}"
@@ -53,8 +55,13 @@ TRAEFIK_DASHBOARD_USER="${TRAEFIK_DASHBOARD_USER:-admin}"
 TRAEFIK_DASHBOARD_PASSWORD="${TRAEFIK_DASHBOARD_PASSWORD:-change-me}"
 TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-dhi.io}"
 TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-traefik}"
-TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.7.5-debian13-dev}"
-TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.5}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.7.9-debian13-dev}"
+TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.9}"
+
+if [[ ${#K8S_APP_NAMESPACE} -gt 63 || ! "${K8S_APP_NAMESPACE}" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
+  echo "K8S_APP_NAMESPACE must be a valid Kubernetes namespace name, got: ${K8S_APP_NAMESPACE}" >&2
+  exit 1
+fi
 
 if [ -n "${TRAEFIK_IMAGE_DIGEST:-}" ]; then
   IMAGE_TAG="${TRAEFIK_IMAGE_TAG}@${TRAEFIK_IMAGE_DIGEST}"
@@ -94,6 +101,10 @@ EOF
 cat > "${VALUES_FILE}" <<EOF
 ${TRAEFIK_DEPLOYMENT_BLOCK}
 ${IMAGE_BLOCK}
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
 
 service:
   type: NodePort
@@ -196,12 +207,18 @@ gateway:
       port: 8000
       protocol: HTTP
       namespacePolicy:
-        from: All
+        from: Selector
+        selector:
+          matchLabels:
+            kubernetes.io/metadata.name: "${K8S_APP_NAMESPACE}"
     websecure:
       port: 8443
       protocol: HTTPS
       namespacePolicy:
-        from: All
+        from: Selector
+        selector:
+          matchLabels:
+            kubernetes.io/metadata.name: "${K8S_APP_NAMESPACE}"
       mode: Terminate
       certificateRefs:
         - kind: Secret

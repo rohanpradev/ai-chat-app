@@ -164,7 +164,7 @@ bun run check
 
 ## Docker
 
-The Compose stack pins current public upstream images (Bun 1.3.14, Nginx 1.31.3, Traefik 3.7.8, pgvector 0.8.5 on PostgreSQL 18, and Redis 8.8.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` to Docker Hardened Images or digest-pinned images.
+The Compose stack pins current public upstream images (Bun 1.3.14, Nginx 1.31.3, Traefik 3.7.9, pgvector 0.8.5 on PostgreSQL 18, Redis 8.8.1, and Docker Socket Proxy 0.4.2) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
 
 Start the full local stack:
 
@@ -172,7 +172,8 @@ Start the full local stack:
 make start
 ```
 
-This starts Traefik, PostgreSQL, Redis, the migration job, API server, and client.
+This starts Traefik, its private read-only Docker API proxy, PostgreSQL, Redis, the migration job, API server, and client. Traefik never mounts the host Docker socket directly; the proxy exposes only container discovery, network discovery, events, ping, and version reads on an internal-only network. Discovery is limited by the project-owned `com.chatapp.traefik.scope=edge` label because Traefik reserves `traefik.*` labels for routing configuration. Outbound version and anonymous-usage checks are disabled because releases are pinned and reviewed explicitly.
+Traefik 3.7's stricter encoded-path protections remain enabled. Relax `encodeQuerySemicolons`, `sanitizePath`, or encoded-character handling only for a backend with a verified RFC 3986 compatibility requirement and matching route tests.
 The server image compiles the Hono entrypoint during the Docker build with `bun run --filter @chat-app/server build`, then runs the generated `dist/index.js` in production instead of executing TypeScript source at container startup.
 
 Useful commands:
@@ -184,6 +185,8 @@ make health
 make stop
 make clean
 ```
+
+`make clean` performs a complete local teardown: Kubernetes application and Traefik resources, Docker Compose resources and local app images, local Bun development processes, generated workspace artifacts, and the local Kubernetes runtime. Use `make clean-k8s` or `make clean-docker` when you only want to remove one resource group.
 
 URLs:
 

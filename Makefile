@@ -137,16 +137,17 @@ build: ## Build Docker images
 	@echo "🔨 Building Docker images..."
 	@docker compose build --pull
 
-clean: clean-k8s clean-docker clean-local ## Clean project resources without stopping OrbStack/Minikube runtime
-	@echo "✅ Project cleanup complete. Kubernetes runtime was left running."
-	@echo "💡 To stop OrbStack/Minikube Kubernetes too, run 'make clean-runtime'."
+clean: clean-k8s clean-docker clean-local clean-generated clean-runtime ## Remove all local app resources, generated artifacts, and runtimes
+	@echo "✅ Complete project cleanup finished."
 
 clean-k8s: ## Clean Kubernetes app resources without stopping the cluster runtime
 	@echo "🧹 Cleaning Kubernetes app resources..."
 	@if command -v helm >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1; then \
 		helm uninstall $(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
+		kubectl delete job -l app.kubernetes.io/instance=$(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found=true --wait=true >/dev/null 2>&1 || true; \
+		kubectl delete pvc -l app.kubernetes.io/instance=$(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found=true --wait=true >/dev/null 2>&1 || true; \
 		helm uninstall $(TRAEFIK_RELEASE) -n $(TRAEFIK_NAMESPACE) --ignore-not-found >/dev/null 2>&1 || true; \
-		kubectl delete namespace $(TRAEFIK_NAMESPACE) --ignore-not-found=true --wait=false >/dev/null 2>&1 || true; \
+		kubectl delete namespace $(TRAEFIK_NAMESPACE) --ignore-not-found=true --wait=true >/dev/null 2>&1 || true; \
 	else \
 		echo "kubectl or helm not found. Skipping Kubernetes cleanup."; \
 	fi
@@ -253,7 +254,7 @@ k8s-setup: ## Create Helm local values override from template
 
 k8s-traefik: ## Install Traefik via Helm and expose Gateway routes for local hostname-based access
 	@echo "Installing Traefik for Kubernetes Gateway mode..."
-	@TRAEFIK_NAMESPACE=$(TRAEFIK_NAMESPACE) TRAEFIK_RELEASE=$(TRAEFIK_RELEASE) bash scripts/deploy-k8s-traefik.sh
+	@K8S_APP_NAMESPACE=$(K8S_NAMESPACE) TRAEFIK_NAMESPACE=$(TRAEFIK_NAMESPACE) TRAEFIK_RELEASE=$(TRAEFIK_RELEASE) bash scripts/deploy-k8s-traefik.sh
 
 k8s-full-stack: ## Alias for the one-command full local Kubernetes bootstrap
 	@$(MAKE) --no-print-directory kubernetes

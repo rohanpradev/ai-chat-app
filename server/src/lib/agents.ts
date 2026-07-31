@@ -95,6 +95,7 @@ const buildToolApprovalSettings = (activeTools: EnabledRequestToolId[]) =>
 
 const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentProfile): ChatAgent =>
 	new ToolLoopAgent<AgentCallOptions, typeof agentTools>({
+		allowSystemInMessages: false,
 		callOptionsSchema: agentCallOptionsSchema,
 		id: functionId,
 		instructions: buildAgentInstructions(baseInstructions, []),
