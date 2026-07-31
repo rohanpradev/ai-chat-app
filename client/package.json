@@ -13,7 +13,7 @@
     "typecheck:tsc": "bunx --no-install --package typescript tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@ai-sdk/react": "^4.0.34",
+    "@ai-sdk/react": "^4.0.40",
     "@chat-app/shared": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.20",
     "@radix-ui/react-hover-card": "^1.1.19",

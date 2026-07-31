@@ -37,6 +37,8 @@ Current server-side tool:
 
 The search tool is approval gated with AI SDK `toolApproval`, strict Zod input/output schemas, timeouts, output normalization, and model-facing summaries rather than raw full-page content. Set `AI_TOOL_APPROVAL_SECRET` in shared environments so AI SDK can sign approval responses and reject replayed or tampered approvals.
 
+The AI SDK 7 agent boundary follows the current agent guidance: request-specific model and tool settings pass through a runtime-validated `callOptionsSchema` and `prepareCall`; client-authored system messages are rejected in favor of server-owned `instructions`; agent steps and total/chunk/tool time are bounded; request aborts propagate through model and tool calls; and telemetry records operational metadata without prompt or response bodies. Keep those controls explicit when adding an agent or tool.
+
 ## Current AI Docs Direction
 
 The major provider docs are converging on the same patterns:

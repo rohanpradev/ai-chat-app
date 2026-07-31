@@ -27,8 +27,8 @@
     "bun": ">=1.3.14"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.16",
-    "@ai-sdk/otel": "^1.0.31",
+    "@ai-sdk/openai": "^4.0.20",
+    "@ai-sdk/otel": "^1.0.37",
     "@better-auth/drizzle-adapter": "^1.6.23",
     "@chat-app/shared": "workspace:*",
     "@hono/zod-openapi": "catalog:",

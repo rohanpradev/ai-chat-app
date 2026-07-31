@@ -269,7 +269,7 @@ describe("AI Routes", () => {
 		expect(response.status).toBe(400);
 	});
 
-	it("accepts SDK v6 tool approval message parts", async () => {
+	it("accepts SDK v7 tool approval message parts", async () => {
 		const { createApp } = await import("@/lib/create-app");
 		const { default: router } = await import("@/routes/ai/ai.index");
 		const app = createApp().route("/", router);

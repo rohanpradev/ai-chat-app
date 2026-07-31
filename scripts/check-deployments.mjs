@@ -72,11 +72,59 @@ if (existsSync(new URL(".env", rootDir)) && !boolEnv("DEPLOY_CHECK_USE_VALUES_TE
 	console.log("Skipped: validating with values.local.yaml.template.");
 }
 
-run({
-	args: ["compose", "-f", "compose.yml", "config", "--quiet"],
+const composeConfigResult = run({
+	args: ["compose", "-f", "compose.yml", "config", "--format", "json"],
 	command: "docker",
 	name: "Validate Docker Compose config",
+	silent: true,
 });
+
+const composeConfig = JSON.parse(composeConfigResult.stdout);
+const socketProxyService = composeConfig.services?.["docker-socket-proxy"];
+const traefikService = composeConfig.services?.traefik;
+const traefikCommand = Array.isArray(traefikService?.command) ? traefikService.command : [];
+const traefikVolumes = Array.isArray(traefikService?.volumes) ? traefikService.volumes : [];
+const socketProxyVolumes = Array.isArray(socketProxyService?.volumes) ? socketProxyService.volumes : [];
+
+if (!socketProxyService || !traefikService) {
+	throw new Error("Compose config must include Traefik and its Docker socket proxy.");
+}
+
+if (!traefikCommand.includes("--providers.docker.endpoint=tcp://docker-socket-proxy:2375")) {
+	throw new Error("Traefik must use the restricted Docker socket proxy endpoint.");
+}
+
+if (!traefikCommand.includes("--providers.docker.constraints=Label(`com.chatapp.traefik.scope`,`edge`)")) {
+	throw new Error("Traefik must restrict discovery with a project-owned, non-reserved label.");
+}
+
+if (
+	!traefikCommand.includes("--global.checknewversion=false") ||
+	!traefikCommand.includes("--global.sendanonymoususage=false")
+) {
+	throw new Error("Traefik outbound version and anonymous usage checks must remain disabled.");
+}
+
+if (traefikVolumes.some((volume) => volume.target === "/var/run/docker.sock")) {
+	throw new Error("Traefik must not mount the Docker socket directly.");
+}
+
+if (
+	!socketProxyVolumes.some(
+		(volume) =>
+			volume.source === "/var/run/docker.sock" && volume.target === "/var/run/docker.sock" && volume.read_only === true,
+	)
+) {
+	throw new Error("Docker socket proxy must own the read-only Docker socket mount.");
+}
+
+if (socketProxyService.environment?.POST !== "0") {
+	throw new Error("Docker socket proxy must deny write requests.");
+}
+
+if (composeConfig.networks?.["chat-app-docker-api"]?.internal !== true) {
+	throw new Error("Docker socket proxy network must remain internal.");
+}
 
 const dockerInfo = run({
 	args: ["info"],
@@ -172,7 +220,7 @@ for (const [needle, label] of [
 	["kind: HorizontalPodAutoscaler", "HPAs"],
 	["kind: PodDisruptionBudget", "PDBs"],
 	["docker.io/pgvector/pgvector:0.8.5-pg18-trixie", "pgvector-enabled PostgreSQL image"],
-	["dhi.io/redis:8.8.0-debian13", "Redis image"],
+	["dhi.io/redis:8.8.1-debian13", "Redis image"],
 	["curlimages/curl:8.21.0", "Helm test image"],
 	["AI_DAILY_TOKEN_LIMIT", "AI quota configuration"],
 	["kind: HTTPRoute", "Gateway HTTPRoutes"],

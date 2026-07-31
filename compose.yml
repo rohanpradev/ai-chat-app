@@ -15,24 +15,54 @@ x-logging-defaults: &logging-defaults
       max-file: "3"
 
 services:
+  # Restrict Traefik to the read-only Docker API endpoints it needs for discovery.
+  docker-socket-proxy:
+    <<:
+      - *security-defaults
+      - *logging-defaults
+    image: ${DOCKER_SOCKET_PROXY_IMAGE:-ghcr.io/tecnativa/docker-socket-proxy:v0.4.2}
+    pull_policy: always
+    container_name: chat-app-docker-socket-proxy
+    environment:
+      CONTAINERS: "1"
+      NETWORKS: "1"
+      POST: "0"
+      LOG_LEVEL: warning
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2375/_ping | grep -q OK"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - chat-app-docker-api
+
   # Traefik - Modern reverse proxy and load balancer
   traefik:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${TRAEFIK_IMAGE:-traefik:v3.7.8}
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.9}
     pull_policy: always
     container_name: chat-app-traefik
     command:
+      # Disable outbound version/usage checks; releases are pinned and reviewed explicitly.
+      - --global.checknewversion=false
+      - --global.sendanonymoususage=false
+
       # API and Dashboard
       - --api.insecure=false
       - --api.dashboard=true
 
       # Docker provider
       - --providers.docker=true
+      - --providers.docker.endpoint=tcp://docker-socket-proxy:2375
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=chat-app-edge
-      - "--providers.docker.constraints=Label(`traefik.constraint-label`,`chat-app`)"
+      - "--providers.docker.constraints=Label(`com.chatapp.traefik.scope`,`edge`)"
 
       # Entrypoints
       - --entrypoints.web.address=:80
@@ -56,11 +86,13 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_logs:/var/log/traefik
+    depends_on:
+      docker-socket-proxy:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.constraint-label=chat-app"
+      - "com.chatapp.traefik.scope=edge"
       # Dashboard router (HTTPS only)
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN:-localhost}`)"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
@@ -88,6 +120,7 @@ services:
       start_period: 10s
     networks:
       - chat-app-edge
+      - chat-app-docker-api
 
   db:
     <<:
@@ -132,7 +165,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${REDIS_IMAGE:-redis:8.8.0-trixie}
+    image: ${REDIS_IMAGE:-redis:8.8.1-trixie}
     pull_policy: always
     container_name: chat-app-redis
     environment:
@@ -252,7 +285,7 @@ services:
     labels:
       # Traefik configuration
       - "traefik.enable=true"
-      - "traefik.constraint-label=chat-app"
+      - "com.chatapp.traefik.scope=edge"
       - "traefik.docker.network=chat-app-edge"
 
       # HTTPS router (primary)
@@ -371,7 +404,7 @@ services:
     labels:
       # Traefik configuration
       - "traefik.enable=true"
-      - "traefik.constraint-label=chat-app"
+      - "com.chatapp.traefik.scope=edge"
       - "traefik.docker.network=chat-app-edge"
 
       # HTTPS router (primary)
@@ -443,6 +476,11 @@ secrets:
     environment: SENTRY_AUTH_TOKEN
 
 networks:
+  # Private Docker API path shared only by Traefik and its read-only socket proxy.
+  chat-app-docker-api:
+    name: chat-app-docker-api
+    driver: bridge
+    internal: true
   # Public-facing edge network used only by Traefik, the client, and the API.
   chat-app-edge:
     name: chat-app-edge

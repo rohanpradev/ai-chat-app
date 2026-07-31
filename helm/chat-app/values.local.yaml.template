@@ -16,7 +16,7 @@ images:
   redis:
     registry: ""
     repository: redis
-    tag: 8.8.0-trixie
+    tag: 8.8.1-trixie
     pullPolicy: IfNotPresent
 
 config:
