@@ -12,7 +12,7 @@
 	},
 	"description": "A chat application built with Bun, React, and Zod.",
 	"devDependencies": {
-		"@biomejs/biome": "2.5.5",
+		"@biomejs/biome": "2.5.7",
 		"@playwright/test": "^1.61.1",
 		"knip": "^6.27.0",
 		"rimraf": "^6.1.3",
