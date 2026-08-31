@@ -65,7 +65,7 @@ export const getConversations: AppRouteHandler<GetConversationsRoute> = async (c
 
 	const conversations = await db.query.chats.findMany({
 		orderBy: (chats, { desc }) => [desc(chats.updatedAt)],
-		where: eq(chats.userId, userJwt.id)
+		where: { userId: userJwt.id }
 	});
 
 	return c.json(
@@ -87,7 +87,7 @@ export const getConversation: AppRouteHandler<GetConversationRoute> = async (c) 
 	const { id } = c.req.valid("param");
 
 	const chat = await db.query.chats.findFirst({
-		where: and(eq(chats.id, id), eq(chats.userId, userJwt.id)),
+		where: { id, userId: userJwt.id },
 		with: {
 			messages: {
 				columns: {

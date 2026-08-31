@@ -57,7 +57,7 @@ export const loadConversationMessages = async (chatId: string | undefined, userI
 	}
 
 	const chat = await db.query.chats.findFirst({
-		where: eq(chats.id, chatId),
+		where: { id: chatId },
 		with: {
 			messages: {
 				columns: {
@@ -95,7 +95,7 @@ export const saveConversation = async (chatId: string | undefined, uiMessages: U
 		// Serialize writers for one conversation across all Kubernetes replicas.
 		await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${chatId}))`);
 		const existingChat = await tx.query.chats.findFirst({
-			where: eq(chats.id, chatId)
+			where: { id: chatId }
 		});
 
 		if (existingChat) {

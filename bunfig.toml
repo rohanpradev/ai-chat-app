@@ -3,6 +3,3 @@ linker = "isolated"
 # Hold newly published package versions for 72 hours before fresh resolution.
 # Existing versions in bun.lock are unchanged by this gate.
 minimumReleaseAge = 259200
-# Exact security override for GHSA-mh99-v99m-4gvg. Remove this exemption once
-# brace-expansion@5.0.8 has passed the normal 72-hour hold.
-minimumReleaseAgeExcludes = ["brace-expansion"]

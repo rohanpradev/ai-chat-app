@@ -40,7 +40,7 @@ const vendorChunkGroups = [
   },
   {
     name: "stream-plugin-vendor",
-    test: /@streamdown|ansi-to-react/,
+    test: /@streamdown|anser|escape-carriage/,
     priority: 33,
   },
   {

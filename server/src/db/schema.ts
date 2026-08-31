@@ -1,5 +1,5 @@
 import { generateId } from "ai";
-import { relations } from "drizzle-orm";
+import { defineRelations } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -136,35 +136,6 @@ export const chats = pgTable(
 	]
 );
 
-export const userRelations = relations(users, ({ many }) => ({
-	accounts: many(accounts),
-	chats: many(chats),
-	embeddingDocuments: many(embeddingDocuments),
-	sessions: many(sessions)
-}));
-
-export const chatRelations = relations(chats, ({ one, many }) => ({
-	messages: many(messages),
-	user: one(users, {
-		fields: [chats.userId],
-		references: [users.id]
-	})
-}));
-
-export const sessionRelations = relations(sessions, ({ one }) => ({
-	user: one(users, {
-		fields: [sessions.userId],
-		references: [users.id]
-	})
-}));
-
-export const accountRelations = relations(accounts, ({ one }) => ({
-	user: one(users, {
-		fields: [accounts.userId],
-		references: [users.id]
-	})
-}));
-
 export const messages = pgTable(
 	"message",
 	{
@@ -217,10 +188,6 @@ export const messageRevisions = pgTable(
 		index("message_revisions_chat_created_idx").on(table.chatId, table.createdAt)
 	]
 );
-
-export const messagesRelations = relations(messages, ({ one }) => ({
-	chat: one(chats, { fields: [messages.chatId], references: [chats.id] })
-}));
 
 export const embeddingDocuments = pgTable(
 	"embedding_document",
@@ -311,21 +278,84 @@ export const usageEvents = pgTable(
 	]
 );
 
-export const embeddingDocumentsRelations = relations(embeddingDocuments, ({ many, one }) => ({
-	chunks: many(embeddingChunks),
-	user: one(users, {
-		fields: [embeddingDocuments.userId],
-		references: [users.id]
-	})
-}));
+const relationalSchema = {
+	accounts,
+	chats,
+	embeddingChunks,
+	embeddingDocuments,
+	messageRevisions,
+	messages,
+	sessions,
+	usageEvents,
+	users,
+	verifications
+};
 
-export const embeddingChunksRelations = relations(embeddingChunks, ({ one }) => ({
-	document: one(embeddingDocuments, {
-		fields: [embeddingChunks.documentId],
-		references: [embeddingDocuments.id]
-	}),
-	user: one(users, {
-		fields: [embeddingChunks.userId],
-		references: [users.id]
-	})
+export const dbRelations = defineRelations(relationalSchema, (r) => ({
+	accounts: {
+		user: r.one.users({
+			from: r.accounts.userId,
+			to: r.users.id
+		})
+	},
+	chats: {
+		messages: r.many.messages({
+			from: r.chats.id,
+			to: r.messages.chatId
+		}),
+		user: r.one.users({
+			from: r.chats.userId,
+			to: r.users.id
+		})
+	},
+	embeddingChunks: {
+		document: r.one.embeddingDocuments({
+			from: r.embeddingChunks.documentId,
+			to: r.embeddingDocuments.id
+		}),
+		user: r.one.users({
+			from: r.embeddingChunks.userId,
+			to: r.users.id
+		})
+	},
+	embeddingDocuments: {
+		chunks: r.many.embeddingChunks({
+			from: r.embeddingDocuments.id,
+			to: r.embeddingChunks.documentId
+		}),
+		user: r.one.users({
+			from: r.embeddingDocuments.userId,
+			to: r.users.id
+		})
+	},
+	messages: {
+		chat: r.one.chats({
+			from: r.messages.chatId,
+			to: r.chats.id
+		})
+	},
+	sessions: {
+		user: r.one.users({
+			from: r.sessions.userId,
+			to: r.users.id
+		})
+	},
+	users: {
+		accounts: r.many.accounts({
+			from: r.users.id,
+			to: r.accounts.userId
+		}),
+		chats: r.many.chats({
+			from: r.users.id,
+			to: r.chats.userId
+		}),
+		embeddingDocuments: r.many.embeddingDocuments({
+			from: r.users.id,
+			to: r.embeddingDocuments.userId
+		}),
+		sessions: r.many.sessions({
+			from: r.users.id,
+			to: r.sessions.userId
+		})
+	}
 }));

@@ -23,7 +23,7 @@ bun run --filter @chat-app/server build
 
 ## Database
 
-Drizzle config lives in `drizzle.config.ts`.
+Drizzle ORM and Kit are intentionally pinned to the same v1 release candidate. Config lives in `drizzle.config.ts`, and migration history uses Drizzle's v3 timestamped-folder format.
 
 Common commands:
 
@@ -31,6 +31,8 @@ Common commands:
 bun run --filter @chat-app/server db:generate
 bun run --filter @chat-app/server db:migrate
 ```
+
+Run the repository-level `bun run check:migrations` after schema changes. It validates the history and fails if generation would change committed migration output.
 
 Kubernetes migrations use `server/Dockerfile.migrate` through the root Makefile.
 

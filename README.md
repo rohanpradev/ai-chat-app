@@ -164,7 +164,7 @@ bun run check
 
 ## Docker
 
-The Compose stack pins current public upstream images (Bun 1.3.14, Nginx 1.31.3, Traefik 3.7.9, pgvector 0.8.5 on PostgreSQL 18, Redis 8.8.1, and Docker Socket Proxy 0.4.2) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
+The Compose stack pins current public upstream images (Bun 1.4.0, Nginx 1.31.3, Traefik 3.7.9, pgvector 0.8.5 on PostgreSQL 18, Redis 8.8.1, and Docker Socket Proxy 0.4.2) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
 
 Start the full local stack:
 

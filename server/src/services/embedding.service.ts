@@ -286,16 +286,11 @@ const assertExtractedText = (content: string) => {
 const extractPdfText = async (file: File) => {
 	const buffer = new Uint8Array(await file.arrayBuffer());
 	const pdf = await getDocumentProxy(buffer);
-
-	try {
-		const result = await extractText(pdf, { mergePages: true });
-		return {
-			metadata: { totalPages: result.totalPages },
-			text: result.text
-		};
-	} finally {
-		await pdf.destroy();
-	}
+	const result = await extractText(pdf, { mergePages: true });
+	return {
+		metadata: { totalPages: result.totalPages },
+		text: result.text
+	};
 };
 
 export const extractUploadContent = async (file: File, options: { metadata?: string; title?: string }) => {
