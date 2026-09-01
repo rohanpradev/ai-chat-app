@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+umask 077
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 TMP_DIR="$(mktemp -d)"
@@ -39,15 +41,30 @@ APP_HOSTNAME="${APP_HOSTNAME:-app.docker.localhost}"
 TRAEFIK_DASHBOARD_HOSTNAME="${TRAEFIK_DASHBOARD_HOSTNAME:-traefik.docker.localhost}"
 TRAEFIK_NAMESPACE="${TRAEFIK_NAMESPACE:-traefik}"
 
-openssl req \
-  -x509 \
-  -nodes \
-  -newkey rsa:2048 \
-  -days 365 \
-  -subj "/CN=${APP_HOSTNAME}" \
-  -addext "subjectAltName=DNS:${APP_HOSTNAME},DNS:${TRAEFIK_DASHBOARD_HOSTNAME},DNS:localhost" \
-  -keyout "${TMP_DIR}/tls.key" \
-  -out "${TMP_DIR}/tls.crt" >/dev/null 2>&1
+if command -v mkcert >/dev/null 2>&1; then
+  mkcert \
+    -cert-file "${TMP_DIR}/tls.crt" \
+    -key-file "${TMP_DIR}/tls.key" \
+    "${APP_HOSTNAME}" \
+    "${TRAEFIK_DASHBOARD_HOSTNAME}" \
+    localhost \
+    127.0.0.1 \
+    ::1 >/dev/null
+  CERTIFICATE_SOURCE="locally trusted mkcert"
+else
+  echo "Warning: mkcert is unavailable; browsers will not trust the generated fallback certificate." >&2
+  echo "Install mkcert and run 'mkcert -install' once for trusted local HTTPS." >&2
+  openssl req \
+    -x509 \
+    -nodes \
+    -newkey rsa:2048 \
+    -days 365 \
+    -subj "/CN=${APP_HOSTNAME}" \
+    -addext "subjectAltName=DNS:${APP_HOSTNAME},DNS:${TRAEFIK_DASHBOARD_HOSTNAME},DNS:localhost,IP:127.0.0.1" \
+    -keyout "${TMP_DIR}/tls.key" \
+    -out "${TMP_DIR}/tls.crt" >/dev/null 2>&1
+  CERTIFICATE_SOURCE="self-signed OpenSSL fallback"
+fi
 
 kubectl create namespace "${TRAEFIK_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 kubectl create secret tls local-selfsigned-tls \
@@ -57,4 +74,4 @@ kubectl create secret tls local-selfsigned-tls \
   --dry-run=client \
   -o yaml | kubectl apply -f -
 
-echo "Applied local-selfsigned-tls secret in namespace ${TRAEFIK_NAMESPACE}."
+echo "Applied ${CERTIFICATE_SOURCE} certificate to local-selfsigned-tls in namespace ${TRAEFIK_NAMESPACE}."

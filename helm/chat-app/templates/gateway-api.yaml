@@ -6,32 +6,38 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: {{ .Values.exposure.gateway.name }}
-  namespace: {{ .Values.exposure.gateway.namespace }}
+  name: {{ .Values.exposure.gateway.name | quote }}
+  namespace: {{ .Values.exposure.gateway.namespace | quote }}
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/component: gateway
 spec:
-  gatewayClassName: {{ .Values.exposure.gateway.className }}
+  gatewayClassName: {{ .Values.exposure.gateway.className | quote }}
   listeners:
     - name: web
       port: 80
       protocol: HTTP
       allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace | quote }}
     - name: websecure
       port: 443
       protocol: HTTPS
       allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace | quote }}
       {{- if .Values.exposure.gateway.tls.enabled }}
       tls:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: {{ .Values.exposure.gateway.tls.secretName }}
+            name: {{ .Values.exposure.gateway.tls.secretName | quote }}
       {{- end }}
 ---
 {{- end }}
@@ -44,8 +50,8 @@ metadata:
     app.kubernetes.io/component: client
 spec:
   parentRefs:
-    - name: {{ .Values.exposure.gateway.name }}
-      namespace: {{ .Values.exposure.gateway.namespace }}
+    - name: {{ .Values.exposure.gateway.name | quote }}
+      namespace: {{ .Values.exposure.gateway.namespace | quote }}
       sectionName: {{ $gatewaySectionName }}
   hostnames:
     {{- range .Values.exposure.gateway.hostnames }}
@@ -82,8 +88,8 @@ metadata:
     app.kubernetes.io/component: server
 spec:
   parentRefs:
-    - name: {{ .Values.exposure.gateway.name }}
-      namespace: {{ .Values.exposure.gateway.namespace }}
+    - name: {{ .Values.exposure.gateway.name | quote }}
+      namespace: {{ .Values.exposure.gateway.namespace | quote }}
       sectionName: {{ $gatewaySectionName }}
   hostnames:
     {{- range .Values.exposure.gateway.hostnames }}
@@ -93,7 +99,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /{{ .Values.config.env.BASE_API_SLUG }}
+            value: {{ printf "/%s" .Values.config.env.BASE_API_SLUG | quote }}
       {{- if and .Values.exposure.gateway.createMiddlewares $middlewareCRDAvailable }}
       filters:
         - type: ExtensionRef
@@ -185,5 +191,5 @@ spec:
   rateLimit:
     average: {{ .Values.exposure.gateway.rateLimit.average }}
     burst: {{ .Values.exposure.gateway.rateLimit.burst }}
-    period: {{ .Values.exposure.gateway.rateLimit.period }}
+    period: {{ .Values.exposure.gateway.rateLimit.period | quote }}
 {{- end }}

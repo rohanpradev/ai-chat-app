@@ -87,6 +87,8 @@ server/*.test.*
 **/Makefile
 **/*.sh
 **/scripts
+!server/scripts/
+!server/scripts/build.ts
 **/docs
 !server/docker-entrypoint.migrate.sh
 

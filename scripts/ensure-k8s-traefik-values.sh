@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# The generated values include dashboard credentials.
+umask 077
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VALUES_FILE="${ROOT_DIR}/k8s/traefik-values.generated.yaml"
 ENV_FILE="${ROOT_DIR}/.env"
@@ -30,8 +33,10 @@ read_env() {
 APP_HOSTNAME="$(read_env K8S_APP_HOSTNAME)"
 K8S_APP_NAMESPACE="${K8S_APP_NAMESPACE:-$(read_env K8S_APP_NAMESPACE)}"
 TRAEFIK_DASHBOARD_HOSTNAME="$(read_env K8S_TRAEFIK_DASHBOARD_HOSTNAME)"
-TRAEFIK_NAMESPACE="$(read_env K8S_TRAEFIK_NAMESPACE)"
-TRAEFIK_GATEWAY_NAME="$(read_env K8S_TRAEFIK_GATEWAY_NAME)"
+TRAEFIK_NAMESPACE="${TRAEFIK_NAMESPACE:-$(read_env K8S_TRAEFIK_NAMESPACE)}"
+TRAEFIK_GATEWAY_NAME="${TRAEFIK_GATEWAY_NAME:-$(read_env K8S_TRAEFIK_GATEWAY_NAME)}"
+TRAEFIK_WEB_NODE_PORT="${TRAEFIK_WEB_NODE_PORT:-$(read_env K8S_TRAEFIK_WEB_NODE_PORT)}"
+TRAEFIK_WEBSECURE_NODE_PORT="${TRAEFIK_WEBSECURE_NODE_PORT:-$(read_env K8S_TRAEFIK_WEBSECURE_NODE_PORT)}"
 TRAEFIK_LOG_LEVEL="$(read_env TRAEFIK_LOG_LEVEL)"
 TRAEFIK_DASHBOARD_USER="$(read_env TRAEFIK_DASHBOARD_USER)"
 TRAEFIK_DASHBOARD_PASSWORD="$(read_env TRAEFIK_DASHBOARD_PASSWORD)"
@@ -48,15 +53,29 @@ DOCKER_PASSWORD="$(read_env DOCKER_PASSWORD)"
 APP_HOSTNAME="${APP_HOSTNAME:-app.docker.localhost}"
 K8S_APP_NAMESPACE="${K8S_APP_NAMESPACE:-default}"
 TRAEFIK_DASHBOARD_HOSTNAME="${TRAEFIK_DASHBOARD_HOSTNAME:-traefik.docker.localhost}"
-TRAEFIK_NAMESPACE="${TRAEFIK_NAMESPACE:-traefik}"
-TRAEFIK_GATEWAY_NAME="${TRAEFIK_GATEWAY_NAME:-traefik-gateway}"
+TRAEFIK_NAMESPACE="${TRAEFIK_NAMESPACE:-chat-app-traefik}"
+TRAEFIK_GATEWAY_NAME="${TRAEFIK_GATEWAY_NAME:-chat-app-gateway}"
+TRAEFIK_WEB_NODE_PORT="${TRAEFIK_WEB_NODE_PORT:-31080}"
+TRAEFIK_WEBSECURE_NODE_PORT="${TRAEFIK_WEBSECURE_NODE_PORT:-31443}"
 TRAEFIK_LOG_LEVEL="${TRAEFIK_LOG_LEVEL:-INFO}"
 TRAEFIK_DASHBOARD_USER="${TRAEFIK_DASHBOARD_USER:-admin}"
 TRAEFIK_DASHBOARD_PASSWORD="${TRAEFIK_DASHBOARD_PASSWORD:-change-me}"
 TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-dhi.io}"
 TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-traefik}"
-TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.7.9-debian13-dev}"
-TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.9}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.7.12-debian13-dev}"
+TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.12}"
+
+for node_port in "${TRAEFIK_WEB_NODE_PORT}" "${TRAEFIK_WEBSECURE_NODE_PORT}"; do
+  if [[ ! "${node_port}" =~ ^[0-9]+$ ]] || ((node_port < 30000 || node_port > 32767)); then
+    echo "Traefik NodePorts must be integers in the Kubernetes range 30000-32767, got: ${node_port}" >&2
+    exit 1
+  fi
+done
+
+if [ "${TRAEFIK_WEB_NODE_PORT}" = "${TRAEFIK_WEBSECURE_NODE_PORT}" ]; then
+  echo "Traefik HTTP and HTTPS NodePorts must be different." >&2
+  exit 1
+fi
 
 if [[ ${#K8S_APP_NAMESPACE} -gt 63 || ! "${K8S_APP_NAMESPACE}" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
   echo "K8S_APP_NAMESPACE must be a valid Kubernetes namespace name, got: ${K8S_APP_NAMESPACE}" >&2
@@ -107,22 +126,27 @@ global:
   sendAnonymousUsage: false
 
 service:
-  type: NodePort
+  spec:
+    type: NodePort
 
 ports:
   web:
     port: 8000
     exposedPort: 80
-    nodePort: 30000
+    nodePort: ${TRAEFIK_WEB_NODE_PORT}
   websecure:
     port: 8443
     exposedPort: 443
-    nodePort: 30001
+    nodePort: ${TRAEFIK_WEBSECURE_NODE_PORT}
     http:
       tls:
         enabled: true
 
 additionalArguments:
+  - "--entryPoints.metrics.http.aliasHeadersStrategy=reject"
+  - "--entryPoints.traefik.http.aliasHeadersStrategy=reject"
+  - "--entryPoints.web.http.aliasHeadersStrategy=reject"
+  - "--entryPoints.websecure.http.aliasHeadersStrategy=reject"
   - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
   - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
   - "--entrypoints.web.http.redirections.entryPoint.permanent=true"
@@ -187,6 +211,7 @@ providers:
   kubernetesCRD:
     enabled: true
     allowEmptyServices: true
+    safeNaming: true
     crossProviderNamespaces:
       - default
       - ${TRAEFIK_NAMESPACE}
@@ -256,5 +281,7 @@ livenessProbe:
   periodSeconds: 10
   timeoutSeconds: 2
 EOF
+
+chmod 600 "${VALUES_FILE}"
 
 echo "Generated ${VALUES_FILE} from ${ENV_FILE}."

@@ -32,7 +32,7 @@ const fileToDataUrl = async (profileImage: File) => {
 export const userProfile: AppRouteHandler<UserProfileRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const user = await db.query.users.findFirst({
-		where: (userDb, { eq }) => eq(userDb.id, userJwt.id)
+		where: { id: userJwt.id }
 	});
 
 	if (!user)
@@ -60,7 +60,7 @@ export const userProfile: AppRouteHandler<UserProfileRoute> = async (c) => {
 export const patchUserProfile: AppRouteHandler<UpdateUserProfileRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const user = await db.query.users.findFirst({
-		where: (userDb, { eq }) => eq(userDb.id, userJwt.id)
+		where: { id: userJwt.id }
 	});
 
 	if (!user)

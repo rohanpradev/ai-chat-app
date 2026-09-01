@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import Ansi from "ansi-to-react";
+import Anser from "anser";
+import { escapeCarriageReturn } from "escape-carriage";
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from "lucide-react";
-import type { ComponentProps, HTMLAttributes } from "react";
+import type { ComponentProps, CSSProperties, HTMLAttributes } from "react";
 import {
   createContext,
   useCallback,
@@ -27,6 +28,74 @@ const TerminalContext = createContext<TerminalContextType>({
   isStreaming: false,
   output: "",
 });
+
+const fixBackspaces = (text: string) => {
+  let previous: string;
+
+  do {
+    previous = text;
+    text = text.replace(/[^\n]\x08/gm, "");
+  } while (text.length < previous.length);
+
+  return text;
+};
+
+const getAnsiStyle = (entry: Anser.AnserJsonEntry): CSSProperties => {
+  const style: CSSProperties = {};
+
+  if (entry.bg) {
+    style.backgroundColor = `rgb(${entry.bg})`;
+  }
+  if (entry.fg) {
+    style.color = `rgb(${entry.fg})`;
+  }
+
+  switch (entry.decoration) {
+    case "bold":
+      style.fontWeight = "bold";
+      break;
+    case "dim":
+      style.opacity = 0.5;
+      break;
+    case "italic":
+      style.fontStyle = "italic";
+      break;
+    case "hidden":
+      style.visibility = "hidden";
+      break;
+    case "strikethrough":
+      style.textDecoration = "line-through";
+      break;
+    case "underline":
+      style.textDecoration = "underline";
+      break;
+    default:
+      break;
+  }
+
+  return style;
+};
+
+const AnsiOutput = ({ output }: { output: string }) => {
+  const entries = useMemo(
+    () =>
+      Anser.ansiToJson(escapeCarriageReturn(fixBackspaces(output)), {
+        json: true,
+        remove_empty: true,
+      }),
+    [output]
+  );
+
+  return (
+    <code>
+      {entries.map((entry, index) => (
+        <span key={`${index}-${entry.content}`} style={getAnsiStyle(entry)}>
+          {entry.content}
+        </span>
+      ))}
+    </code>
+  );
+};
 
 export type TerminalHeaderProps = HTMLAttributes<HTMLDivElement>;
 
@@ -212,7 +281,7 @@ export const TerminalContent = ({
     >
       {children ?? (
         <pre className="whitespace-pre-wrap break-words">
-          <Ansi>{output}</Ansi>
+          <AnsiOutput output={output} />
           {isStreaming && (
             <span className="ml-0.5 inline-block h-4 w-2 animate-pulse bg-zinc-100" />
           )}

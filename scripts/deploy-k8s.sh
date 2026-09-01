@@ -5,7 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CHART_DIR="${ROOT_DIR}/helm/chat-app"
 NAMESPACE="${NAMESPACE:-default}"
 RELEASE_NAME="${RELEASE_NAME:-chat-app}"
-ROLLBACK_ON_FAILURE="${ROLLBACK_ON_FAILURE:-false}"
+ROLLBACK_ON_FAILURE="${ROLLBACK_ON_FAILURE:-true}"
+HELM_HISTORY_MAX="${HELM_HISTORY_MAX:-10}"
 
 bash "${ROOT_DIR}/scripts/ensure-k8s-secrets.sh"
 NAMESPACE="${NAMESPACE}" SECRET_NAME="dhi-registry" bash "${ROOT_DIR}/scripts/ensure-k8s-registry-secret.sh"
@@ -20,6 +21,7 @@ HELM_ARGS=(
   --wait
   --wait-for-jobs
   --timeout 10m
+  --history-max "${HELM_HISTORY_MAX}"
   -f "${CHART_DIR}/values.yaml"
   -f "${CHART_DIR}/values.local.yaml"
 )

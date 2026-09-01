@@ -6,6 +6,10 @@ metadata:
   labels:
     {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: db
+  {{- if .Values.db.persistence.retainOnDelete }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
 spec:
   accessModes:
     {{- toYaml .Values.db.persistence.accessModes | nindent 4 }}
@@ -25,6 +29,10 @@ metadata:
   labels:
     {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: redis
+  {{- if .Values.redis.persistence.retainOnDelete }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
 spec:
   accessModes:
     {{- toYaml .Values.redis.persistence.accessModes | nindent 4 }}
@@ -33,43 +41,5 @@ spec:
       storage: {{ .Values.redis.persistence.size }}
   {{- if .Values.redis.persistence.storageClassName }}
   storageClassName: {{ .Values.redis.persistence.storageClassName }}
-  {{- end }}
-{{- end }}
-{{- if .Values.server.persistence.uploads.enabled }}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}-uploads
-  labels:
-    {{- include "chat-app.labels" . | nindent 4 }}
-    app.kubernetes.io/component: server
-spec:
-  accessModes:
-    {{- toYaml .Values.server.persistence.uploads.accessModes | nindent 4 }}
-  resources:
-    requests:
-      storage: {{ .Values.server.persistence.uploads.size }}
-  {{- if .Values.server.persistence.uploads.storageClassName }}
-  storageClassName: {{ .Values.server.persistence.uploads.storageClassName }}
-  {{- end }}
-{{- end }}
-{{- if .Values.server.persistence.logs.enabled }}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}-logs
-  labels:
-    {{- include "chat-app.labels" . | nindent 4 }}
-    app.kubernetes.io/component: server
-spec:
-  accessModes:
-    {{- toYaml .Values.server.persistence.logs.accessModes | nindent 4 }}
-  resources:
-    requests:
-      storage: {{ .Values.server.persistence.logs.size }}
-  {{- if .Values.server.persistence.logs.storageClassName }}
-  storageClassName: {{ .Values.server.persistence.logs.storageClassName }}
   {{- end }}
 {{- end }}

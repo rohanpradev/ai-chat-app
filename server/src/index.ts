@@ -1,4 +1,4 @@
-import "@/instrumentation";
+import "zod/compile";
 import { redis } from "bun";
 import pino from "pino";
 import app from "@/app";

@@ -164,7 +164,7 @@ bun run check
 
 ## Docker
 
-The Compose stack pins current public upstream images (Bun 1.3.14, Nginx 1.31.3, Traefik 3.7.9, pgvector 0.8.5 on PostgreSQL 18, Redis 8.8.1, and Docker Socket Proxy 0.4.2) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
+The Compose stack pins current public upstream images (Bun 1.4.0, Nginx 1.31.4, Traefik 3.7.12, pgvector 0.8.6 on PostgreSQL 18, Redis 8.10.0, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
 
 Start the full local stack:
 
@@ -172,9 +172,9 @@ Start the full local stack:
 make start
 ```
 
-This starts Traefik, its private read-only Docker API proxy, PostgreSQL, Redis, the migration job, API server, and client. Traefik never mounts the host Docker socket directly; the proxy exposes only container discovery, network discovery, events, ping, and version reads on an internal-only network. Discovery is limited by the project-owned `com.chatapp.traefik.scope=edge` label because Traefik reserves `traefik.*` labels for routing configuration. Outbound version and anonymous-usage checks are disabled because releases are pinned and reviewed explicitly.
+This starts the configured container runtime when possible, rebuilds the application images, and waits for every service plus both public health routes before returning. The stack includes Traefik, its private read-only Docker API proxy, PostgreSQL, Redis, the migration job, API server, and client. Traefik never mounts the host Docker socket directly; the proxy exposes only container discovery, network discovery, events, ping, and version reads on an internal-only network. Discovery is limited by the project-owned `com.chatapp.traefik.scope=edge` label because Traefik reserves `traefik.*` labels for routing configuration. Outbound version and anonymous-usage checks are disabled because releases are pinned and reviewed explicitly.
 Traefik 3.7's stricter encoded-path protections remain enabled. Relax `encodeQuerySemicolons`, `sanitizePath`, or encoded-character handling only for a backend with a verified RFC 3986 compatibility requirement and matching route tests.
-The server image compiles the Hono entrypoint during the Docker build with `bun run --filter @chat-app/server build`, then runs the generated `dist/index.js` in production instead of executing TypeScript source at container startup.
+The server image compiles the Hono entrypoint and its observability preload during the Docker build with `bun run --filter @chat-app/server build`, then starts `dist/index.js` with `dist/instrumentation.js` preloaded. Sentry's Bun build plugin instruments Hono during compilation, while the preload initializes Sentry before the transformed Hono module loads; production startup does not execute TypeScript source.
 
 Useful commands:
 
@@ -186,7 +186,7 @@ make stop
 make clean
 ```
 
-`make clean` performs a complete local teardown: Kubernetes application and Traefik resources, Docker Compose resources and local app images, local Bun development processes, generated workspace artifacts, and the local Kubernetes runtime. Use `make clean-k8s` or `make clean-docker` when you only want to remove one resource group.
+`make clean` removes recreatable application resources, local app images, project-owned Bun development processes, and generated workspace artifacts. It deliberately preserves Docker named volumes, Kubernetes PVCs, shared ingress controllers, namespaces, and the local Kubernetes runtime. Data deletion is explicit: use `make docker-destroy-data CONFIRM=chat-app` or `make k8s-destroy-data CONFIRM=chat-app` only after taking any required backup.
 
 URLs:
 
@@ -215,13 +215,15 @@ make kubernetes
 
 This will:
 
-1. Install or upgrade Traefik when Gateway mode is enabled
-2. Generate local Helm values
-3. Build the server, client, and migration images
-4. Deploy the app chart
-5. Run database migrations
-6. Run a smoke test
-7. Print status and URLs
+1. Validate `.env` and install the exact dependency graph from `bun.lock`
+2. Run the complete security, lint, type, test, build, Docker, Helm, and Kubernetes CI gate
+3. Install or upgrade Traefik when Gateway mode is enabled
+4. Generate local Helm values and browser-trusted local TLS when `mkcert` is available
+5. Build the server, client, and migration images
+6. Deploy the app chart
+7. Run database migrations
+8. Run rollout, Helm, and external health smoke tests
+9. Print status and URLs
 
 Useful commands:
 
@@ -233,9 +235,9 @@ make k8s-cleanup
 make k8s-stop
 ```
 
-The chart renders client/server Deployments, PostgreSQL and Redis StatefulSets, a migration Job, Services, NetworkPolicies, HPA, PDB, probes, optional Gateway API HTTPRoutes, and optional Traefik Middleware CRDs. Local generated values use public Postgres/Redis images and local app images with `pullPolicy: Never`; production values can override every image by registry, tag, or digest.
+The chart renders client/server Deployments, PostgreSQL and Redis StatefulSets, a migration Job, Services, NetworkPolicies, HPA, PDB, probes, optional Gateway API HTTPRoutes, and optional Traefik Middleware CRDs. Local generated values use public Postgres/Redis images and local app images with `pullPolicy: Never`; production values can override every image by registry, tag, or digest. Production defaults reference an externally managed `chat-app-secrets` Secret and never render placeholder credentials. The server is stateless; only PostgreSQL and Redis own persistent storage.
 
-See `k8s/README.md` for the full Kubernetes runbook.
+See `helm/chat-app/README.md` for the chart contract and `k8s/README.md` for the full Kubernetes runbook.
 
 ## Bun Workspaces
 
@@ -294,9 +296,11 @@ make local             # run client and server directly
 make start             # Docker Compose stack
 make stop              # stop Docker Compose stack
 bun run security:check # dependency audit plus supply-chain indicator scan
-make kubernetes        # full local Kubernetes + Traefik run
+make kubernetes        # one-command CI + full local Kubernetes/Gateway deployment and test
 make k8s-status        # Kubernetes status and URLs
 make deploy-check      # Compose + Dockerfile + Helm/Kubernetes validation
+make clean             # safe cleanup; preserve Docker volumes and Kubernetes PVCs
+make k8s-destroy-data CONFIRM=chat-app # intentionally delete release PVCs
 make clean-generated   # remove generated local artifacts
 bun run check          # lint, typecheck, and tests
 bun run test:e2e       # desktop and mobile Chromium journeys

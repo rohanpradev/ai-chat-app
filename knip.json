@@ -62,7 +62,6 @@
 				"@rive-app/react-webgl2",
 				"@tailwindcss/oxide",
 				"@xyflow/react",
-				"ansi-to-react",
 				"embla-carousel-react",
 				"media-chrome",
 				"react-jsx-parser",
@@ -86,8 +85,8 @@
 			"drizzle": {
 				"config": []
 			},
-			"entry": ["drizzle.config.ts"],
-			"ignoreDependencies": ["dotenv", "drizzle-zod"],
+			"entry": ["drizzle.config.ts", "src/instrumentation.ts"],
+			"ignoreDependencies": ["dotenv"],
 			"ignoreFiles": ["src/utils/db-utils.ts"]
 		},
 		"shared": {}

@@ -1,3 +1,5 @@
+// Keep first: compile server-side Zod schemas lazily before application modules load.
+import "zod/compile";
 import pino from "pino";
 import { initializeSentry } from "@/lib/sentry";
 

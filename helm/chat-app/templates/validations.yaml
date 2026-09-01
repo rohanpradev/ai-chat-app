@@ -1,0 +1,18 @@
+{{- if gt (int .Values.server.hpa.minReplicas) (int .Values.server.hpa.maxReplicas) }}
+{{- fail "server.hpa.minReplicas must be less than or equal to server.hpa.maxReplicas" }}
+{{- end }}
+{{- if gt (int .Values.client.hpa.minReplicas) (int .Values.client.hpa.maxReplicas) }}
+{{- fail "client.hpa.minReplicas must be less than or equal to client.hpa.maxReplicas" }}
+{{- end }}
+{{- if and .Values.secrets.create .Values.secrets.app.existingSecret }}
+{{- fail "secrets.app.existingSecret must be empty when secrets.create is true" }}
+{{- end }}
+{{- if and (not .Values.secrets.create) (not .Values.secrets.app.existingSecret) }}
+{{- fail "secrets.app.existingSecret is required when secrets.create is false" }}
+{{- end }}
+{{- if and (not .Values.db.enabled) (not .Values.externalDatabase.host) }}
+{{- fail "externalDatabase.host is required when db.enabled is false" }}
+{{- end }}
+{{- if and (not .Values.redis.enabled) (not .Values.externalRedis.host) }}
+{{- fail "externalRedis.host is required when redis.enabled is false" }}
+{{- end }}

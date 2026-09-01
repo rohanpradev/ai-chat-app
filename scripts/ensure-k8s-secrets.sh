@@ -170,10 +170,11 @@ if [ -z "${LANGFUSE_BASE_URL}" ]; then
 fi
 SERPER_API_KEY="$(read_env SERPER_API_KEY)"
 SENTRY_DSN="$(read_env SENTRY_DSN)"
-K8S_GATEWAY_ENABLED="$(read_env K8S_GATEWAY_ENABLED)"
+K8S_GATEWAY_ENABLED="${K8S_GATEWAY_ENABLED:-$(read_env K8S_GATEWAY_ENABLED)}"
 K8S_APP_HOSTNAME="$(read_env K8S_APP_HOSTNAME)"
 K8S_TRAEFIK_NAMESPACE="$(read_env K8S_TRAEFIK_NAMESPACE)"
 K8S_TRAEFIK_GATEWAY_NAME="$(read_env K8S_TRAEFIK_GATEWAY_NAME)"
+K8S_TRAEFIK_WEBSECURE_NODE_PORT="$(read_env K8S_TRAEFIK_WEBSECURE_NODE_PORT)"
 DHI_USERNAME="$(read_env DHI_USERNAME)"
 DHI_PASSWORD="$(read_env DHI_PASSWORD)"
 DOCKER_USERNAME="$(read_env DOCKER_USERNAME)"
@@ -232,13 +233,15 @@ yaml_escape() {
   return 0
 }
 
-TRAEFIK_NAMESPACE="${K8S_TRAEFIK_NAMESPACE:-traefik}"
-TRAEFIK_GATEWAY_NAME="${K8S_TRAEFIK_GATEWAY_NAME:-traefik-gateway}"
+TRAEFIK_NAMESPACE="${K8S_TRAEFIK_NAMESPACE:-chat-app-traefik}"
+TRAEFIK_GATEWAY_NAME="${K8S_TRAEFIK_GATEWAY_NAME:-chat-app-gateway}"
+TRAEFIK_WEBSECURE_NODE_PORT="${K8S_TRAEFIK_WEBSECURE_NODE_PORT:-31443}"
 
 if is_truthy "${K8S_GATEWAY_ENABLED:-false}"; then
-  CLIENT_URL_VALUE="https://${APP_HOSTNAME}:30001"
+  NETWORK_POLICY_ENABLED="true"
+  CLIENT_URL_VALUE="https://${APP_HOSTNAME}:${TRAEFIK_WEBSECURE_NODE_PORT}"
   DOMAIN_VALUE="${APP_HOSTNAME}"
-  CORS_ORIGINS_VALUE="https://${APP_HOSTNAME}:30001,http://localhost:5173"
+  CORS_ORIGINS_VALUE="https://${APP_HOSTNAME}:${TRAEFIK_WEBSECURE_NODE_PORT},http://localhost:5173"
   SERVER_SERVICE_BLOCK=$(cat <<EOF
   service:
     type: ClusterIP
@@ -262,7 +265,7 @@ EOF
     createMiddlewares: true
     cors:
       allowOrigins:
-        - https://${APP_HOSTNAME}:30001
+        - https://${APP_HOSTNAME}:${TRAEFIK_WEBSECURE_NODE_PORT}
     rateLimit:
       average: 100
       burst: 200
@@ -270,6 +273,7 @@ EOF
 EOF
 )
 else
+  NETWORK_POLICY_ENABLED="false"
   CLIENT_URL_VALUE="http://localhost:30080"
   DOMAIN_VALUE="localhost"
   CORS_ORIGINS_VALUE="http://localhost:5173,http://localhost:30080"
@@ -325,12 +329,12 @@ images:
   db:
     registry: ""
     repository: pgvector/pgvector
-    tag: 0.8.5-pg18-trixie
+    tag: 0.8.6-pg18-trixie
     pullPolicy: IfNotPresent
   redis:
     registry: ""
     repository: redis
-    tag: 8.8.1-trixie
+    tag: 8.10.0-trixie
     pullPolicy: IfNotPresent
 
 config:
@@ -342,7 +346,9 @@ config:
     CORS_ORIGINS: ${CORS_ORIGINS_VALUE}
 
 secrets:
+  create: true
   app:
+    existingSecret: ""
     data:
       POSTGRES_PASSWORD: "$(yaml_escape "${POSTGRES_PASSWORD}")"
       DB_PASSWORD: "$(yaml_escape "${DB_PASSWORD}")"
@@ -361,14 +367,13 @@ secrets:
       SENTRY_DSN: "$(yaml_escape "${SENTRY_DSN:-}")"
 
 networkPolicy:
-  enabled: false
+  enabled: ${NETWORK_POLICY_ENABLED}
+  gatewayNamespaces:
+    - ${TRAEFIK_NAMESPACE}
 
 server:
   replicaCount: 1
 ${SERVER_SERVICE_BLOCK}
-  persistence:
-    uploads:
-      enabled: false
   hpa:
     enabled: false
 
