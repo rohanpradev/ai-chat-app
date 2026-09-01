@@ -231,7 +231,6 @@ spec:
         - protocol: TCP
           port: {{ .Values.redis.service.port }}
 {{- end }}
-{{- if .Values.migration.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -276,5 +275,4 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-{{- end }}
 {{- end }}

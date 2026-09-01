@@ -44,8 +44,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ $configMapName }}
-            - secretRef:
-                name: {{ $appSecretName }}
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $appSecretName }}
+                  key: DB_URL
           resources:
             requests:
               cpu: {{ .Values.migration.resources.requests.cpu | quote }}

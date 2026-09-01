@@ -85,7 +85,7 @@
 			"drizzle": {
 				"config": []
 			},
-			"entry": ["drizzle.config.ts"],
+			"entry": ["drizzle.config.ts", "src/instrumentation.ts"],
 			"ignoreDependencies": ["dotenv"],
 			"ignoreFiles": ["src/utils/db-utils.ts"]
 		},

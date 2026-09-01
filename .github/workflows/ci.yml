@@ -19,19 +19,28 @@ concurrency:
 
 env:
   BUN_VERSION: 1.4.0
-  HELM_VERSION: 4.2.3
-  KUBE_VERSION: 1.36.2
+  HELM_VERSION: 4.2.4
+  KIND_VERSION: v0.31.0
+  KIND_NODE_IMAGE: kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
+  KUBECTL_VERSION: v1.35.8
 
 jobs:
   lint-and-test:
     name: Lint & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Review dependency changes
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -40,12 +49,6 @@ jobs:
 
       - name: Install dependencies
         run: bun ci
-
-      - name: Review dependency changes
-        if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        with:
-          fail-on-severity: high
 
       - name: Audit dependencies
         run: bun run security:check
@@ -71,6 +74,7 @@ jobs:
   validate-kubernetes:
     name: Validate Deployments
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: lint-and-test
 
     steps:
@@ -127,9 +131,43 @@ jobs:
       - name: Validate deployment manifests
         run: bun run check:deploy
 
+      - name: Render Kubernetes manifests for schema validation
+        run: |
+          set -euo pipefail
+          helm template chat-app helm/chat-app \
+            --kube-version 1.36.4 \
+            --set exposure.gateway.enabled=false \
+            > .ci-rendered-manifests.yaml
+
+      - name: Validate rendered Kubernetes schemas
+        uses: docker://ghcr.io/yannh/kubeconform@sha256:461fae0fa54c5fe64028152533e57f6b88adb1d26dbafd80092e7310d349ae48 # v0.8.0-alpine
+        with:
+          entrypoint: /kubeconform
+          args: >-
+            -strict -summary -ignore-missing-schemas -kubernetes-version 1.36.0
+            .ci-rendered-manifests.yaml
+
+      - name: Create Kubernetes API validation cluster
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        with:
+          cluster_name: chat-app-validation
+          kubectl_version: ${{ env.KUBECTL_VERSION }}
+          node_image: ${{ env.KIND_NODE_IMAGE }}
+          version: ${{ env.KIND_VERSION }}
+          wait: 120s
+
+      - name: Validate manifests against Kubernetes API server
+        run: |
+          set -euo pipefail
+          helm template chat-app helm/chat-app \
+            --kube-version 1.35.8 \
+            --set exposure.gateway.enabled=false \
+            | kubectl apply --dry-run=server --filename -
+
   build-client:
     name: Build Client
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: lint-and-test
 
     steps:
@@ -152,6 +190,7 @@ jobs:
   build-server:
     name: Build Server
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: lint-and-test
 
     steps:
@@ -174,6 +213,7 @@ jobs:
   browser-e2e:
     name: Browser E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: lint-and-test
 
     steps:
@@ -209,10 +249,8 @@ jobs:
   docker:
     name: Docker Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: [build-client, build-server, browser-e2e, validate-kubernetes]
-    env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -257,16 +295,13 @@ jobs:
 
       - name: Detect DHI credentials
         id: dhi
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
           set -euo pipefail
           if [ -n "${DOCKER_USERNAME:-}" ] && [ -n "${DOCKER_PASSWORD:-}" ]; then
-            echo "::add-mask::${DOCKER_USERNAME}"
-            echo "::add-mask::${DOCKER_PASSWORD}"
-            {
-              echo "enabled=true"
-              echo "username=${DOCKER_USERNAME}"
-              echo "password=${DOCKER_PASSWORD}"
-            } >> "$GITHUB_OUTPUT"
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
@@ -276,8 +311,8 @@ jobs:
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           registry: dhi.io
-          username: ${{ steps.dhi.outputs.username }}
-          password: ${{ steps.dhi.outputs.password }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build server image (DHI)
         if: steps.dhi.outputs.enabled == 'true'
@@ -347,7 +382,7 @@ jobs:
           tags: chat-app-client:latest
           build-args: |
             BUN_DEV_IMAGE=oven/bun:${{ env.BUN_VERSION }}-alpine
-            NGINX_IMAGE=nginx:1.31.3-alpine3.24
+            NGINX_IMAGE=nginx:1.31.4-alpine3.24
           cache-from: type=gha,scope=client
           cache-to: type=gha,scope=client,mode=max
 

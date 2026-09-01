@@ -25,13 +25,13 @@ images:
   db:
     registry: docker.io
     repository: pgvector/pgvector
-    tag: 0.8.5-pg18-trixie
+    tag: 0.8.6-pg18-trixie
     digest: ""
     pullPolicy: Always
   redis:
     registry: dhi.io
     repository: redis
-    tag: 8.8.1-debian13
+    tag: 8.10.0-debian13
     digest: ""
     pullPolicy: Always
 
@@ -70,14 +70,16 @@ config:
     CORS_ORIGINS: https://app.docker.localhost
 
 secrets:
-  create: true
+  # Production defaults never render secret material. Create this Secret out of
+  # band (or override create=true only in a controlled local values file).
+  create: false
   app:
-    existingSecret: ""
+    existingSecret: chat-app-secrets
     data:
-      POSTGRES_PASSWORD: change-me
-      DB_PASSWORD: change-me
-      REDIS_AUTH: change-me
-      BETTER_AUTH_SECRET: change-me-minimum-32-characters
+      POSTGRES_PASSWORD: ""
+      DB_PASSWORD: ""
+      REDIS_AUTH: ""
+      BETTER_AUTH_SECRET: ""
       DB_URL: ""
       GITHUB_CLIENT_ID: ""
       GITHUB_CLIENT_SECRET: ""
@@ -202,21 +204,6 @@ server:
       cpu: "1"
       ephemeralStorage: 1Gi
       memory: 1Gi
-  persistence:
-    uploads:
-      enabled: true
-      emptyDirSizeLimit: 1Gi
-      storageClassName: ""
-      accessModes:
-        - ReadWriteOnce
-      size: 1Gi
-    logs:
-      enabled: false
-      emptyDirSizeLimit: 256Mi
-      storageClassName: ""
-      accessModes:
-        - ReadWriteOnce
-      size: 256Mi
   tmp:
     sizeLimit: 256Mi
   hpa:
@@ -367,6 +354,7 @@ db:
       memory: 1Gi
   persistence:
     enabled: true
+    retainOnDelete: true
     storageClassName: ""
     accessModes:
       - ReadWriteOnce
@@ -397,6 +385,7 @@ redis:
       memory: 512Mi
   persistence:
     enabled: true
+    retainOnDelete: true
     storageClassName: ""
     accessModes:
       - ReadWriteOnce
@@ -405,7 +394,7 @@ redis:
 migration:
   enabled: true
   useHook: true
-  backoffLimit: 1
+  backoffLimit: 4
   activeDeadlineSeconds: 300
   ttlSecondsAfterFinished: 600
   podSecurityContext:

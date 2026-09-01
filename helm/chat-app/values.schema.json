@@ -1,0 +1,880 @@
+{
+	"$schema": "https://json-schema.org/draft-07/schema#",
+	"additionalProperties": false,
+	"allOf": [
+		{
+			"if": {
+				"properties": {
+					"secrets": {
+						"properties": {
+							"create": {
+								"const": false
+							}
+						},
+						"required": ["create"]
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"secrets": {
+						"properties": {
+							"app": {
+								"properties": {
+									"existingSecret": {
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": ["existingSecret"]
+							}
+						}
+					}
+				}
+			}
+		}
+	],
+	"definitions": {
+		"capabilities": {
+			"additionalProperties": false,
+			"properties": {
+				"drop": {
+					"items": {
+						"type": "string"
+					},
+					"type": "array",
+					"uniqueItems": true
+				}
+			},
+			"type": "object"
+		},
+		"clientWorkload": {
+			"allOf": [
+				{
+					"$ref": "#/definitions/workloadBase"
+				},
+				{
+					"properties": {
+						"nginxCache": {
+							"$ref": "#/definitions/volume"
+						},
+						"nginxRun": {
+							"$ref": "#/definitions/volume"
+						},
+						"nginxRunDir": {
+							"$ref": "#/definitions/volume"
+						}
+					},
+					"required": ["nginxCache", "nginxRun", "nginxRunDir"]
+				}
+			]
+		},
+		"hpa": {
+			"additionalProperties": false,
+			"properties": {
+				"behavior": {
+					"type": "object"
+				},
+				"cpuUtilization": {
+					"maximum": 100,
+					"minimum": 1,
+					"type": "integer"
+				},
+				"enabled": {
+					"type": "boolean"
+				},
+				"maxReplicas": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"memoryUtilization": {
+					"maximum": 100,
+					"minimum": 1,
+					"type": "integer"
+				},
+				"minReplicas": {
+					"minimum": 1,
+					"type": "integer"
+				}
+			},
+			"required": ["enabled", "minReplicas", "maxReplicas", "cpuUtilization", "memoryUtilization"],
+			"type": "object"
+		},
+		"image": {
+			"additionalProperties": false,
+			"properties": {
+				"digest": {
+					"pattern": "^$|^sha256:[A-Fa-f0-9]{64}$",
+					"type": "string"
+				},
+				"pullPolicy": {
+					"enum": ["Always", "IfNotPresent", "Never"],
+					"type": "string"
+				},
+				"registry": {
+					"type": "string"
+				},
+				"repository": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"tag": {
+					"type": "string"
+				}
+			},
+			"required": ["repository", "pullPolicy"],
+			"type": "object"
+		},
+		"labels": {
+			"additionalProperties": {
+				"type": "string"
+			},
+			"type": "object"
+		},
+		"migration": {
+			"additionalProperties": false,
+			"properties": {
+				"activeDeadlineSeconds": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"backoffLimit": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"enabled": {
+					"type": "boolean"
+				},
+				"podSecurityContext": {
+					"$ref": "#/definitions/podSecurityContext"
+				},
+				"resources": {
+					"$ref": "#/definitions/resources"
+				},
+				"securityContext": {
+					"$ref": "#/definitions/securityContext"
+				},
+				"tmp": {
+					"$ref": "#/definitions/volume"
+				},
+				"ttlSecondsAfterFinished": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"useHook": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"enabled",
+				"useHook",
+				"backoffLimit",
+				"activeDeadlineSeconds",
+				"ttlSecondsAfterFinished",
+				"podSecurityContext",
+				"securityContext",
+				"resources",
+				"tmp"
+			],
+			"type": "object"
+		},
+		"pdb": {
+			"additionalProperties": false,
+			"properties": {
+				"enabled": {
+					"type": "boolean"
+				},
+				"minAvailable": {
+					"oneOf": [
+						{
+							"minimum": 0,
+							"type": "integer"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"unhealthyPodEvictionPolicy": {
+					"enum": ["AlwaysAllow", "IfHealthyBudget"],
+					"type": "string"
+				}
+			},
+			"required": ["enabled", "minAvailable", "unhealthyPodEvictionPolicy"],
+			"type": "object"
+		},
+		"persistence": {
+			"additionalProperties": false,
+			"properties": {
+				"accessModes": {
+					"items": {
+						"enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
+						"type": "string"
+					},
+					"minItems": 1,
+					"type": "array",
+					"uniqueItems": true
+				},
+				"enabled": {
+					"type": "boolean"
+				},
+				"retainOnDelete": {
+					"type": "boolean"
+				},
+				"size": {
+					"$ref": "#/definitions/quantity"
+				},
+				"storageClassName": {
+					"type": "string"
+				}
+			},
+			"required": ["enabled", "retainOnDelete", "storageClassName", "accessModes", "size"],
+			"type": "object"
+		},
+		"podSecurityContext": {
+			"additionalProperties": false,
+			"properties": {
+				"fsGroup": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"fsGroupChangePolicy": {
+					"enum": ["Always", "OnRootMismatch"],
+					"type": "string"
+				},
+				"runAsGroup": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"runAsNonRoot": {
+					"type": "boolean"
+				},
+				"runAsUser": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"seccompProfile": {
+					"additionalProperties": false,
+					"properties": {
+						"type": {
+							"enum": ["RuntimeDefault", "Localhost", "Unconfined"],
+							"type": "string"
+						}
+					},
+					"required": ["type"],
+					"type": "object"
+				}
+			},
+			"required": ["seccompProfile"],
+			"type": "object"
+		},
+		"probe": {
+			"additionalProperties": false,
+			"properties": {
+				"failureThreshold": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"httpGet": {
+					"additionalProperties": false,
+					"properties": {
+						"path": {
+							"pattern": "^/",
+							"type": "string"
+						},
+						"port": {
+							"oneOf": [
+								{
+									"maximum": 65535,
+									"minimum": 1,
+									"type": "integer"
+								},
+								{
+									"minLength": 1,
+									"type": "string"
+								}
+							]
+						}
+					},
+					"required": ["path", "port"],
+					"type": "object"
+				},
+				"initialDelaySeconds": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"periodSeconds": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"timeoutSeconds": {
+					"minimum": 1,
+					"type": "integer"
+				}
+			},
+			"required": ["httpGet", "failureThreshold", "periodSeconds", "timeoutSeconds"],
+			"type": "object"
+		},
+		"quantity": {
+			"minLength": 1,
+			"type": "string"
+		},
+		"resourceSet": {
+			"additionalProperties": false,
+			"properties": {
+				"cpu": {
+					"$ref": "#/definitions/quantity"
+				},
+				"ephemeralStorage": {
+					"$ref": "#/definitions/quantity"
+				},
+				"memory": {
+					"$ref": "#/definitions/quantity"
+				}
+			},
+			"required": ["cpu", "ephemeralStorage", "memory"],
+			"type": "object"
+		},
+		"resources": {
+			"additionalProperties": false,
+			"properties": {
+				"limits": {
+					"$ref": "#/definitions/resourceSet"
+				},
+				"requests": {
+					"$ref": "#/definitions/resourceSet"
+				}
+			},
+			"required": ["requests", "limits"],
+			"type": "object"
+		},
+		"securityContext": {
+			"additionalProperties": false,
+			"properties": {
+				"allowPrivilegeEscalation": {
+					"type": "boolean"
+				},
+				"capabilities": {
+					"$ref": "#/definitions/capabilities"
+				},
+				"readOnlyRootFilesystem": {
+					"type": "boolean"
+				}
+			},
+			"required": ["allowPrivilegeEscalation", "readOnlyRootFilesystem"],
+			"type": "object"
+		},
+		"serverWorkload": {
+			"allOf": [
+				{
+					"$ref": "#/definitions/workloadBase"
+				}
+			]
+		},
+		"service": {
+			"additionalProperties": false,
+			"properties": {
+				"nodePort": {
+					"maximum": 32767,
+					"minimum": 30000,
+					"type": ["integer", "null"]
+				},
+				"port": {
+					"maximum": 65535,
+					"minimum": 1,
+					"type": "integer"
+				},
+				"type": {
+					"enum": ["ClusterIP", "NodePort", "LoadBalancer"],
+					"type": "string"
+				}
+			},
+			"required": ["type", "port"],
+			"type": "object"
+		},
+		"statefulService": {
+			"additionalProperties": false,
+			"properties": {
+				"port": {
+					"maximum": 65535,
+					"minimum": 1,
+					"type": "integer"
+				}
+			},
+			"required": ["port"],
+			"type": "object"
+		},
+		"statefulWorkload": {
+			"additionalProperties": false,
+			"properties": {
+				"enabled": {
+					"type": "boolean"
+				},
+				"persistence": {
+					"$ref": "#/definitions/persistence"
+				},
+				"podSecurityContext": {
+					"$ref": "#/definitions/podSecurityContext"
+				},
+				"resources": {
+					"$ref": "#/definitions/resources"
+				},
+				"securityContext": {
+					"$ref": "#/definitions/securityContext"
+				},
+				"service": {
+					"$ref": "#/definitions/statefulService"
+				},
+				"terminationGracePeriodSeconds": {
+					"minimum": 0,
+					"type": "integer"
+				}
+			},
+			"required": [
+				"enabled",
+				"terminationGracePeriodSeconds",
+				"podSecurityContext",
+				"securityContext",
+				"service",
+				"resources",
+				"persistence"
+			],
+			"type": "object"
+		},
+		"topologySpread": {
+			"additionalProperties": false,
+			"properties": {
+				"enabled": {
+					"type": "boolean"
+				},
+				"maxSkew": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"topologyKey": {
+					"minLength": 1,
+					"type": "string"
+				},
+				"whenUnsatisfiable": {
+					"enum": ["DoNotSchedule", "ScheduleAnyway"],
+					"type": "string"
+				}
+			},
+			"required": ["enabled", "maxSkew", "topologyKey", "whenUnsatisfiable"],
+			"type": "object"
+		},
+		"volume": {
+			"additionalProperties": false,
+			"properties": {
+				"sizeLimit": {
+					"$ref": "#/definitions/quantity"
+				}
+			},
+			"required": ["sizeLimit"],
+			"type": "object"
+		},
+		"workloadBase": {
+			"additionalProperties": false,
+			"properties": {
+				"hpa": {
+					"$ref": "#/definitions/hpa"
+				},
+				"livenessProbe": {
+					"$ref": "#/definitions/probe"
+				},
+				"minReadySeconds": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"nginxCache": {
+					"$ref": "#/definitions/volume"
+				},
+				"nginxRun": {
+					"$ref": "#/definitions/volume"
+				},
+				"nginxRunDir": {
+					"$ref": "#/definitions/volume"
+				},
+				"nodeSelector": {
+					"$ref": "#/definitions/labels"
+				},
+				"pdb": {
+					"$ref": "#/definitions/pdb"
+				},
+				"podAnnotations": {
+					"$ref": "#/definitions/labels"
+				},
+				"podLabels": {
+					"$ref": "#/definitions/labels"
+				},
+				"podSecurityContext": {
+					"$ref": "#/definitions/podSecurityContext"
+				},
+				"progressDeadlineSeconds": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"readinessProbe": {
+					"$ref": "#/definitions/probe"
+				},
+				"replicaCount": {
+					"minimum": 1,
+					"type": "integer"
+				},
+				"resources": {
+					"$ref": "#/definitions/resources"
+				},
+				"revisionHistoryLimit": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"securityContext": {
+					"$ref": "#/definitions/securityContext"
+				},
+				"service": {
+					"$ref": "#/definitions/service"
+				},
+				"startupProbe": {
+					"$ref": "#/definitions/probe"
+				},
+				"strategy": {
+					"type": "object"
+				},
+				"terminationGracePeriodSeconds": {
+					"minimum": 0,
+					"type": "integer"
+				},
+				"tmp": {
+					"$ref": "#/definitions/volume"
+				},
+				"tolerations": {
+					"items": {
+						"type": "object"
+					},
+					"type": "array"
+				},
+				"topologySpreadConstraints": {
+					"$ref": "#/definitions/topologySpread"
+				}
+			},
+			"required": [
+				"replicaCount",
+				"revisionHistoryLimit",
+				"minReadySeconds",
+				"progressDeadlineSeconds",
+				"terminationGracePeriodSeconds",
+				"podAnnotations",
+				"podLabels",
+				"nodeSelector",
+				"tolerations",
+				"topologySpreadConstraints",
+				"podSecurityContext",
+				"securityContext",
+				"strategy",
+				"service",
+				"startupProbe",
+				"readinessProbe",
+				"livenessProbe",
+				"resources",
+				"tmp",
+				"hpa",
+				"pdb"
+			],
+			"type": "object"
+		}
+	},
+	"properties": {
+		"client": {
+			"$ref": "#/definitions/clientWorkload"
+		},
+		"config": {
+			"additionalProperties": false,
+			"properties": {
+				"env": {
+					"additionalProperties": false,
+					"properties": {
+						"AI_DAILY_REQUEST_LIMIT": {
+							"type": "string"
+						},
+						"AI_DAILY_TOKEN_LIMIT": {
+							"type": "string"
+						},
+						"BASE_API_SLUG": {
+							"minLength": 1,
+							"pattern": "^[A-Za-z0-9][A-Za-z0-9._~-]*$",
+							"type": "string"
+						},
+						"BETTER_AUTH_URL": {
+							"type": "string"
+						},
+						"CLIENT_URL": {
+							"minLength": 1,
+							"type": "string"
+						},
+						"CORS_ORIGINS": {
+							"type": "string"
+						},
+						"DB_NAME": {
+							"minLength": 1,
+							"type": "string"
+						},
+						"DB_PORT": {
+							"pattern": "^[0-9]+$",
+							"type": "string"
+						},
+						"DB_USER": {
+							"minLength": 1,
+							"type": "string"
+						},
+						"DOMAIN": {
+							"minLength": 1,
+							"type": "string"
+						},
+						"EMBEDDING_DAILY_TOKEN_LIMIT": {
+							"type": "string"
+						},
+						"EMBEDDING_STORAGE_BYTE_LIMIT": {
+							"type": "string"
+						},
+						"LOG_LEVEL": {
+							"type": "string"
+						},
+						"NODE_ENV": {
+							"enum": ["development", "test", "production"],
+							"type": "string"
+						},
+						"REDIS_PORT": {
+							"pattern": "^[0-9]+$",
+							"type": "string"
+						},
+						"SENTRY_ENVIRONMENT": {
+							"type": "string"
+						},
+						"SENTRY_RELEASE": {
+							"type": "string"
+						},
+						"SENTRY_SEND_DEFAULT_PII": {
+							"enum": ["true", "false"],
+							"type": "string"
+						},
+						"SENTRY_TRACES_SAMPLE_RATE": {
+							"type": "string"
+						},
+						"SERVER_PORT": {
+							"pattern": "^[0-9]+$",
+							"type": "string"
+						},
+						"TRAEFIK_LOG_LEVEL": {
+							"type": "string"
+						},
+						"VITE_API_URL": {
+							"minLength": 1,
+							"type": "string"
+						},
+						"VITE_APP_NAME": {
+							"type": "string"
+						},
+						"VITE_APP_VERSION": {
+							"type": "string"
+						},
+						"VITE_DEV_MODE": {
+							"enum": ["true", "false"],
+							"type": "string"
+						},
+						"VITE_SENTRY_DSN": {
+							"type": "string"
+						},
+						"VITE_SENTRY_ENVIRONMENT": {
+							"type": "string"
+						},
+						"VITE_SENTRY_RELEASE": {
+							"type": "string"
+						},
+						"VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE": {
+							"type": "string"
+						},
+						"VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE": {
+							"type": "string"
+						},
+						"VITE_SENTRY_TRACES_SAMPLE_RATE": {
+							"type": "string"
+						}
+					},
+					"required": [
+						"BASE_API_SLUG",
+						"CLIENT_URL",
+						"DB_NAME",
+						"DB_PORT",
+						"DB_USER",
+						"NODE_ENV",
+						"REDIS_PORT",
+						"SERVER_PORT",
+						"VITE_API_URL"
+					],
+					"type": "object"
+				}
+			},
+			"required": ["env"],
+			"type": "object"
+		},
+		"db": {
+			"$ref": "#/definitions/statefulWorkload"
+		},
+		"exposure": {
+			"type": "object"
+		},
+		"externalDatabase": {
+			"type": "object"
+		},
+		"externalRedis": {
+			"type": "object"
+		},
+		"fullnameOverride": {
+			"type": "string"
+		},
+		"imagePullSecrets": {
+			"items": {
+				"type": "object"
+			},
+			"type": "array"
+		},
+		"images": {
+			"additionalProperties": false,
+			"properties": {
+				"client": {
+					"$ref": "#/definitions/image"
+				},
+				"db": {
+					"$ref": "#/definitions/image"
+				},
+				"migrate": {
+					"$ref": "#/definitions/image"
+				},
+				"redis": {
+					"$ref": "#/definitions/image"
+				},
+				"server": {
+					"$ref": "#/definitions/image"
+				}
+			},
+			"required": ["client", "server", "migrate", "db", "redis"],
+			"type": "object"
+		},
+		"migration": {
+			"$ref": "#/definitions/migration"
+		},
+		"nameOverride": {
+			"type": "string"
+		},
+		"networkPolicy": {
+			"type": "object"
+		},
+		"redis": {
+			"$ref": "#/definitions/statefulWorkload"
+		},
+		"secrets": {
+			"additionalProperties": false,
+			"properties": {
+				"app": {
+					"additionalProperties": false,
+					"properties": {
+						"data": {
+							"additionalProperties": false,
+							"properties": {
+								"AI_TOOL_APPROVAL_SECRET": {
+									"type": "string"
+								},
+								"BETTER_AUTH_SECRET": {
+									"type": "string"
+								},
+								"DB_PASSWORD": {
+									"type": "string"
+								},
+								"DB_URL": {
+									"type": "string"
+								},
+								"GITHUB_CLIENT_ID": {
+									"type": "string"
+								},
+								"GITHUB_CLIENT_SECRET": {
+									"type": "string"
+								},
+								"LANGFUSE_BASEURL": {
+									"type": "string"
+								},
+								"LANGFUSE_PUBLIC_KEY": {
+									"type": "string"
+								},
+								"LANGFUSE_SECRET_KEY": {
+									"type": "string"
+								},
+								"OPENAI_API_KEY": {
+									"type": "string"
+								},
+								"OPENAI_MODEL_OVERRIDES": {
+									"type": "string"
+								},
+								"POSTGRES_PASSWORD": {
+									"type": "string"
+								},
+								"REDIS_AUTH": {
+									"type": "string"
+								},
+								"SENTRY_DSN": {
+									"type": "string"
+								},
+								"SERPER_API_KEY": {
+									"type": "string"
+								}
+							},
+							"type": "object"
+						},
+						"existingSecret": {
+							"type": "string"
+						}
+					},
+					"required": ["existingSecret", "data"],
+					"type": "object"
+				},
+				"create": {
+					"type": "boolean"
+				}
+			},
+			"required": ["create", "app"],
+			"type": "object"
+		},
+		"server": {
+			"$ref": "#/definitions/serverWorkload"
+		},
+		"tests": {
+			"additionalProperties": false,
+			"properties": {
+				"enabled": {
+					"type": "boolean"
+				},
+				"image": {
+					"$ref": "#/definitions/image"
+				}
+			},
+			"required": ["enabled", "image"],
+			"type": "object"
+		}
+	},
+	"required": [
+		"client",
+		"config",
+		"db",
+		"exposure",
+		"externalDatabase",
+		"externalRedis",
+		"images",
+		"migration",
+		"networkPolicy",
+		"redis",
+		"secrets",
+		"server",
+		"tests"
+	],
+	"title": "chat-app Helm values",
+	"type": "object"
+}

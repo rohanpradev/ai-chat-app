@@ -6,6 +6,7 @@ VALUES_FILE="${ROOT_DIR}/k8s/traefik-values.generated.yaml"
 ENV_FILE="${ROOT_DIR}/.env"
 TRAEFIK_NAMESPACE="${TRAEFIK_NAMESPACE:-traefik}"
 TRAEFIK_RELEASE="${TRAEFIK_RELEASE:-traefik}"
+HELM_HISTORY_MAX="${HELM_HISTORY_MAX:-10}"
 
 read_env() {
   local key="$1"
@@ -60,7 +61,7 @@ TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-$(read_env TRAEFIK_CHART_REF || true)}"
 TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-$(read_env TRAEFIK_CHART_VERSION || true)}"
 GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-$(read_env GATEWAY_API_VERSION || true)}"
 TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-oci://ghcr.io/traefik/helm/traefik}"
-TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-41.1.0}"
+TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-41.4.0}"
 # Traefik 3.7 currently documents conformance with Gateway API 1.6.1.
 GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.6.1}"
 
@@ -133,6 +134,8 @@ HELM_ARGS=(
   --skip-crds
   --wait
   --timeout 10m
+  --history-max "${HELM_HISTORY_MAX}"
+  --rollback-on-failure
   --hide-notes
   -f "${VALUES_FILE}"
 )

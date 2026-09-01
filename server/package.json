@@ -11,9 +11,9 @@
   ],
   "module": "src/index.ts",
   "scripts": {
-    "build": "bun build src/index.ts --target=bun --packages=external --outdir dist --root src",
-    "start": "bun src/index.ts",
-    "dev": "bun --watch src/index.ts",
+    "build": "bun scripts/build.ts",
+    "start": "bun --preload ./src/instrumentation.ts src/index.ts",
+    "dev": "bun --watch --preload ./src/instrumentation.ts src/index.ts",
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

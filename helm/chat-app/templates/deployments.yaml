@@ -245,7 +245,9 @@ metadata:
     {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: server
 spec:
+  {{- if not .Values.server.hpa.enabled }}
   replicas: {{ .Values.server.replicaCount }}
+  {{- end }}
   revisionHistoryLimit: {{ .Values.server.revisionHistoryLimit }}
   minReadySeconds: {{ .Values.server.minReadySeconds }}
   progressDeadlineSeconds: {{ .Values.server.progressDeadlineSeconds }}
@@ -335,27 +337,9 @@ spec:
           securityContext:
             {{- toYaml .Values.server.securityContext | nindent 12 }}
           volumeMounts:
-            - name: uploads
-              mountPath: /app/uploads
-            - name: logs
-              mountPath: /app/logs
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: uploads
-          {{- if .Values.server.persistence.uploads.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}-uploads
-          {{- else }}
-          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.server.persistence.uploads.emptyDirSizeLimit) | nindent 10 }}
-          {{- end }}
-        - name: logs
-          {{- if .Values.server.persistence.logs.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ include "chat-app.componentName" (dict "root" . "component" "server") }}-logs
-          {{- else }}
-          {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.server.persistence.logs.emptyDirSizeLimit) | nindent 10 }}
-          {{- end }}
         - name: tmp
           {{- include "chat-app.emptyDir" (dict "sizeLimit" .Values.server.tmp.sizeLimit) | nindent 10 }}
 ---
@@ -367,7 +351,9 @@ metadata:
     {{- include "chat-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: client
 spec:
+  {{- if not .Values.client.hpa.enabled }}
   replicas: {{ .Values.client.replicaCount }}
+  {{- end }}
   revisionHistoryLimit: {{ .Values.client.revisionHistoryLimit }}
   minReadySeconds: {{ .Values.client.minReadySeconds }}
   progressDeadlineSeconds: {{ .Values.client.progressDeadlineSeconds }}

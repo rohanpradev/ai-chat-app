@@ -1,4 +1,4 @@
-import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
 import { AUTH_PASSWORD_MAX_LENGTH, AUTH_PASSWORD_MIN_LENGTH } from "@chat-app/shared";
 import { betterAuth } from "better-auth";
 import { openAPI } from "better-auth/plugins";
@@ -31,11 +31,13 @@ const githubProvider =
 
 export const auth = betterAuth({
 	account: {
-		encryptOAuthTokens: true
+		encryptOAuthTokens: true,
+		identityStrategy: "provider-id"
 	},
 	advanced: {
 		database: {
-			generateId: false
+			generateId: false,
+			joins: true
 		},
 		trustedProxyHeaders: env.NODE_ENV === "production",
 		useSecureCookies

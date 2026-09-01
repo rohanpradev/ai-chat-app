@@ -11,12 +11,12 @@ images:
   db:
     registry: ""
     repository: pgvector/pgvector
-    tag: 0.8.5-pg18-trixie
+    tag: 0.8.6-pg18-trixie
     pullPolicy: IfNotPresent
   redis:
     registry: ""
     repository: redis
-    tag: 8.8.1-trixie
+    tag: 8.10.0-trixie
     pullPolicy: IfNotPresent
 
 config:
@@ -38,7 +38,9 @@ config:
     CORS_ORIGINS: http://localhost:5173,http://localhost:30080
 
 secrets:
+  create: true
   app:
+    existingSecret: ""
     data:
       POSTGRES_PASSWORD: change-me
       DB_PASSWORD: change-me
@@ -63,9 +65,6 @@ server:
   service:
     type: NodePort
     nodePort: 30001
-  persistence:
-    uploads:
-      enabled: false
   hpa:
     enabled: false
 

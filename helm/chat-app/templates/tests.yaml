@@ -27,8 +27,16 @@ spec:
         - --fail
         - --silent
         - --show-error
+        - --retry
+        - "12"
+        - --retry-all-errors
+        - --retry-connrefused
+        - --retry-delay
+        - "2"
+        - --connect-timeout
+        - "5"
         - --max-time
-        - "10"
+        - "60"
         - http://{{ include "chat-app.componentName" (dict "root" . "component" "client") }}:{{ .Values.client.service.port }}/health
       resources:
         requests:
