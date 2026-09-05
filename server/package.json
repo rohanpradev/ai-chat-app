@@ -35,12 +35,12 @@
     "@langfuse/otel": "^5.11.0",
     "@langfuse/tracing": "^5.11.0",
     "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/sdk-node": "^0.221.0",
-    "@scalar/hono-api-reference": "^0.11.16",
+    "@opentelemetry/sdk-node": "^0.222.0",
+    "@scalar/hono-api-reference": "^0.12.0",
     "@sentry/bun": "^10.71.0",
     "ai": "catalog:",
     "better-auth": "^1.7.2",
-    "drizzle-orm": "1.0.0-rc.4",
+    "drizzle-orm": "1.0.0-rc.5-169397b",
     "hono": "catalog:",
     "hono-pino": "^0.10.3",
     "pino": "^10.3.1",
@@ -53,7 +53,7 @@
     "@types/node": "catalog:",
     "bun-types": "^1.4.0",
     "dotenv": "^17.4.2",
-    "drizzle-kit": "1.0.0-rc.4",
+    "drizzle-kit": "1.0.0-rc.5-ab785fc",
     "postgres": "^3.4.9"
   }
 }
