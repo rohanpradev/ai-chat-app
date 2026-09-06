@@ -8,7 +8,7 @@ import {
 } from "@chat-app/shared";
 import { isStepCount, ToolLoopAgent, type ToolSet } from "ai";
 import { z } from "zod";
-import { isTelemetryEnabled } from "@/lib/instrumentation";
+import { buildAiTelemetrySettings } from "@/lib/instrumentation";
 import { getActiveTools, tools } from "@/lib/tools";
 import env from "@/utils/env";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
@@ -61,35 +61,6 @@ const buildToolAvailabilityGuidance = (toolNames: EnabledRequestToolId[]) =>
 const buildAgentInstructions = (baseInstructions: readonly string[], toolNames: EnabledRequestToolId[]) =>
 	[...baseInstructions, buildToolAvailabilityGuidance(toolNames)].join("\n\n");
 
-const buildTelemetrySettings = ({
-	activeTools,
-	functionId,
-	options,
-	resolvedModel
-}: {
-	activeTools: EnabledRequestToolId[];
-	functionId: string;
-	options: AgentCallOptions;
-	resolvedModel: Awaited<ReturnType<typeof resolveModelSelection>>;
-}) =>
-	isTelemetryEnabled
-		? {
-				functionId,
-				metadata: {
-					userId: options.userId,
-					...(options.conversationId ? { sessionId: options.conversationId } : {}),
-					model: resolvedModel.id,
-					provider: resolvedModel.provider,
-					requestedModel: options.requestedModel ?? resolvedModel.id,
-					tags: ["chat", "agent", functionId, resolvedModel.id, resolvedModel.provider],
-					toolCount: activeTools.length,
-					...(activeTools.length > 0 ? { tools: activeTools } : {})
-				},
-				recordInputs: false,
-				recordOutputs: false
-			}
-		: undefined;
-
 const buildToolApprovalSettings = (activeTools: EnabledRequestToolId[]) =>
 	activeTools.includes("serper") ? ({ serper: "user-approval" } as const) : undefined;
 
@@ -111,7 +82,7 @@ const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentP
 				instructions: buildAgentInstructions(baseInstructions, activeTools),
 				maxOutputTokens: 4096,
 				model: resolveModel(resolvedModel.id),
-				telemetry: buildTelemetrySettings({ activeTools, functionId, options, resolvedModel }),
+				telemetry: buildAiTelemetrySettings(functionId),
 				toolApproval: buildToolApprovalSettings(activeTools)
 			};
 		},

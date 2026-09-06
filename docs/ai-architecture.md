@@ -5,8 +5,9 @@
 1. The React client sends validated UI messages to the Hono API.
 2. The server validates the request with shared Zod schemas.
 3. The selected agent mode resolves to an AI SDK agent.
-4. The agent streams UI-message parts back through SSE.
-5. Completed conversations update a current-message projection and append immutable message revisions.
+4. Accepted messages are saved before model preparation. A storage failure releases the quota reservation and prevents a provider call; a preparation failure leaves the prompt available after a refresh.
+5. The agent streams UI-message parts back through SSE.
+6. Completed conversations update a current-message projection and append immutable message revisions.
 
 Conversation writes take a PostgreSQL advisory transaction lock per chat, which prevents two server replicas from interleaving revisions. Regeneration and resumed streams update the current projection without erasing prior message bodies. Deleting a conversation remains a deliberate cascade over both current messages and their revision history.
 
@@ -57,7 +58,9 @@ Model IDs are deliberately allowlisted. The shared fallback catalog lives in `sh
 
 ## Observability
 
-Langfuse telemetry is enabled only when credentials are configured. Sentry is optional for runtime errors. Keep traces free of secrets and user-private document content unless a deployment has explicit approval and retention controls.
+AI SDK telemetry is enabled when either Langfuse or Sentry is configured. Every chat, structured-generation, RAG, and embedding call has a stable `functionId`, while prompt inputs and model outputs are explicitly excluded from telemetry. Langfuse receives AI SDK spans through OpenTelemetry; Sentry's Vercel AI integration records the same operations and streamed generative-AI spans when `SENTRY_DSN` is present.
+
+Stream errors are explicitly captured because handled AI SDK errors are not reported by Sentry automatically. Provider failures are also marked as failed usage even when the UI stream emits a friendly error part and completes its transport lifecycle. Keep traces free of secrets and user-private document content unless a deployment has explicit approval and retention controls.
 
 ## Safety Boundaries
 

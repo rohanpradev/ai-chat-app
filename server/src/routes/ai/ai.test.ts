@@ -2,8 +2,15 @@ import { describe, expect, it, mock } from "bun:test";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 
-const saveConversationMock = mock(async () => {});
+let persistenceFailure: Error | null = null;
+const saveConversationMock = mock(async () => {
+	if (persistenceFailure) throw persistenceFailure;
+});
+const modelStreamMock = mock(() => {});
 const getAvailableChatModelsMock = mock(async () => [{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" }]);
+const settleUsageMock = mock(async () => {});
+let streamFailure: Error | null = null;
+let modelInitializationFailure: Error | null = null;
 const mockUsage = {
 	inputTokens: {
 		cacheRead: undefined,
@@ -71,7 +78,7 @@ mock.module("@/services/usage.service", () => ({
 		resetsAt: "2026-07-15T00:00:00.000Z"
 	})),
 	reserveUsage: mock(async () => "usage-test"),
-	settleUsage: mock(async () => {})
+	settleUsage: settleUsageMock
 }));
 
 mock.module("@/services/model-catalog.service", () => ({
@@ -79,8 +86,11 @@ mock.module("@/services/model-catalog.service", () => ({
 }));
 
 mock.module("@/utils/index", () => ({
-	resolveModel: () =>
-		new MockLanguageModelV3({
+	resolveModel: () => {
+		if (modelInitializationFailure) {
+			throw modelInitializationFailure;
+		}
+		return new MockLanguageModelV3({
 			doGenerate: async (options) => ({
 				content: [
 					{
@@ -96,31 +106,43 @@ mock.module("@/utils/index", () => ({
 				usage: mockUsage,
 				warnings: []
 			}),
-			doStream: async () => ({
-				stream: simulateReadableStream({
-					chunks: [
-						{ id: "text-1", type: "text-start" },
-						{ delta: "Hello", id: "text-1", type: "text-delta" },
-						{ delta: " from test", id: "text-1", type: "text-delta" },
-						{ id: "text-1", type: "text-end" },
-						{
-							finishReason: { raw: undefined, unified: "stop" },
-							logprobs: undefined,
-							type: "finish",
-							usage: {
-								inputTokens: {
-									cacheRead: undefined,
-									cacheWrite: undefined,
-									noCache: 2,
-									total: 2
-								},
-								outputTokens: { reasoning: undefined, text: 3, total: 3 }
+			doStream: async () => {
+				modelStreamMock();
+				if (streamFailure) {
+					return {
+						stream: simulateReadableStream({
+							chunks: [{ error: streamFailure, type: "error" }]
+						})
+					};
+				}
+
+				return {
+					stream: simulateReadableStream({
+						chunks: [
+							{ id: "text-1", type: "text-start" },
+							{ delta: "Hello", id: "text-1", type: "text-delta" },
+							{ delta: " from test", id: "text-1", type: "text-delta" },
+							{ id: "text-1", type: "text-end" },
+							{
+								finishReason: { raw: undefined, unified: "stop" },
+								logprobs: undefined,
+								type: "finish",
+								usage: {
+									inputTokens: {
+										cacheRead: undefined,
+										cacheWrite: undefined,
+										noCache: 2,
+										total: 2
+									},
+									outputTokens: { reasoning: undefined, text: 3, total: 3 }
+								}
 							}
-						}
-					]
-				})
-			})
-		}),
+						]
+					})
+				};
+			}
+		});
+	},
 	resolveModelSelection: async (model = "gpt-5-mini") => ({
 		id: model,
 		name: "Mock Model",
@@ -232,6 +254,111 @@ describe("AI Routes", () => {
 		expect(streamText).toContain('"delta":"Hello "');
 		expect(streamText).toContain('"delta":"from "');
 		expect(streamText).toContain('"delta":"test"');
+	});
+
+	it("marks provider stream failures as failed usage", async () => {
+		settleUsageMock.mockClear();
+		streamFailure = new Error("provider stream failed");
+
+		try {
+			const { createApp } = await import("@/lib/create-app");
+			const { default: router } = await import("@/routes/ai/ai.index");
+			const response = await createApp()
+				.route("/", router)
+				.request("/ai/text-stream", {
+					body: JSON.stringify({
+						messages: [{ id: "1", parts: [{ text: "test", type: "text" }], role: "user" }]
+					}),
+					headers: { "Content-Type": "application/json" },
+					method: "POST"
+				});
+
+			expect(response.status).toBe(200);
+			expect(await response.text()).toContain("The assistant request failed. Please retry.");
+			expect(settleUsageMock).toHaveBeenCalledWith("usage-test", expect.objectContaining({ status: "failed" }));
+		} finally {
+			streamFailure = null;
+		}
+	});
+
+	it("releases reserved quota when agent preparation fails before streaming", async () => {
+		settleUsageMock.mockClear();
+		saveConversationMock.mockClear();
+		modelInitializationFailure = new Error("Model initialization failed");
+
+		try {
+			const { createApp } = await import("@/lib/create-app");
+			const { default: router } = await import("@/routes/ai/ai.index");
+			const response = await createApp()
+				.route("/", router)
+				.request("/ai/text-stream", {
+					body: JSON.stringify({
+						messages: [{ id: "1", parts: [{ text: "test", type: "text" }], role: "user" }]
+					}),
+					headers: { "Content-Type": "application/json" },
+					method: "POST"
+				});
+
+			expect(response.status).toBe(500);
+			expect(await response.json()).toMatchObject({ message: "Internal server error" });
+			expect(settleUsageMock).toHaveBeenCalledTimes(1);
+			expect(settleUsageMock).toHaveBeenCalledWith("usage-test", { status: "failed" });
+			expect(saveConversationMock).not.toHaveBeenCalled();
+		} finally {
+			modelInitializationFailure = null;
+		}
+	});
+
+	it("keeps the submitted prompt when agent preparation fails", async () => {
+		saveConversationMock.mockClear();
+		modelInitializationFailure = new Error("Model initialization failed");
+		const messages = [{ id: "persisted-user", parts: [{ text: "Keep this prompt", type: "text" }], role: "user" }];
+
+		try {
+			const { createApp } = await import("@/lib/create-app");
+			const { default: router } = await import("@/routes/ai/ai.index");
+			const response = await createApp()
+				.route("/", router)
+				.request("/ai/text-stream", {
+					body: JSON.stringify({ chatId: "chat-persist", messages }),
+					headers: { "Content-Type": "application/json" },
+					method: "POST"
+				});
+
+			expect(response.status).toBe(500);
+			expect(saveConversationMock).toHaveBeenCalledTimes(1);
+			expect(saveConversationMock).toHaveBeenCalledWith("chat-persist", messages, "test-user");
+		} finally {
+			modelInitializationFailure = null;
+		}
+	});
+
+	it("does not spend provider tokens when the submitted prompt cannot be saved", async () => {
+		settleUsageMock.mockClear();
+		modelStreamMock.mockClear();
+		persistenceFailure = new Error("Storage unavailable");
+
+		try {
+			const { createApp } = await import("@/lib/create-app");
+			const { default: router } = await import("@/routes/ai/ai.index");
+			const response = await createApp()
+				.route("/", router)
+				.request("/ai/text-stream", {
+					body: JSON.stringify({
+						chatId: "chat-persist",
+						message: { id: "persisted-user", parts: [{ text: "Keep this prompt", type: "text" }], role: "user" }
+					}),
+					headers: { "Content-Type": "application/json" },
+					method: "POST"
+				});
+
+			await response.text();
+			expect(response.status).toBe(500);
+			expect(modelStreamMock).not.toHaveBeenCalled();
+			expect(settleUsageMock).toHaveBeenCalledWith("usage-test", { status: "failed" });
+		} finally {
+			persistenceFailure = null;
+		}
 	});
 
 	it("rejects client-authored system messages", async () => {

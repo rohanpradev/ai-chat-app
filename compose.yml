@@ -1,7 +1,7 @@
 x-bun-build-args: &bun-build-args
-  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.0-alpine}
-  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.0-alpine}
-  NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.4-alpine3.24}
+  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.2-alpine}
+  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.2-alpine}
+  NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.5-alpine3.24}
 
 x-security-defaults: &security-defaults
   security_opt:
@@ -169,7 +169,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${REDIS_IMAGE:-redis:8.10.0-trixie}
+    image: ${REDIS_IMAGE:-redis:8.10.1-trixie}
     cap_drop:
       - ALL
     pull_policy: always
@@ -267,6 +267,8 @@ services:
         - source: sentry_auth_token
           target: SENTRY_AUTH_TOKEN
     container_name: chat-app-client
+    entrypoint: ["/docker-entrypoint.sh"]
+    command: ["nginx", "-g", "daemon off;"]
     cap_drop:
       - ALL
     read_only: true
@@ -275,11 +277,13 @@ services:
       - /run:size=16m,mode=0777
       - /run/nginx:size=16m,mode=0777
       - /var/cache/nginx:size=64m,mode=0777
+      - /etc/nginx/conf.d:size=1m,mode=0777
     environment:
       - NODE_ENV=production
       - BASE_API_SLUG=${BASE_API_SLUG:-api}
       - SERVER_HOST=server
       - SERVER_PORT=${SERVER_PORT:-3000}
+      - NGINX_ENVSUBST_FILTER=^(BASE_API_SLUG|SERVER_HOST|SERVER_PORT)$
     expose:
       - "8080"
     restart: unless-stopped

@@ -27,7 +27,7 @@ export const useStreamdownPlugins = (content: unknown) => {
       const [cjkPlugin, codePlugin, mathPlugin, mermaidPlugin] = await Promise.all([
         requirements.cjk ? import("@streamdown/cjk").then((module) => module.cjk) : undefined,
         requirements.code ? import("@/lib/streamdown-code-plugin").then((module) => module.compactCodePlugin) : undefined,
-        requirements.math ? import("@streamdown/math").then((module) => module.math) : undefined,
+        requirements.math ? import("@/lib/streamdown-math-plugin").then((module) => module.math) : undefined,
         requirements.mermaid ? import("@streamdown/mermaid").then((module) => module.mermaid) : undefined,
       ]);
 

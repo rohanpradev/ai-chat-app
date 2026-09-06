@@ -31,7 +31,7 @@ images:
   redis:
     registry: dhi.io
     repository: redis
-    tag: 8.10.0-debian13
+    tag: 8.10.1-debian13
     digest: ""
     pullPolicy: Always
 
@@ -428,6 +428,6 @@ tests:
   image:
     registry: curlimages
     repository: curl
-    tag: 8.21.0
+    tag: 8.22.0
     digest: ""
     pullPolicy: IfNotPresent

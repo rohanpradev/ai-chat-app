@@ -36,7 +36,7 @@ The repo also includes a Helm chart under `helm/chat-app/` and helper scripts fo
 - File attachments in chat input
 - Mermaid rendering loaded lazily for markdown diagrams
 - Optional Langfuse telemetry through OpenTelemetry
-- Optional Sentry monitoring for client and server
+- Optional Sentry monitoring for client, server, and AI SDK operations
 - Docker Compose and local Kubernetes workflows
 
 ## Stack
@@ -64,7 +64,7 @@ docs/                   Architecture, security, eval, and policy docs
 
 ## Prerequisites
 
-- Bun `1.x`
+- Bun `1.4.2` (matches CI and the production runtime)
 - Docker Desktop or OrbStack
 - `kubectl` and `helm` for Kubernetes workflows
 - OpenAI API key
@@ -164,7 +164,11 @@ bun run check
 
 ## Docker
 
-The Compose stack pins current public upstream images (Bun 1.4.0, Nginx 1.31.4, Traefik 3.7.12, pgvector 0.8.6 on PostgreSQL 18, Redis 8.10.0, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
+The Compose stack pins current public upstream images (Bun 1.4.2, Nginx 1.31.5, Traefik 3.7.12, pgvector 0.8.6 on PostgreSQL 18, Redis 8.10.1, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
+
+Compose uses the official Nginx entrypoint and a writable, temporary `/etc/nginx/conf.d` to render `BASE_API_SLUG`, `SERVER_HOST`, and `SERVER_PORT` at startup. Nginx request variables are preserved by an explicit substitution filter. Compose Nginx overrides must provide `/docker-entrypoint.sh` and its template support. Kubernetes starts Nginx directly with a chart-rendered ConfigMap, which also supports shell-less image overrides.
+
+CI checks both Nginx startup modes and probes the compiled server's health and readiness in a non-root, read-only container with networking disabled. Run `bun run check:client-container <image>` and `bun run check:server-container <image>` after building custom images. The server smoke check uses dummy credentials and does not exercise database, Redis, or provider connectivity.
 
 Start the full local stack:
 
@@ -245,6 +249,10 @@ Dependency versions shared across workspaces are defined in the root `catalog` f
 
 Use `bun ci` in CI and clean local installs. It is equivalent to a frozen-lockfile install and fails when `package.json` and `bun.lock` drift.
 
+Dependabot uses one root Bun workspace update to keep the catalog, workspace manifests, and shared lockfile together, with a three-day cooldown matching `bunfig.toml`. Dockerfile and Compose image updates are tracked separately. CI builds the public upstream images without registry credentials. Its Bun and Nginx images are pinned to verified multi-platform digests in `.github/workflows/ci.yml`; update those digests together with their version tags.
+
+Sonar client coverage uses `bun run --filter @chat-app/client test:coverage`, backed by Vitest and its matching V8 coverage package. Server coverage uses the server's existing Bun test script so its environment preload and concurrency settings are preserved.
+
 TypeScript checks run through the stable native TypeScript 7 compiler (`tsc`) from `typescript`:
 
 ```bash
@@ -274,7 +282,7 @@ Use `OPENAI_MODEL_OVERRIDES` for comma-separated account-specific or newly relea
 
 Web search is exposed through the `serper` tool. It is approval-gated, so the UI must explicitly approve a tool call before the server continues the stream.
 
-Langfuse telemetry is initialized only when credentials are present. AI SDK telemetry is enabled on server-side model calls and is exported through Langfuse's OpenTelemetry span processor.
+AI SDK telemetry is enabled when Langfuse or Sentry credentials are present. Each chat, structured generation, RAG, and embedding operation uses a stable identifier, and prompt inputs and model outputs are excluded from traces. Langfuse exports AI SDK spans through OpenTelemetry; Sentry records AI operations and explicitly captured stream failures when `SENTRY_DSN` is configured.
 
 ## Security and Operations Docs
 
@@ -303,12 +311,18 @@ make clean             # safe cleanup; preserve Docker volumes and Kubernetes PV
 make k8s-destroy-data CONFIRM=chat-app # intentionally delete release PVCs
 make clean-generated   # remove generated local artifacts
 bun run check          # lint, typecheck, and tests
-bun run test:e2e       # desktop and mobile Chromium journeys
-bun run build:report    # production build plus enforced JS bundle budgets
+bun run test:e2e       # desktop and mobile journeys against the production build
+bun run build:report    # production build plus enforced initial/total JS bundle budgets
 bun run check:ci       # audit, supply-chain scan, knip, tests, builds, deployment checks
 bun run k8s:validate   # alias for the deployment checker
 docker compose config --quiet
 ```
+
+The bundle report follows the Vite manifest's static imports and enforces an 800 KiB initial JavaScript budget, alongside the existing total and per-file budgets. Optional Markdown, code, math, and diagram renderers retain their asynchronous loading boundaries. `BUNDLE_MAX_INITIAL_JS_KIB` can override the initial budget for an explicitly reviewed change. `check:ci` runs the same budget check after building; browser journeys also check for uncaught browser errors and exercise rich answers.
+
+Renderer styles are scanned from the client's workspace dependencies, matching Bun's isolated linker. KaTeX styles and fonts load with the math plugin, so equations render correctly without adding math assets to the initial page load.
+
+Upgrade references: [Bun 1.4.2 release notes](https://bun.com/blog/bun-v1.4.2), [AI SDK 7 migration guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-7-0), and [Rolldown code splitting](https://rolldown.rs/reference/OutputOptions.codeSplitting).
 
 ## Generated Files
 

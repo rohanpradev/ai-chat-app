@@ -17,7 +17,10 @@ const conversation = {
 
 const json = (body: unknown, status = 200) => ({ body: JSON.stringify(body), contentType: "application/json", status });
 
-async function mockAuthenticatedApp(page: Page, options: { conversations?: Array<typeof conversation> } = {}) {
+async function mockAuthenticatedApp(
+	page: Page,
+	options: { answer?: string; conversations?: Array<typeof conversation> } = {},
+) {
 	const conversations = options.conversations ?? [];
 	await page.route("**/api/auth/get-session", (route) =>
 		route.fulfill(json({ session: { expiresAt: "2099-01-01T00:00:00.000Z", id: "session-e2e", userId: user.id }, user })),
@@ -44,7 +47,7 @@ async function mockAuthenticatedApp(page: Page, options: { conversations?: Array
 			body: [
 				'data: {"type":"start","messageId":"msg_assistant"}',
 				'data: {"type":"text-start","id":"text-1"}',
-				'data: {"type":"text-delta","id":"text-1","delta":"Production-ready answer"}',
+				`data: ${JSON.stringify({ delta: options.answer ?? "Production-ready answer", id: "text-1", type: "text-delta" })}`,
 				'data: {"type":"text-end","id":"text-1"}',
 				'data: {"type":"finish"}',
 				"data: [DONE]",
@@ -57,6 +60,30 @@ async function mockAuthenticatedApp(page: Page, options: { conversations?: Array
 	);
 	await page.route("https://svgl.app/**", (route) => route.abort());
 }
+
+test.afterEach(async ({ page }) => {
+	expect(await page.pageErrors()).toEqual([]);
+});
+
+test("loads rich answer renderers in the production bundle", async ({ page }, testInfo) => {
+	await mockAuthenticatedApp(page, {
+		answer:
+			"Here is a small example.\n\n```javascript\nconst answer = 42;\n```\n\n$$x^2 + y^2 = z^2$$\n\n```mermaid\ngraph TD\n  A[Question] --> B[Answer]\n```",
+	});
+	await page.goto("/chat");
+	await page.getByLabel("Prompt").fill("Show code, math, and a diagram");
+	await page.getByRole("button", { name: "Start conversation" }).click();
+
+	await expect(page.locator("pre").filter({ hasText: "const answer = 42;" })).toBeVisible();
+	await expect(page.locator(".katex")).toBeVisible();
+	await expect(page.locator(".katex-mathml")).toHaveCSS("position", "absolute");
+	await expect(page.locator('svg[id^="mermaid"]')).toBeVisible();
+	await expect(page.locator("body")).toHaveJSProperty(
+		"scrollWidth",
+		await page.locator("body").evaluate((body) => body.clientWidth),
+	);
+	await page.screenshot({ fullPage: true, path: testInfo.outputPath("rich-answer.png") });
+});
 
 test("redirects an unauthenticated visitor to login", async ({ page }) => {
 	await page.route("**/api/auth/get-session", (route) => route.fulfill(json({ message: "Unauthorized" }, 401)));
@@ -109,4 +136,25 @@ test("deletes the current conversation through the confirmation flow", async ({ 
 
 	await expect(page).toHaveURL(/\/chat\/?$/);
 	await expect(page.getByRole("heading", { name: "What should we improve first?" })).toBeVisible();
+});
+
+test("recovers from a failed AI request without duplicating the user message", async ({ page }) => {
+	await mockAuthenticatedApp(page);
+	await page.route("**/api/ai/text-stream", (route) => route.fulfill(json({ message: "Internal server error" }, 500)), {
+		times: 1,
+	});
+	await page.goto("/chat");
+	await page.getByLabel("Prompt").fill("Help me recover this conversation");
+	await page.getByRole("button", { name: "Start conversation" }).click();
+
+	await expect(page.getByText("The assistant could not finish that response.", { exact: false })).toBeVisible();
+	const retriedRequest = page.waitForRequest("**/api/ai/text-stream");
+	await page.getByRole("button", { exact: true, name: "Retry" }).click();
+	expect((await retriedRequest).postDataJSON()).toMatchObject({
+		chatId: conversation.id,
+		trigger: "regenerate-message",
+	});
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await expect(page.locator(".is-user")).toHaveCount(1);
+	await expect(page.getByRole("button", { exact: true, name: "Retry" })).toHaveCount(0);
 });

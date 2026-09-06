@@ -10,7 +10,7 @@ import {
 	enabledRequestToolIds
 } from "@chat-app/shared";
 import { generateText, Output } from "ai";
-import { isTelemetryEnabled } from "@/lib/instrumentation";
+import { buildAiTelemetrySettings } from "@/lib/instrumentation";
 import { estimateTokens, reserveUsage, settleUsage } from "@/services/usage.service";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
@@ -61,31 +61,6 @@ const buildMetadata = ({
 const formatOptionalList = (label: string, values: string[] | undefined) =>
 	values?.length ? `${label}:\n${values.map((value, index) => `${index + 1}. ${value}`).join("\n")}` : undefined;
 
-const structuredTelemetry = ({
-	functionId,
-	model,
-	provider,
-	userId
-}: {
-	functionId: string;
-	model: string;
-	provider: AIProvider;
-	userId: string;
-}) =>
-	isTelemetryEnabled
-		? {
-				functionId,
-				metadata: {
-					model,
-					provider,
-					tags: ["ai", "structured-output", functionId],
-					userId
-				},
-				recordInputs: false,
-				recordOutputs: false
-			}
-		: undefined;
-
 export const generateStructuredPlan = async (
 	request: AIPlanRequest,
 	userId: string,
@@ -130,12 +105,7 @@ export const generateStructuredPlan = async (
 				schema: AIPlanOutputSchema
 			}),
 			prompt,
-			telemetry: structuredTelemetry({
-				functionId: "ai-structured-plan",
-				model: resolvedModel.id,
-				provider: resolvedModel.provider,
-				userId
-			}),
+			telemetry: buildAiTelemetrySettings("ai-structured-plan"),
 			temperature: 0.2
 		});
 		const metadata = buildMetadata({
@@ -196,12 +166,7 @@ export const evaluateAIOutput = async (
 				schema: AIEvaluationOutputSchema
 			}),
 			prompt,
-			telemetry: structuredTelemetry({
-				functionId: "ai-evaluate-output",
-				model: resolvedModel.id,
-				provider: resolvedModel.provider,
-				userId
-			}),
+			telemetry: buildAiTelemetrySettings("ai-evaluate-output"),
 			temperature: 0
 		});
 		const metadata = buildMetadata({

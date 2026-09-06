@@ -3,10 +3,10 @@
 		"name": "Rohan Pradev"
 	},
 	"catalog": {
-		"@hono/zod-openapi": "^1.6.1",
-		"@hono/zod-validator": "^0.9.0",
-		"@types/node": "^26.4.0",
-		"ai": "^7.0.83",
+		"@hono/zod-openapi": "^1.6.2",
+		"@hono/zod-validator": "^0.9.1",
+		"@types/node": "^26.4.1",
+		"ai": "^7.0.91",
 		"hono": "^4.13.5",
 		"zod": "^4.5.4"
 	},
@@ -14,23 +14,23 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.5.11",
 		"@playwright/test": "^1.62.1",
-		"knip": "^6.32.3",
+		"knip": "^6.34.0",
 		"rimraf": "^6.1.3",
 		"typescript": "7.0.2"
 	},
 	"name": "chat-app",
 	"overrides": {
-		"@ai-sdk/provider-utils": "5.0.32",
+		"@ai-sdk/provider-utils": "5.0.36",
 		"@babel/core": "7.29.7",
 		"@grpc/grpc-js": "1.14.4",
-		"@opentelemetry/core": "2.10.0",
+		"@opentelemetry/core": "2.11.0",
 		"brace-expansion": "5.0.9",
 		"dompurify": "3.4.14",
 		"mermaid": "11.17.2",
 		"postcss": "8.5.26",
 		"uuid": "14.0.2"
 	},
-	"packageManager": "bun@1.4.0",
+	"packageManager": "bun@1.4.2",
 	"private": true,
 	"scripts": {
 		"app:health": "make health",
@@ -41,9 +41,11 @@
 		"build:report": "bun run --filter @chat-app/client build:report",
 		"build:server": "bun run --filter @chat-app/server build",
 		"check": "bun run lint && bun run typecheck && bun run test",
-		"check:ci": "bun run security:check && bun run knip && bun run check:migrations && bun run check && bun run build && bun run check:deploy",
+		"check:ci": "bun run security:check && bun run knip && bun run check:migrations && bun run check && bun run build && bun scripts/report-client-bundle-size.mjs && bun run check:deploy",
+		"check:client-container": "bun scripts/check-client-container.mjs",
 		"check:deploy": "bun scripts/check-deployments.mjs",
 		"check:migrations": "bun scripts/check-migrations.mjs",
+		"check:server-container": "bun scripts/check-server-container.mjs",
 		"clean": "rimraf node_modules bun.lock",
 		"dev": "bun run --filter '*' dev",
 		"format": "biome format . --write",

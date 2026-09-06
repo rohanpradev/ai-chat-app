@@ -5,7 +5,8 @@ import { HTTPException } from "hono/http-exception";
 import { normalizeMessagesForAgent } from "@/lib/agent-message-normalizer";
 import { getChatAgent, resolveAgentMode } from "@/lib/agents";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
-import { isTelemetryEnabled } from "@/lib/instrumentation";
+import { isLangfuseTelemetryEnabled } from "@/lib/instrumentation";
+import { captureSentryException } from "@/lib/sentry";
 import type { AppRouteHandler } from "@/lib/types";
 import type {
 	AIStreamRoute,
@@ -115,6 +116,7 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	});
 	let inputTokens = 0;
 	let outputTokens = 0;
+	let streamFailed = false;
 	let totalTokens = 0;
 	const telemetryMetadata = {
 		agentMode: selectedAgentMode,
@@ -154,16 +156,28 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 
 				return undefined;
 			},
-			onEnd: async ({ isAborted, messages: finalMessages }) => {
+			onEnd: async ({ isAborted, messages: finalMessages, outcome }) => {
 				await Promise.all([
 					saveConversation(coalescedChatId, finalMessages, userJwt.id),
-					settleUsage(usageRequestId, { inputTokens, outputTokens, totalTokens })
+					settleUsage(usageRequestId, {
+						inputTokens,
+						outputTokens,
+						status: streamFailed || outcome.status === "failed" ? "failed" : "completed",
+						totalTokens
+					})
 				]);
 				if (isAborted) {
 					logger.debug({ selectedAgentMode }, "Persisted cancelled AI agent stream");
 				}
 			},
 			onError: (error: unknown) => {
+				streamFailed = true;
+				captureSentryException(error, {
+					"ai.agent_mode": selectedAgentMode,
+					"ai.function_id": `ai-agent-${selectedAgentMode}`,
+					"ai.model": resolvedModel.id,
+					"ai.provider": resolvedModel.provider
+				});
 				logger.error({ error, selectedAgentMode }, "AI agent stream failed");
 				return "The assistant request failed. Please retry.";
 			},
@@ -195,17 +209,29 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 			uiMessages: normalizedMessages
 		});
 
-	return isTelemetryEnabled
-		? await propagateAttributes(
-				{
-					metadata: telemetryMetadata,
-					...(coalescedChatId ? { sessionId: coalescedChatId } : {}),
-					tags: ["chat", "ai", selectedAgentMode],
-					traceName: "ai-chat-stream",
-					userId: userJwt.id,
-					version: "agents-v1"
-				},
-				runAgentStream
-			)
-		: await runAgentStream();
+	try {
+		// Persist accepted input before model preparation so refreshes and provider
+		// failures cannot discard a prompt. Do not spend tokens if storage is down.
+		if (coalescedChatId) {
+			await saveConversation(coalescedChatId, validatedMessages, userJwt.id);
+		}
+
+		return isLangfuseTelemetryEnabled
+			? await propagateAttributes(
+					{
+						metadata: telemetryMetadata,
+						...(coalescedChatId ? { sessionId: coalescedChatId } : {}),
+						tags: ["chat", "ai", selectedAgentMode],
+						traceName: "ai-chat-stream",
+						userId: userJwt.id,
+						version: "agents-v1"
+					},
+					runAgentStream
+				)
+			: await runAgentStream();
+	} catch (error) {
+		// Validation and prepareCall can reject before the SDK installs onEnd.
+		await settleUsage(usageRequestId, { status: "failed" });
+		throw error;
+	}
 };
