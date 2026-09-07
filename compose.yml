@@ -45,7 +45,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${TRAEFIK_IMAGE:-traefik:v3.7.12}
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.13}
     cap_drop:
       - ALL
     cap_add:
