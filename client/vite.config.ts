@@ -36,18 +36,21 @@ const vendorChunkGroups = [
   {
     name: "stream-core-vendor",
     test: /\/streamdown\//,
+    entriesAware: true,
     priority: 34,
   },
   {
     name: "stream-plugin-vendor",
     test: /@streamdown|anser|escape-carriage/,
+    entriesAware: true,
     priority: 33,
   },
   {
     name: "syntax-vendor",
     // Keep the Shiki runtime together, but leave language/theme loaders as
     // independent async chunks so rendered code blocks only fetch what they use.
-    test: /@shikijs[\\/](?:core|engine-javascript|engine-oniguruma|langs|primitive|themes|types|vscode-textmate)|[\\/]shiki[\\/]|highlight\.js|react-syntax-highlighter/,
+    test: /@shikijs[\\/](?:core|engine-javascript|engine-oniguruma|primitive|types|vscode-textmate)|[\\/]shiki[\\/]|highlight\.js|react-syntax-highlighter/,
+    entriesAware: true,
     maxSize: maxVendorChunkBytes,
     priority: 32,
   },
@@ -132,6 +135,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      manifest: true,
       sourcemap: shouldUploadSentrySourceMaps,
       rolldownOptions: {
         output: {

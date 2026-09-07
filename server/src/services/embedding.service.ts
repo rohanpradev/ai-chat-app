@@ -13,6 +13,7 @@ import {
 	MAX_EMBEDDING_UPLOAD_BYTES,
 	MAX_EXTRACTED_TEXT_CHARS
 } from "@/lib/embedding-config";
+import { buildAiTelemetrySettings } from "@/lib/instrumentation";
 import { estimateTokens as estimateUsageTokens, reserveUsage, settleUsage } from "@/services/usage.service";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
@@ -359,6 +360,7 @@ export const createEmbeddingDocument = async ({
 			abortSignal,
 			maxParallelCalls: EMBEDDING_MAX_PARALLEL_CALLS,
 			model: openai.embedding(EMBEDDING_MODEL_ID),
+			telemetry: buildAiTelemetrySettings("ai-embed-document"),
 			values: chunks.map((chunk) => chunk.content)
 		});
 		const [firstEmbedding] = embeddingResult.embeddings;
@@ -482,6 +484,7 @@ export const searchEmbeddings = async (userId: string, request: EmbeddingSearchR
 		const queryEmbedding = await embed({
 			abortSignal,
 			model: openai.embedding(EMBEDDING_MODEL_ID),
+			telemetry: buildAiTelemetrySettings("ai-embed-search-query"),
 			value: request.query
 		});
 		const filters = [eq(embeddingChunks.userId, userId)];
@@ -601,6 +604,7 @@ export const answerWithRag = async (userId: string, request: RagRequest, abortSi
 			maxOutputTokens: 2048,
 			model: resolveModel(selectedModel.id),
 			prompt,
+			telemetry: buildAiTelemetrySettings("ai-rag-answer"),
 			temperature: 0.2
 		});
 

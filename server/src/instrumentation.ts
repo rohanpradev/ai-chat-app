@@ -9,11 +9,11 @@ initializeSentry();
 
 const { OpenTelemetry } = await import("@ai-sdk/otel");
 const { registerTelemetry } = await import("ai");
-const { initializeTelemetry, isTelemetryEnabled } = await import("@/lib/instrumentation");
+const { initializeTelemetry, isLangfuseTelemetryEnabled } = await import("@/lib/instrumentation");
 
 initializeTelemetry();
 
-if (isTelemetryEnabled) {
+if (isLangfuseTelemetryEnabled) {
 	registerTelemetry(new OpenTelemetry());
 	logger.info("AI SDK OpenTelemetry integration registered");
 } else {

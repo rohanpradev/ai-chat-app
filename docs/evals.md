@@ -8,6 +8,8 @@ Run this checklist before changing prompts, tools, model defaults, AI SDK major 
 - Regenerate works for persisted conversations.
 - Long conversation history normalizes without orphaned tool-call parts.
 - User-facing error message is generic when provider calls fail.
+- Provider stream failures are captured by observability and settle reserved usage as failed.
+- Saved-conversation prompts survive model preparation failures; storage failures prevent provider calls and release reserved usage.
 
 ## Tools
 
@@ -34,7 +36,7 @@ Run this checklist before changing prompts, tools, model defaults, AI SDK major 
 
 - No API keys, cookies, JWTs, database URLs, or provider tokens appear in model-visible content, traces, logs, or client bundles.
 - Production CORS is explicit.
-- Sentry PII settings are intentional.
+- Sentry and AI SDK tracing do not record prompt inputs or model outputs by default.
 - Telemetry sampling is appropriate for the environment.
 
 ## Release Checks

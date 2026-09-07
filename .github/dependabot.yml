@@ -8,39 +8,33 @@ updates:
       github-actions:
         patterns:
           - "*"
-  - package-ecosystem: npm
+  # One Bun workspace update owns all manifests and the shared bun.lock.
+  - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 5
     groups:
-      root-javascript:
+      workspace-javascript:
         patterns:
           - "*"
-  - package-ecosystem: npm
-    directory: /client
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /server
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
     groups:
-      client-javascript:
+      docker-images:
         patterns:
           - "*"
-  - package-ecosystem: npm
-    directory: /server
+  - package-ecosystem: docker-compose
+    directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
     groups:
-      server-javascript:
-        patterns:
-          - "*"
-  - package-ecosystem: npm
-    directory: /shared
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      shared-javascript:
+      compose-images:
         patterns:
           - "*"

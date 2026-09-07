@@ -17,12 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BUN_VERSION: 1.4.0
+  BUN_VERSION: 1.4.2
 
 jobs:
   scan:
     name: Sonar Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -80,11 +81,11 @@ jobs:
 
       - name: Generate client coverage
         if: steps.sonar.outputs.enabled == 'true'
-        run: cd client && bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage
+        run: bun run --filter @chat-app/client test:coverage
 
       - name: Generate server coverage
         if: steps.sonar.outputs.enabled == 'true'
-        run: cd server && bun test --preload ./src/test/setup-env.ts --coverage --coverage-reporter=lcov --coverage-dir=coverage ./src
+        run: bun run --filter @chat-app/server test --coverage --coverage-reporter=lcov --coverage-dir=coverage
 
       - name: SonarQube Scan
         if: steps.sonar.outputs.enabled == 'true'

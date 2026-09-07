@@ -30,6 +30,7 @@ bun run check:deploy
 
 - Prefer small dependency PRs with a readable `bun.lock` diff.
 - Treat package updates that add lifecycle scripts, new binary downloads, or unexpected GitHub Actions workflows as high risk.
+- Dependabot must use the `bun` ecosystem once at the workspace root, with a three-day cooldown. Separate npm updates for child workspaces can change manifests without synchronizing the shared `bun.lock`, causing frozen CI installs to fail.
 - Do not bypass `minimumReleaseAge` except for an emergency patch reviewed by a maintainer.
 - Keep root `overrides` available for transitive hotfixes.
 - For any future published packages, use npm trusted publishing with OIDC and provenance. Do not store long-lived npm publish tokens in CI.

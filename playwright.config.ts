@@ -18,7 +18,7 @@ export default defineConfig({
 		video: "retain-on-failure",
 	},
 	webServer: {
-		command: "bun run --filter @chat-app/client dev -- --host 127.0.0.1 --port 4173",
+		command: "bun run build:client && bun run --filter @chat-app/client serve -- --host 127.0.0.1 --port 4173",
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,
 		url: "http://127.0.0.1:4173",

@@ -7,12 +7,21 @@
 
 import { LangfuseSpanProcessor } from "@langfuse/otel";
 import { NodeSDK } from "@opentelemetry/sdk-node";
+import type { TelemetryOptions } from "ai";
 import pino from "pino";
 import env from "@/utils/env";
 
 let sdk: NodeSDK | null = null;
 let shutdownPromise: Promise<void> | null = null;
-export const isTelemetryEnabled = Boolean(env.LANGFUSE_SECRET_KEY && env.LANGFUSE_PUBLIC_KEY);
+export const isLangfuseTelemetryEnabled = Boolean(env.LANGFUSE_SECRET_KEY && env.LANGFUSE_PUBLIC_KEY);
+export const isAiTelemetryEnabled = isLangfuseTelemetryEnabled || Boolean(env.SENTRY_DSN);
+
+export const buildAiTelemetrySettings = (functionId: string): TelemetryOptions => ({
+	functionId,
+	isEnabled: isAiTelemetryEnabled,
+	recordInputs: false,
+	recordOutputs: false
+});
 
 const logger = pino({
 	level: env.LOG_LEVEL,
@@ -30,7 +39,7 @@ export function initializeTelemetry(): NodeSDK | null {
 		return sdk;
 	}
 
-	if (!isTelemetryEnabled) {
+	if (!isLangfuseTelemetryEnabled) {
 		logger.info("Skipping initialization: Langfuse credentials not configured");
 		return null;
 	}

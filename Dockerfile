@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_VERSION=1.4.0
+ARG BUN_VERSION=1.4.2
 ARG BUN_DEV_IMAGE=oven/bun:${BUN_VERSION}-alpine
 ARG BUN_RUNTIME_IMAGE=oven/bun:${BUN_VERSION}-alpine
-ARG NGINX_IMAGE=nginx:1.31.4-alpine3.24
+ARG NGINX_IMAGE=nginx:1.31.5-alpine3.24
 
 # Stage 1: Workspace manifests only.
 FROM ${BUN_DEV_IMAGE} AS workspace-manifests
@@ -93,6 +93,10 @@ WORKDIR /app
 # Copy build output directly instead of cleaning defaults via /bin/sh.
 COPY --link --from=client-build --chown=65532:65532 --chmod=0555 /app/client/dist/ /app/static/
 COPY --link --from=client-build --chown=65532:65532 --chmod=0444 /app/client/nginx.generated.conf /etc/nginx/conf.d/default.conf
+# Compose uses the official nginx entrypoint to render runtime proxy settings.
+# Kubernetes starts nginx directly with its chart-rendered ConfigMap.
+# COPY also creates the templates directory, which needs traversal permission.
+COPY --link --from=client-build --chown=65532:65532 --chmod=0555 /app/client/nginx.conf /etc/nginx/templates/default.conf.template
 
 USER 65532
 EXPOSE 8080
