@@ -223,3 +223,24 @@ test("retries session loading and revocation while preserving the current device
 	await expect(page.getByRole("button", { name: "Sign out other devices" })).toBeDisabled();
 	await page.screenshot({ fullPage: true, path: testInfo.outputPath("profile-sessions.png") });
 });
+
+test("recovers from a failed AI request without duplicating the user message", async ({ page }) => {
+	await mockAuthenticatedApp(page);
+	await page.route("**/api/ai/text-stream", (route) => route.fulfill(json({ message: "Internal server error" }, 500)), {
+		times: 1,
+	});
+	await page.goto("/chat");
+	await page.getByLabel("Prompt").fill("Help me recover this conversation");
+	await page.getByRole("button", { name: "Start conversation" }).click();
+
+	await expect(page.getByText("The assistant could not finish that response.", { exact: false })).toBeVisible();
+	const retriedRequest = page.waitForRequest("**/api/ai/text-stream");
+	await page.getByRole("button", { exact: true, name: "Retry" }).click();
+	expect((await retriedRequest).postDataJSON()).toMatchObject({
+		chatId: conversation.id,
+		trigger: "regenerate-message",
+	});
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await expect(page.locator(".is-user")).toHaveCount(1);
+	await expect(page.getByRole("button", { exact: true, name: "Retry" })).toHaveCount(0);
+});

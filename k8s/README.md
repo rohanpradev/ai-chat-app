@@ -20,6 +20,8 @@ The deployment checker validates Kubernetes `1.35.8`, `1.36.4`, and `1.37.0` by 
 
 CI uses kind `0.33.0` with that release's digest-pinned Kubernetes `1.37.0` node image and matching kubectl, so API validation and chart rendering target the same patch release.
 
+CI uses kind `0.33.0` with that release's digest-pinned Kubernetes `1.35.8` node image and matching kubectl, so API validation and chart rendering target the same patch release.
+
 `make kubernetes` is the canonical one-command workflow. It installs the locked dependencies, runs the full CI gate, reconciles Gateway/TLS and application resources, rebuilds all local images, migrates the database, and runs rollout, Helm, and external health tests before reporting success.
 
 ## Validate
