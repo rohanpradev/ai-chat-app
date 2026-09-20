@@ -5,6 +5,7 @@
 - Auth is Better Auth session-cookie based. Production cookies are `httpOnly` and `secure`.
 - `BETTER_AUTH_SECRET` must be at least 32 characters and should be randomly generated.
 - Production startup rejects `CORS_ORIGINS=*` because credentialed cookies are enabled.
+- Active sessions can be revoked from Profile; database session checks make revocation effective immediately. Auth instrumentation spans are disabled.
 - Better Auth provides auth endpoint protections. Traefik still provides the outer production rate limit.
 - Request bodies are capped globally, and embedding uploads have a tighter route-level cap.
 - Sentry defaults avoid sending PII unless `SENTRY_SEND_DEFAULT_PII=true` is explicitly configured.

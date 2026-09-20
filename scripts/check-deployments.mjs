@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 const rootDir = new URL("..", import.meta.url);
 const boolEnv = (name) => ["1", "true", "yes", "on"].includes((process.env[name] ?? "").toLowerCase());
 
-const kubeVersions = process.env.KUBE_VERSION ? [process.env.KUBE_VERSION] : ["1.35.8", "1.36.4"];
+const kubeVersions = process.env.KUBE_VERSION ? [process.env.KUBE_VERSION] : ["1.35.8", "1.36.4", "1.37.0"];
 const kubeVersion = kubeVersions.at(-1);
 
 const useValuesTemplate = boolEnv("DEPLOY_CHECK_USE_VALUES_TEMPLATE");
@@ -354,7 +354,7 @@ expectFailure({
 });
 
 expectFailure({
-	args: ["template", "chat-app", "helm/chat-app", "--set", "db.enabled=false"],
+	args: ["template", "chat-app", "helm/chat-app", "--kube-version", kubeVersion, "--set", "db.enabled=false"],
 	command: "helm",
 	name: "Require an external database host when the chart database is disabled",
 	stderrIncludes: "externalDatabase.host",
@@ -365,6 +365,8 @@ const disposableStorageRender = run({
 		"template",
 		"chat-app",
 		"helm/chat-app",
+		"--kube-version",
+		kubeVersion,
 		"--set",
 		"db.persistence.retainOnDelete=false",
 		"--set",
@@ -438,5 +440,43 @@ const noGatewayRender = run({
 	silent: true,
 });
 assertNotIncludes(noGatewayRender.stdout, "kind: HTTPRoute", "Gateway HTTPRoutes without Gateway API CRDs");
+
+const httpGatewayRender = run({
+	args: [
+		"template",
+		"chat-app",
+		"helm/chat-app",
+		"--kube-version",
+		kubeVersion,
+		"--api-versions",
+		"gateway.networking.k8s.io/v1",
+		"--set",
+		"exposure.gateway.create=true",
+		"--set",
+		"exposure.gateway.tls.enabled=false",
+	],
+	command: "helm",
+	name: "Render HTTP-only Gateway",
+	silent: true,
+});
+assertNotIncludes(
+	manifestDocument(httpGatewayRender.stdout, "Gateway", '"traefik-gateway"'),
+	"protocol: HTTPS",
+	"HTTPS listener without a certificate",
+);
+expectFailure({
+	args: [
+		"template",
+		"chat-app",
+		"helm/chat-app",
+		"--kube-version",
+		kubeVersion,
+		"--set",
+		"server.terminationGracePeriodSeconds=30",
+	],
+	command: "helm",
+	name: "Require enough time for API drain and shutdown",
+	stderrIncludes: "server.terminationGracePeriodSeconds must be at least 40",
+});
 
 console.log("\nDeployment checks passed.");

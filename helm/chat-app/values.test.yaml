@@ -1,0 +1,62 @@
+# Disposable runtime test only. Never use these credentials or storage settings
+# for a user deployment. The runner creates and removes its own namespace.
+images:
+  client:
+    pullPolicy: Never
+  server:
+    pullPolicy: Never
+  migrate:
+    pullPolicy: Never
+  redis:
+    registry: docker.io
+    repository: redis
+    tag: 8.10.1-trixie
+
+config:
+  env:
+    CLIENT_URL: http://localhost
+    BETTER_AUTH_URL: http://localhost
+    CORS_ORIGINS: http://localhost
+    DB_USER: postgres
+    DOMAIN: localhost
+
+secrets:
+  create: true
+  app:
+    existingSecret: ""
+    data:
+      POSTGRES_PASSWORD: runtime-test-password
+      DB_PASSWORD: runtime-test-password
+      REDIS_AUTH: runtime-test-redis
+      BETTER_AUTH_SECRET: runtime-test-auth-secret-at-least-32-characters
+      OPENAI_API_KEY: runtime-test-no-provider-calls
+
+exposure:
+  gateway:
+    enabled: false
+
+server:
+  replicaCount: 1
+  hpa:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+client:
+  replicaCount: 1
+  hpa:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+
+db:
+  persistence:
+    retainOnDelete: false
+    size: 1Gi
+redis:
+  persistence:
+    retainOnDelete: false
+
+migration:
+  useHook: false

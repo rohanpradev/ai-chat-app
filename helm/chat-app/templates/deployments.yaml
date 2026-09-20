@@ -311,6 +311,11 @@ spec:
         - name: server
           image: {{ include "chat-app.image" .Values.images.server | quote }}
           imagePullPolicy: {{ .Values.images.server.pullPolicy }}
+          # Keep accepting traffic while EndpointSlice updates reach proxies.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 10
           envFrom:
             - configMapRef:
                 name: {{ $configMapName }}

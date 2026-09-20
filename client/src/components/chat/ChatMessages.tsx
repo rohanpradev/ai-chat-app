@@ -104,7 +104,7 @@ function MessageControls({
   }
 
   return (
-    <MessageToolbar className="mt-1 justify-between opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+    <MessageToolbar className="mt-1 justify-between opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 motion-reduce:transition-none">
       <MessageMetadata message={message} />
       <MessageActions>
         {messageText ? (
@@ -194,7 +194,18 @@ export function ChatMessages({
           .trim();
 
         return (
-          <Message key={message.id} from={message.role}>
+          <Message key={message.id} from={message.role} className="w-full max-w-full gap-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <span
+                className={
+                  message.role === "assistant"
+                    ? "size-1.5 rounded-full bg-primary"
+                    : "size-1.5 rounded-full bg-muted-foreground/50"
+                }
+                aria-hidden="true"
+              />
+              {message.role === "assistant" ? "ChatFlow" : message.role === "user" ? "You" : "System"}
+            </div>
             <MessageContent className="group-[.is-user]:rounded-[24px] group-[.is-user]:px-5">
               {reasoningText ? (
                 <Suspense fallback={<div className="text-muted-foreground text-sm">{reasoningText}</div>}>

@@ -1,5 +1,5 @@
 import type { MyUIMessage } from "@chat-app/shared";
-import type { ChatAddToolApproveResponseFunction } from "ai";
+import { type ChatAddToolApproveResponseFunction, isToolOutputErrorUIPart } from "ai";
 import { memo, useCallback, useEffect, useRef } from "react";
 import {
   Confirmation,
@@ -91,7 +91,11 @@ function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRen
 
   return (
     <Tool defaultOpen={part.state !== "output-available"}>
-      <ToolHeader type={part.type} state={part.state} />
+      <ToolHeader
+        title={part.title ?? (part.type === "tool-serper" ? "Search the web" : "Research")}
+        type={part.type}
+        state={part.state}
+      />
       <ToolContent>
         <Confirmation approval={part.approval} state={part.state}>
           <ConfirmationRequest>
@@ -138,7 +142,7 @@ function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRen
             <ToolOutput output={part.output} errorText={undefined} />
           ))}
 
-        {part.state === "output-error" && <ToolOutput output={undefined} errorText={part.errorText} />}
+        {isToolOutputErrorUIPart(part) && <ToolOutput output={undefined} errorText={part.errorText} />}
         {part.state === "output-denied" && <ToolOutput output={undefined} errorText="Tool execution was denied." />}
       </ToolContent>
     </Tool>

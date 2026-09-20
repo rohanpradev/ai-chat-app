@@ -10,6 +10,7 @@ metadata:
     helm.sh/hook: test
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
+  activeDeadlineSeconds: 180
   restartPolicy: Never
   automountServiceAccountToken: false
   enableServiceLinks: false
@@ -24,6 +25,7 @@ spec:
       image: {{ include "chat-app.image" .Values.tests.image | quote }}
       imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
       args:
+        - --fail-early
         - --fail
         - --silent
         - --show-error
@@ -38,6 +40,7 @@ spec:
         - --max-time
         - "60"
         - http://{{ include "chat-app.componentName" (dict "root" . "component" "client") }}:{{ .Values.client.service.port }}/health
+        - http://{{ include "chat-app.componentName" (dict "root" . "component" "client") }}:{{ .Values.client.service.port }}/{{ .Values.config.env.BASE_API_SLUG }}/ready
       resources:
         requests:
           cpu: 10m

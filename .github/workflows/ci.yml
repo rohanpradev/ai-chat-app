@@ -20,11 +20,11 @@ concurrency:
 env:
   BUN_VERSION: 1.4.2
   BUN_IMAGE: oven/bun:1.4.2-alpine@sha256:d888c0ae6c86d7866ff10c5aafdd9077b36aee6455b33dd270fb93c0dd5cef6f
-  NGINX_IMAGE: nginx:1.31.5-alpine3.24@sha256:72ba65eb42c10344912a84ff42408db7d34f2feb642204570ab8fc5ffd29f1d3
-  HELM_VERSION: 4.2.4
+  NGINX_IMAGE: nginx:1.31.6-alpine3.24@sha256:adad2ae9204d0fd7a34f40299bc838c3782be1293b10005eac4315ff5a1abf4e
+  HELM_VERSION: 4.3.0
   KIND_VERSION: v0.33.0
-  KIND_NODE_IMAGE: kindest/node:v1.35.8@sha256:07b2536e30b803ed61d1677a79df6115f798ce64c80f9e22f6ed45afd09323c0
-  KUBECTL_VERSION: v1.35.8
+  KIND_NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  KUBECTL_VERSION: v1.37.0
 
 jobs:
   lint-and-test:
@@ -137,7 +137,7 @@ jobs:
         run: |
           set -euo pipefail
           helm template chat-app helm/chat-app \
-            --kube-version 1.36.4 \
+            --kube-version 1.37.0 \
             --set exposure.gateway.enabled=false \
             > .ci-rendered-manifests.yaml
 
@@ -146,7 +146,7 @@ jobs:
         with:
           entrypoint: /kubeconform
           args: >-
-            -strict -summary -kubernetes-version 1.36.0
+            -strict -summary -kubernetes-version 1.37.0
             .ci-rendered-manifests.yaml
 
       - name: Create Kubernetes API validation cluster
@@ -162,7 +162,7 @@ jobs:
         run: |
           set -euo pipefail
           helm template chat-app helm/chat-app \
-            --kube-version 1.35.8 \
+            --kube-version 1.37.0 \
             --set exposure.gateway.enabled=false \
             | kubectl apply --dry-run=server --filename -
 
@@ -347,3 +347,23 @@ jobs:
           set -euo pipefail
           docker compose config --quiet
           echo "Docker Compose configuration is valid"
+
+      - name: Setup Helm for runtime checks
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Create Kubernetes runtime test cluster
+        uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
+        with:
+          cluster_name: chat-app-runtime
+          kubectl_version: ${{ env.KUBECTL_VERSION }}
+          node_image: ${{ env.KIND_NODE_IMAGE }}
+          version: ${{ env.KIND_VERSION }}
+          wait: 120s
+
+      - name: Load built application images
+        run: kind load docker-image --name chat-app-runtime chat-app-server:latest chat-app-client:latest chat-app-migrate:latest
+
+      - name: Test deployed application and persistence
+        run: node scripts/check-k8s-runtime.mjs kind-chat-app-runtime

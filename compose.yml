@@ -1,7 +1,7 @@
 x-bun-build-args: &bun-build-args
   BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.2-alpine}
   BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.2-alpine}
-  NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.5-alpine3.24}
+  NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.6-alpine3.24}
 
 x-security-defaults: &security-defaults
   security_opt:
@@ -45,7 +45,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${TRAEFIK_IMAGE:-traefik:v3.7.12}
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.13}
     cap_drop:
       - ALL
     cap_add:

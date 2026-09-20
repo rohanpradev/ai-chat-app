@@ -1,3 +1,6 @@
+{{- if lt (int .Values.server.terminationGracePeriodSeconds) 40 -}}
+{{- fail "server.terminationGracePeriodSeconds must be at least 40 (10s routing drain plus 25s application shutdown and cleanup)" -}}
+{{- end -}}
 {{- if gt (int .Values.server.hpa.minReplicas) (int .Values.server.hpa.maxReplicas) }}
 {{- fail "server.hpa.minReplicas must be less than or equal to server.hpa.maxReplicas" }}
 {{- end }}

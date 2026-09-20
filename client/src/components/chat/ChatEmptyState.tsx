@@ -3,9 +3,14 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight, Code2, Database, Rocket, Sparkles } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "@/components/ai-elements/prompt-input";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { Label } from "@/components/ui/label";
 import { useCreateChat } from "@/queries/createChat";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
@@ -60,7 +65,7 @@ export function ChatEmptyState() {
 
   const handleCreateChat = (options?: { prompt?: string; title?: string }) => {
     const message = options?.prompt?.trim() || prompt.trim();
-    if (!message) {
+    if (!message || status === "pending") {
       return;
     }
 
@@ -82,92 +87,84 @@ export function ChatEmptyState() {
   };
 
   return (
-    <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4 sm:p-6">
-      <div className="-top-32 -left-24 absolute h-72 w-72 rounded-full bg-violet-500/15 blur-3xl" />
-      <div className="-right-24 -bottom-24 absolute h-80 w-80 rounded-full bg-cyan-400/15 blur-3xl" />
-
-      <div className="relative w-full max-w-6xl space-y-8">
-        <div className="mx-auto max-w-3xl space-y-5 text-center">
-          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border bg-background/80 px-3 py-1.5 text-sm shadow-sm backdrop-blur">
-            <Sparkles aria-hidden="true" className="size-4 text-violet-500" />
-            <span className="font-medium">AI SDK 7 · TypeScript 7</span>
+    <main className="flex min-h-0 flex-1 overflow-y-auto bg-muted/15">
+      <div className="mx-auto my-auto w-full max-w-4xl px-5 py-10 sm:px-10 sm:py-16">
+        <div className="mb-8 space-y-4 sm:mb-10">
+          <div className="flex items-center gap-3">
+            <BrandMark className="size-9" />
+            <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Your thinking space
+            </span>
           </div>
-          <div className="space-y-3">
-            <h1 className="text-balance font-bold text-4xl tracking-tight sm:text-6xl">
-              Build, debug, and ship with context.
-            </h1>
-          </div>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Work through AI flows, frontend polish, database safety, and delivery decisions in one focused workspace.
+          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">What’s on your mind?</h1>
+          <p className="max-w-xl text-base leading-7 text-muted-foreground">
+            Work through an idea, find an answer, or make your next move.
           </p>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-center font-semibold text-2xl">What should we improve first?</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <PromptInput
+          onSubmit={() => handleCreateChat()}
+          className="[&>[data-slot=input-group]]:rounded-3xl [&>[data-slot=input-group]]:border-border/70 [&>[data-slot=input-group]]:bg-background [&>[data-slot=input-group]]:shadow-sm"
+        >
+          <PromptInputBody>
+            <Label className="sr-only" htmlFor={promptId}>
+              Prompt
+            </Label>
+            <PromptInputTextarea
+              id={promptId}
+              aria-label="Prompt"
+              className="min-h-28 px-5 pt-5 text-base"
+              placeholder="Ask a question or describe what you’re working on…"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              disabled={status === "pending"}
+            />
+          </PromptInputBody>
+          <PromptInputFooter className="px-4 pb-4">
+            <span className="text-xs text-muted-foreground">A fresh conversation starts here.</span>
+            <PromptInputSubmit
+              aria-label="Start conversation"
+              disabled={status === "pending" || !prompt.trim()}
+              status={status === "pending" ? "submitted" : "ready"}
+              className="size-9 rounded-full"
+            />
+          </PromptInputFooter>
+        </PromptInput>
+
+        <section className="mt-9" aria-labelledby="conversation-starters">
+          <h2
+            id="conversation-starters"
+            className="mb-4 text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground"
+          >
+            A place to start
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
             {CONVERSATION_STARTERS.map((starter) => (
               <button
-                className="h-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="group flex items-start gap-3 rounded-2xl border border-border/70 bg-background/70 p-4 text-left transition-colors hover:border-primary/35 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 motion-reduce:transition-none"
                 key={starter.id}
+                disabled={status === "pending"}
                 onClick={() => handleCreateChat({ prompt: starter.prompt, title: starter.title })}
                 type="button"
               >
-                <Card className="group h-full overflow-hidden border-border/70 bg-card/85 backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:border-foreground/20 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-                  <CardContent className="p-6">
-                    <div className="flex h-full flex-col gap-5">
-                      <span className={`flex size-11 items-center justify-center rounded-2xl ${starter.iconClassName}`}>
-                        <starter.icon aria-hidden="true" className="size-5" />
-                      </span>
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-xl">{starter.title}</h3>
-                        <p className="text-muted-foreground text-sm leading-6">{starter.description}</p>
-                      </div>
-                      <span className="mt-auto flex items-center gap-1 font-medium text-sm text-primary">
-                        Start this path
-                        <ArrowUpRight
-                          aria-hidden="true"
-                          className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
-                        />
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
+                <span
+                  className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${starter.iconClassName}`}
+                >
+                  <starter.icon aria-hidden="true" className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h3 className="text-sm font-medium">{starter.title}</h3>
+                  <p className="text-xs leading-5 text-muted-foreground">{starter.description}</p>
+                </div>
+                <ArrowUpRight
+                  aria-hidden="true"
+                  className="mt-1 size-4 shrink-0 text-muted-foreground group-hover:text-primary"
+                />
               </button>
             ))}
           </div>
-        </div>
-
-        <Card className="mx-auto max-w-xl border-border/70 bg-card/90 shadow-lg backdrop-blur">
-          <CardHeader className="text-center">
-            <CardTitle className="text-lg">Or ask your own question</CardTitle>
-            <CardDescription>Your first message will create and start the conversation.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor={promptId}>Prompt</Label>
-              <Input
-                id={promptId}
-                placeholder="What do you want to work on?"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                disabled={status === "pending"}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleCreateChat();
-                  }
-                }}
-              />
-            </div>
-            <Button
-              onClick={() => handleCreateChat()}
-              className="w-full"
-              disabled={status === "pending" || !prompt.trim()}
-            >
-              {status === "pending" ? "Starting…" : "Start conversation"}
-            </Button>
-          </CardContent>
-        </Card>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
