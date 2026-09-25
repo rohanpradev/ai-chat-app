@@ -2,7 +2,7 @@ import type { Chat } from "@chat-app/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
 import { Database, FlaskConical, MessageSquare, Plus, Trash2 } from "lucide-react";
-import { type FormEvent, useId, useState } from "react";
+import { type SubmitEvent, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,7 +56,7 @@ export function ConversationSidebar() {
     }
   };
 
-  const handleCreateChat = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateChat = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const chatTitle = title.trim() || "New Chat";
     createChat(chatTitle, {

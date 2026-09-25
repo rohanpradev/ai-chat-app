@@ -71,7 +71,8 @@ export const accounts = pgTable(
 			.primaryKey()
 			.$defaultFn(() => generateId()),
 		idToken: text("id_token"),
-		issuer: varchar("issuer", { length: 255 }).notNull(),
+		// Retain legacy issuer values while Better Auth uses provider/account identity.
+		issuer: varchar("issuer", { length: 255 }),
 		password: text("password"),
 		providerId: varchar("provider_id", { length: 255 }).notNull(),
 		refreshToken: text("refresh_token"),
@@ -86,7 +87,7 @@ export const accounts = pgTable(
 			.notNull()
 	},
 	(table) => [
-		uniqueIndex("accounts_issuer_account_idx").on(table.issuer, table.accountId),
+		uniqueIndex("accounts_provider_account_idx").on(table.providerId, table.accountId),
 		index("accounts_user_id_idx").on(table.userId)
 	]
 );

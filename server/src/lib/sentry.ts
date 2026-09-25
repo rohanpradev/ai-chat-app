@@ -1,11 +1,13 @@
 import type { ErrorEvent } from "@sentry/bun";
 import * as Sentry from "@sentry/bun";
+import { sentry } from "@sentry/hono/bun";
+import { asAppMiddleware } from "@/lib/hono-compat";
 import type { AppOpenAPI } from "@/lib/types";
 import env from "@/utils/env";
 
 const sensitiveFieldPattern = /authorization|cookie|password|secret|token|api[_-]?key/i;
 
-let initialized = false;
+const instrumentedApps = new WeakSet<AppOpenAPI>();
 
 const redactSensitiveFields = (value: unknown, depth = 0): unknown => {
 	if (!value || depth > 4) {
@@ -29,6 +31,17 @@ const redactSensitiveFields = (value: unknown, depth = 0): unknown => {
 };
 
 const redactRequest = (event: ErrorEvent) => {
+	// Hono's SDK normalizes cookies separately from the raw Cookie header.
+	// Scrubbing only headers would leave session credentials in the event.
+	if (event.request) delete event.request.cookies;
+	const requestUrl = event.request?.url;
+	if (requestUrl) {
+		try {
+			if (["/health", "/ready"].includes(new URL(requestUrl).pathname)) return null;
+		} catch {
+			// An invalid telemetry URL must not prevent error reporting.
+		}
+	}
 	const headers = event.request?.headers;
 
 	if (headers) {
@@ -50,33 +63,6 @@ const redactRequest = (event: ErrorEvent) => {
 
 const isSentryEnabled = Boolean(env.SENTRY_DSN);
 
-export function initializeSentry() {
-	if (!isSentryEnabled || initialized) {
-		return;
-	}
-
-	Sentry.init({
-		beforeSend: redactRequest,
-		dsn: env.SENTRY_DSN,
-		environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV,
-		integrations: [
-			Sentry.honoIntegration(),
-			Sentry.vercelAIIntegration({
-				enableTruncation: true,
-				force: true,
-				recordInputs: false,
-				recordOutputs: false
-			})
-		],
-		release: env.SENTRY_RELEASE,
-		sendDefaultPii: env.SENTRY_SEND_DEFAULT_PII,
-		streamGenAiSpans: true,
-		tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE
-	});
-
-	initialized = true;
-}
-
 export function captureSentryException(error: unknown, tags: Record<string, string> = {}) {
 	if (!isSentryEnabled) {
 		return;
@@ -89,13 +75,31 @@ export function captureSentryException(error: unknown, tags: Record<string, stri
 }
 
 export function setupSentryForHono(app: AppOpenAPI) {
-	if (!isSentryEnabled) {
+	if (!isSentryEnabled || instrumentedApps.has(app)) {
 		return;
 	}
 
-	initializeSentry();
-
-	Sentry.setupHonoErrorHandler(app as Parameters<typeof Sentry.setupHonoErrorHandler>[0], {
-		shouldHandleError: (context) => !["/health", "/ready"].includes(context.req.path) && context.res.status >= 500
-	});
+	app.use(
+		"*",
+		asAppMiddleware(
+			sentry(app, {
+				beforeSend: redactRequest,
+				dsn: env.SENTRY_DSN,
+				environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV,
+				integrations: [
+					Sentry.vercelAIIntegration({
+						enableTruncation: true,
+						force: true,
+						recordInputs: false,
+						recordOutputs: false
+					})
+				],
+				release: env.SENTRY_RELEASE,
+				sendDefaultPii: env.SENTRY_SEND_DEFAULT_PII,
+				streamGenAiSpans: true,
+				tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE
+			})
+		)
+	);
+	instrumentedApps.add(app);
 }

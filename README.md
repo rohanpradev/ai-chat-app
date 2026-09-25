@@ -164,7 +164,7 @@ bun run check
 
 ## Docker
 
-The Compose stack pins current public upstream images (Bun 1.4.2, Nginx 1.31.5, Traefik 3.7.12, pgvector 0.8.6 on PostgreSQL 18, Redis 8.10.1, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
+The Compose stack pins current public upstream images (Bun 1.4.2, Nginx 1.31.6, Traefik 3.7.13, pgvector 0.8.6 on PostgreSQL 18, Redis 8.10.2, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
 
 Compose uses the official Nginx entrypoint and a writable, temporary `/etc/nginx/conf.d` to render `BASE_API_SLUG`, `SERVER_HOST`, and `SERVER_PORT` at startup. Nginx request variables are preserved by an explicit substitution filter. Compose Nginx overrides must provide `/docker-entrypoint.sh` and its template support. Kubernetes starts Nginx directly with a chart-rendered ConfigMap, which also supports shell-less image overrides.
 

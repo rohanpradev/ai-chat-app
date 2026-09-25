@@ -267,6 +267,10 @@ export const Persona: FC<PersonaProps> = memo(
         : null
     );
 
+    // These upstream .riv files expose legacy inputs. Migrating requires converting
+    // the source assets to view models in the Rive editor; keep their supported
+    // input API until replacement assets are available.
+    // https://rive.app/docs/editor/data-binding/migration-guide#state-machine-inputs
     const listeningInput = useStateMachineInput(
       rive,
       stateMachine,

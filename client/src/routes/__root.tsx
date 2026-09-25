@@ -1,5 +1,5 @@
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRootRouteWithContext, Link, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, type ErrorComponentProps, Link, Outlet } from "@tanstack/react-router";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,7 @@ function DefaultNotFound() {
   );
 }
 
-function DefaultError({ reset }: Readonly<{ error: Error; reset: () => void }>) {
+function DefaultError({ reset }: Readonly<ErrorComponentProps>) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-red-100">
       <Card className="w-full max-w-md text-center">

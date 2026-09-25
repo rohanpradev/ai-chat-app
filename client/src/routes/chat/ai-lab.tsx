@@ -2,7 +2,7 @@ import { defaultModelId, models as fallbackModels } from "@chat-app/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, ClipboardCheck, FlaskConical, Loader2, RouteIcon, Sparkles } from "lucide-react";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import { useState } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import {
@@ -377,7 +377,7 @@ function AiLabPage() {
   const evaluationMutation = useEvaluateAiOutput();
   const availableModels = modelsQuery.data && modelsQuery.data.length > 0 ? modelsQuery.data : fallbackModels;
 
-  const handlePlanSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handlePlanSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const prompt = planPrompt.trim();
 
@@ -394,7 +394,7 @@ function AiLabPage() {
     });
   };
 
-  const handleEvaluationSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleEvaluationSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const input = evaluationInput.trim();
     const output = evaluationOutput.trim();

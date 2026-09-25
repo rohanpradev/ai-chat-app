@@ -1,6 +1,6 @@
 # Chat App Helm Chart
 
-This chart is the Kubernetes source of truth for the application. It targets Kubernetes 1.35-1.36 with Helm 4.2 and supports either chart-managed PostgreSQL/Redis for self-contained environments or external data services for production.
+This chart is the Kubernetes source of truth for the application. It targets Kubernetes 1.35-1.37 with Helm 4.3 and supports either chart-managed PostgreSQL/Redis for self-contained environments or external data services for production.
 
 ## Structure
 
@@ -54,7 +54,7 @@ Do not commit `values.local.yaml`.
 
 ```bash
 DEPLOY_CHECK_USE_VALUES_TEMPLATE=1 bun run check:deploy
-helm lint --strict --kube-version 1.36.4 helm/chat-app
+helm lint --strict --kube-version 1.37.1 helm/chat-app
 helm template chat-app helm/chat-app --set exposure.gateway.enabled=false
 ```
 
@@ -64,3 +64,11 @@ CI additionally validates the render with Kubeconform and Kubernetes API-server 
 make k8s-cleanup
 make k8s-destroy-data CONFIRM=chat-app
 ```
+
+## Runtime verification and rollout
+
+`bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, replaces the API pod, checks persisted sessions/conversations, and cleans up. See [modernization notes](../../docs/modernization-2026-09.md) for Gateway-mode testing and the Better Auth migration sequence.
+
+The API needs at least 40 seconds of termination grace: 10 seconds for routing propagation, then the application's stream drain and cleanup. The chart rejects shorter values.
+
+When `exposure.gateway.create=true`, set `httpPort` and `httpsPort` to the controller's actual listening ports. The defaults (8000/8443) match the generated Traefik configuration. Disabling TLS now omits the HTTPS listener entirely.

@@ -31,8 +31,7 @@ const githubProvider =
 
 export const auth = betterAuth({
 	account: {
-		encryptOAuthTokens: true,
-		identityStrategy: "provider-id"
+		encryptOAuthTokens: true
 	},
 	advanced: {
 		database: {
@@ -65,8 +64,12 @@ export const auth = betterAuth({
 			verify: ({ hash, password }) => Bun.password.verify(password, hash)
 		}
 	},
+	// Auth spans may contain account identifiers; keep them out of AI telemetry.
+	experimental: { instrumentation: { enabled: false } },
 	plugins: [openAPI()],
 	secret: env.BETTER_AUTH_SECRET,
+	// Always consult persisted sessions so device revocation takes effect immediately.
+	session: { cookieCache: { enabled: false } },
 	socialProviders: githubProvider,
 	trustedOrigins
 });

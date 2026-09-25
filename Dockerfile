@@ -3,7 +3,7 @@
 ARG BUN_VERSION=1.4.2
 ARG BUN_DEV_IMAGE=oven/bun:${BUN_VERSION}-alpine
 ARG BUN_RUNTIME_IMAGE=oven/bun:${BUN_VERSION}-alpine
-ARG NGINX_IMAGE=nginx:1.31.5-alpine3.24
+ARG NGINX_IMAGE=nginx:1.31.6-alpine3.24
 
 # Stage 1: Workspace manifests only.
 FROM ${BUN_DEV_IMAGE} AS workspace-manifests

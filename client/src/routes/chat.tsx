@@ -23,7 +23,7 @@ export const Route = createFileRoute("/chat")({
   },
   loader: async ({ context }) => {
     try {
-      return await context.queryClient.ensureQueryData(conversationsQuery());
+      return await context.queryClient.query({ ...conversationsQuery(), staleTime: "static" });
     } catch (error) {
       console.error("Failed to load conversations:", error);
       throw error;

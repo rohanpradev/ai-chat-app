@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export { uiMessageTools as tools } from "@chat-app/shared/tools";
 
-const isoDatetimeSchema = z.string().datetime({ offset: true });
+const isoDatetimeSchema = z.iso.datetime({ offset: true });
 
 export const myUIMessageMetadataSchema = z
 	.object({

@@ -31,7 +31,7 @@ images:
   redis:
     registry: dhi.io
     repository: redis
-    tag: 8.10.1-debian13
+    tag: 8.10.2-debian13
     digest: ""
     pullPolicy: Always
 
@@ -99,6 +99,9 @@ exposure:
     namespace: traefik
     name: traefik-gateway
     className: traefik
+    # Match Traefik container entrypoints, not the Service exposed ports.
+    httpPort: 8000
+    httpsPort: 8443
     hostnames:
       - app.docker.localhost
     tls:
@@ -139,7 +142,7 @@ server:
   revisionHistoryLimit: 3
   minReadySeconds: 5
   progressDeadlineSeconds: 300
-  terminationGracePeriodSeconds: 30
+  terminationGracePeriodSeconds: 40
   podAnnotations: {}
   podLabels: {}
   nodeSelector: {}

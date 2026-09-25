@@ -23,7 +23,12 @@ async function mockAuthenticatedApp(
 ) {
 	const conversations = options.conversations ?? [];
 	await page.route("**/api/auth/get-session", (route) =>
-		route.fulfill(json({ session: { expiresAt: "2099-01-01T00:00:00.000Z", id: "session-e2e", userId: user.id }, user })),
+		route.fulfill(
+			json({
+				session: { expiresAt: "2099-01-01T00:00:00.000Z", id: "session-e2e", token: "current-test-token", userId: user.id },
+				user,
+			}),
+		),
 	);
 	await page.route("**/api/ai/models", (route) =>
 		route.fulfill(json({ data: [{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" }], message: "ok" })),
@@ -114,7 +119,7 @@ test("creates a conversation from a prompt and completes a streamed response", a
 	await mockAuthenticatedApp(page);
 	await page.goto("/chat");
 
-	await expect(page.getByRole("heading", { name: "What should we improve first?" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "What’s on your mind?" })).toBeVisible();
 	await page.getByLabel("Prompt").fill("Build a resilient AI platform");
 	await page.getByRole("button", { name: "Start conversation" }).click();
 
@@ -135,7 +140,7 @@ test("deletes the current conversation through the confirmation flow", async ({ 
 	await page.getByRole("button", { name: "Delete" }).click();
 
 	await expect(page).toHaveURL(/\/chat\/?$/);
-	await expect(page.getByRole("heading", { name: "What should we improve first?" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "What’s on your mind?" })).toBeVisible();
 });
 
 test("recovers from a failed AI request without duplicating the user message", async ({ page }) => {
@@ -157,4 +162,64 @@ test("recovers from a failed AI request without duplicating the user message", a
 	await expect(page.getByText("Production-ready answer")).toBeVisible();
 	await expect(page.locator(".is-user")).toHaveCount(1);
 	await expect(page.getByRole("button", { exact: true, name: "Retry" })).toHaveCount(0);
+});
+
+test("shows the refreshed empty state without horizontal overflow", async ({ page }, testInfo) => {
+	await mockAuthenticatedApp(page);
+	await page.goto("/chat");
+	await expect(page.getByRole("heading", { name: "What’s on your mind?" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Start conversation" })).toBeDisabled();
+	await expect(page.locator("body")).toHaveJSProperty(
+		"scrollWidth",
+		await page.locator("body").evaluate((body) => body.clientWidth),
+	);
+	await page.screenshot({ fullPage: true, path: testInfo.outputPath("chat-home.png") });
+});
+
+test("retries session loading and revocation while preserving the current device", async ({ page }, testInfo) => {
+	await mockAuthenticatedApp(page);
+	await page.route("**/api/ai/usage", (route) =>
+		route.fulfill(
+			json({
+				data: {
+					ai: { requests: { limit: 200, used: 0 }, tokens: { limit: 1000000, used: 0 } },
+					embedding: { storageBytes: { limit: 1000000, used: 0 }, tokens: { limit: 1000000, used: 0 } },
+					resetsAt: "2099-01-01T00:00:00.000Z",
+				},
+			}),
+		),
+	);
+	const makeSession = (id: string, token: string) => ({
+		createdAt: "2026-09-20T00:00:00.000Z",
+		expiresAt: "2099-01-01T00:00:00.000Z",
+		id,
+		token,
+		updatedAt: "2026-09-20T00:00:00.000Z",
+		userAgent: "Test browser",
+		userId: user.id,
+	});
+	let sessions = [makeSession("session-e2e", "current-test-token"), makeSession("other-session", "other-test-token")];
+	let loadFails = true;
+	await page.route("**/api/auth/list-sessions", (route) =>
+		route.fulfill(loadFails ? json({ message: "Unavailable" }, 503) : json(sessions)),
+	);
+	await page.route("**/api/auth/revoke-other-sessions", async (route) => {
+		sessions = sessions.slice(0, 1);
+		await route.fulfill(json({ status: true }));
+	});
+	await page.route("**/api/auth/revoke-session", (route) => route.fulfill(json({ message: "Unavailable" }, 503)));
+	await page.goto("/profile");
+	await expect(page.getByText("Could not load your sessions.")).toBeVisible({ timeout: 20000 });
+	loadFails = false;
+	await page.getByRole("button", { exact: true, name: "Try again" }).click();
+	await expect(page.getByRole("listitem").filter({ hasText: "This device" })).toBeVisible();
+	await expect(page.getByText("Other device", { exact: true })).toBeVisible();
+	await page.getByRole("button", { name: /^Sign out session from/ }).click();
+	await expect(page.getByText("Could not sign out this session. Please try again.")).toBeVisible();
+	await expect(page.getByText("Other device", { exact: true })).toBeVisible();
+	await page.getByRole("button", { name: "Sign out other devices" }).click();
+	await expect(page.getByText("Other device", { exact: true })).toHaveCount(0);
+	await expect(page.getByRole("listitem").filter({ hasText: "This device" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Sign out other devices" })).toBeDisabled();
+	await page.screenshot({ fullPage: true, path: testInfo.outputPath("profile-sessions.png") });
 });

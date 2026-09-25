@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Activity, ArrowLeft, Edit, Mail, Shield, User } from "lucide-react";
 import { useState } from "react";
+import { SessionSettings } from "@/components/auth/SessionSettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { Badge } from "@/components/ui/badge";
@@ -23,10 +24,10 @@ export const Route = createFileRoute("/(user)/profile")({
     }
   },
   loader: async ({ context }) => {
-    if (!context.auth.user) {
-      await context.queryClient.ensureQueryData(profileQuery());
-    }
-    await context.queryClient.ensureQueryData(aiUsageQuery());
+    await Promise.all([
+      ...(!context.auth.user ? [context.queryClient.query({ ...profileQuery(), staleTime: "static" })] : []),
+      context.queryClient.query({ ...aiUsageQuery(), staleTime: "static" }),
+    ]);
   },
   component: ProfileComponent,
 });
@@ -170,6 +171,8 @@ function ProfileComponent() {
             </CardContent>
           </Card>
         </div>
+
+        <SessionSettings />
 
         <Card className="mt-6 border-0 shadow-lg">
           <CardHeader>

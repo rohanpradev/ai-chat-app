@@ -29,8 +29,8 @@ export const Route = createFileRoute("/chat/$conversationId")({
     const chatQuery = getConversationQuery(params.conversationId);
 
     try {
-      const conversation = await context.queryClient.ensureQueryData(chatQuery);
-      void context.queryClient.prefetchQuery(getAiModelsQuery());
+      const conversation = await context.queryClient.query({ ...chatQuery, staleTime: "static" });
+      void context.queryClient.query(getAiModelsQuery()).catch(() => undefined);
 
       if (!conversation) {
         throw redirect({

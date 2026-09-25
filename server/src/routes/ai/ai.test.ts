@@ -208,8 +208,8 @@ describe("AI Routes", () => {
 			method: "POST"
 		});
 
-		expect(response.status).toBe(400);
-		expect(await response.json()).toMatchObject({ message: "Invalid request payload" });
+		expect(response.status).toBe(415);
+		expect(await response.json()).toMatchObject({ message: "Unsupported Media Type" });
 	});
 
 	it("evaluates an AI output with a structured judge result", async () => {
