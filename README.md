@@ -247,8 +247,6 @@ See `helm/chat-app/README.md` for the chart contract and `k8s/README.md` for the
 
 Dependency versions shared across workspaces are defined in the root `catalog` field and referenced with `catalog:` from package manifests.
 
-See [the September 25 upgrade audit](docs/upgrade-2026-09-25.md) for current version decisions, API migrations, compatibility holds, and rollout notes. Run `bun run check:deprecations` to catch deprecated APIs across all workspaces.
-
 Use `bun ci` in CI and clean local installs. It is equivalent to a frozen-lockfile install and fails when `package.json` and `bun.lock` drift.
 
 Dependabot uses one root Bun workspace update to keep the catalog, workspace manifests, and shared lockfile together, with a three-day cooldown matching `bunfig.toml`. Dockerfile and Compose image updates are tracked separately. CI builds the public upstream images without registry credentials. Its Bun and Nginx images are pinned to verified multi-platform digests in `.github/workflows/ci.yml`; update those digests together with their version tags.
@@ -340,7 +338,3 @@ To remove only recreatable generated files:
 ```bash
 make clean-generated
 ```
-
-## September 2026 upgrades
-
-See [modernization and rollout notes](docs/modernization-2026-09.md) for version decisions, the required Better Auth migration, UI changes, and repeatable Kubernetes runtime checks.

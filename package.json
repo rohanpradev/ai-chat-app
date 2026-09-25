@@ -44,7 +44,6 @@
 		"check:ci": "bun run security:check && bun run knip && bun run check:migrations && bun run check:deprecations && bun run check && bun run build && bun scripts/report-client-bundle-size.mjs && bun run check:deploy",
 		"check:client-container": "bun scripts/check-client-container.mjs",
 		"check:deploy": "bun scripts/check-deployments.mjs",
-		"check:deprecations": "node scripts/check-deprecations.mjs",
 		"check:k8s": "node scripts/check-k8s-runtime.mjs",
 		"check:migrations": "bun scripts/check-migrations.mjs",
 		"check:server-container": "bun scripts/check-server-container.mjs",
