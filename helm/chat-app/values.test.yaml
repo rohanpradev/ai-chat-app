@@ -10,7 +10,7 @@ images:
   redis:
     registry: docker.io
     repository: redis
-    tag: 8.10.1-trixie
+    tag: 8.10.2-trixie
 
 config:
   env:

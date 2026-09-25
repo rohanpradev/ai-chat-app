@@ -42,7 +42,7 @@ const normalizedEnv = {
 	LANGFUSE_BASE_URL: Bun.env.LANGFUSE_BASE_URL ?? Bun.env.LANGFUSE_BASEURL
 };
 
-const urlSchema = z.string().url();
+const urlSchema = z.url();
 
 const EnvSchema = z
 	.object({

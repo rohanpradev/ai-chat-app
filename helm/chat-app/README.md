@@ -54,7 +54,7 @@ Do not commit `values.local.yaml`.
 
 ```bash
 DEPLOY_CHECK_USE_VALUES_TEMPLATE=1 bun run check:deploy
-helm lint --strict --kube-version 1.37.0 helm/chat-app
+helm lint --strict --kube-version 1.37.1 helm/chat-app
 helm template chat-app helm/chat-app --set exposure.gateway.enabled=false
 ```
 

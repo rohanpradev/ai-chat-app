@@ -24,7 +24,9 @@ env:
   HELM_VERSION: 4.3.0
   KIND_VERSION: v0.33.0
   KIND_NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
-  KUBECTL_VERSION: v1.37.0
+  KUBECTL_VERSION: v1.37.1
+  # Upstream has not published 1.37.1 JSON schemas or kind node images yet.
+  KUBE_SCHEMA_VERSION: 1.37.0
 
 jobs:
   lint-and-test:
@@ -66,6 +68,9 @@ jobs:
 
       - name: Type check with TypeScript
         run: bun run typecheck
+
+      - name: Reject deprecated application APIs
+        run: bun run check:deprecations
 
       - name: Run tests
         run: |
@@ -137,7 +142,7 @@ jobs:
         run: |
           set -euo pipefail
           helm template chat-app helm/chat-app \
-            --kube-version 1.37.0 \
+            --kube-version 1.37.1 \
             --set exposure.gateway.enabled=false \
             > .ci-rendered-manifests.yaml
 
@@ -146,7 +151,7 @@ jobs:
         with:
           entrypoint: /kubeconform
           args: >-
-            -strict -summary -kubernetes-version 1.37.0
+            -strict -summary -kubernetes-version ${{ env.KUBE_SCHEMA_VERSION }}
             .ci-rendered-manifests.yaml
 
       - name: Create Kubernetes API validation cluster
@@ -162,7 +167,7 @@ jobs:
         run: |
           set -euo pipefail
           helm template chat-app helm/chat-app \
-            --kube-version 1.37.0 \
+            --kube-version 1.37.1 \
             --set exposure.gateway.enabled=false \
             | kubectl apply --dry-run=server --filename -
 
@@ -261,7 +266,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Create CI .env
         run: |
@@ -296,7 +301,7 @@ jobs:
           EOF
 
       - name: Build server image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: server-prod
@@ -313,7 +318,7 @@ jobs:
         run: node scripts/check-server-container.mjs chat-app-server:latest
 
       - name: Build client image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: client-prod
@@ -330,7 +335,7 @@ jobs:
         run: node scripts/check-client-container.mjs chat-app-client:latest
 
       - name: Build migrate image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: server/Dockerfile.migrate

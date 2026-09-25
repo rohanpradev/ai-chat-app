@@ -7,13 +7,10 @@ export {
 	webSearchToolId,
 } from "@chat-app/shared/tool-ids";
 
-const urlSchema = z
-	.string()
-	.url()
-	.refine((value) => {
-		const protocol = new URL(value).protocol;
-		return protocol === "http:" || protocol === "https:";
-	}, "URL must use HTTP or HTTPS");
+const urlSchema = z.url().refine((value) => {
+	const protocol = new URL(value).protocol;
+	return protocol === "http:" || protocol === "https:";
+}, "URL must use HTTP or HTTPS");
 
 export const deepSearchInputSchema = z.object({
 	maxResults: z.number().optional().describe("Maximum number of results"),

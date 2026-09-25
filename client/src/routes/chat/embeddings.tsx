@@ -2,7 +2,7 @@ import { defaultModelId, models as fallbackModels } from "@chat-app/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Database, FileText, Loader2, Search, Sparkles, Trash2, Upload } from "lucide-react";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import { useMemo, useRef, useState } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
@@ -114,7 +114,7 @@ function EmbeddingsPage() {
     ragMutation.reset();
   };
 
-  const handleUpload = (event: FormEvent<HTMLFormElement>) => {
+  const handleUpload = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!file) {
@@ -137,7 +137,7 @@ function EmbeddingsPage() {
     );
   };
 
-  const handleTextIngest = (event: FormEvent<HTMLFormElement>) => {
+  const handleTextIngest = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const content = textContent.trim();
@@ -180,7 +180,7 @@ function EmbeddingsPage() {
     });
   };
 
-  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+  const handleSearch = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!searchPayload.query) {

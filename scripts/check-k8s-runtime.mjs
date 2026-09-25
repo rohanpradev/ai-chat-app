@@ -11,6 +11,7 @@ const gatewayNamespace = process.env.K8S_TEST_GATEWAY_NAMESPACE ?? "traefik";
 const rootDir = new URL("..", import.meta.url);
 const namespace = `chat-app-test-${randomUUID().slice(0, 8)}`;
 const release = "chat-app";
+const imageTag = process.env.K8S_TEST_IMAGE_TAG ?? "latest";
 const kubeArgs = ["--context", context, "--namespace", namespace];
 const helmArgs = ["--kube-context", context, "--namespace", namespace];
 let namespaceCreated = false;
@@ -98,6 +99,12 @@ try {
 					"exposure.gateway.cors.allowOrigins[0]=http://localhost",
 				]
 			: []),
+		"--set-string",
+		`images.client.tag=${imageTag}`,
+		"--set-string",
+		`images.server.tag=${imageTag}`,
+		"--set-string",
+		`images.migrate.tag=${imageTag}`,
 		"--wait",
 		"--wait-for-jobs",
 		"--timeout",

@@ -33,7 +33,7 @@ export function createAuthContext(queryClient: QueryClient): AuthContext {
 
 export async function loadUser(queryClient: QueryClient, authContext: AuthContext): Promise<User | null> {
   try {
-    const user = await queryClient.fetchQuery(getCurrentUserQuery());
+    const user = await queryClient.query(getCurrentUserQuery());
     if (user) {
       authContext.login(user);
       return user;

@@ -42,7 +42,7 @@ export const RegisterUserRequestSchema = z
 			.openapi({ type: "string" }),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
+		error: "Passwords do not match",
 	})
 	.openapi({
 		description: "Request body for registering a new user",

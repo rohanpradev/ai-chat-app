@@ -21,9 +21,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "noPropertyAccessFromIndexSignature": false,
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    // Reject unused declarations at the server boundary too.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,

@@ -62,8 +62,8 @@ TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-$(read_env TRAEFIK_CHART_VERSION
 GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-$(read_env GATEWAY_API_VERSION || true)}"
 TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-oci://ghcr.io/traefik/helm/traefik}"
 TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-41.6.0}"
-# Traefik 3.7 currently documents conformance with Gateway API 1.6.1.
-GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.6.1}"
+# Gateway API 1.6.2 is a patch update in the supported 1.6 release line.
+GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.6.2}"
 
 bash "${ROOT_DIR}/scripts/ensure-k8s-traefik-values.sh"
 bash "${ROOT_DIR}/scripts/ensure-k8s-local-tls.sh"

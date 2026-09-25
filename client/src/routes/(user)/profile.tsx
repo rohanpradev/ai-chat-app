@@ -24,10 +24,10 @@ export const Route = createFileRoute("/(user)/profile")({
     }
   },
   loader: async ({ context }) => {
-    if (!context.auth.user) {
-      await context.queryClient.ensureQueryData(profileQuery());
-    }
-    await context.queryClient.ensureQueryData(aiUsageQuery());
+    await Promise.all([
+      ...(!context.auth.user ? [context.queryClient.query({ ...profileQuery(), staleTime: "static" })] : []),
+      context.queryClient.query({ ...aiUsageQuery(), staleTime: "static" }),
+    ]);
   },
   component: ProfileComponent,
 });
