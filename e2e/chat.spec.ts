@@ -228,7 +228,6 @@ test("retries session loading and revocation while preserving the current device
 	await expect(page.getByRole("button", { name: "Sign out other devices" })).toBeDisabled();
 	await page.screenshot({ fullPage: true, path: testInfo.outputPath("profile-sessions.png") });
 });
-
 test("evaluates editable Jev questions and displays distributions", async ({ page }) => {
 	await mockAuthenticatedApp(page);
 	await page.route("**/api/jev/status", (route) => route.fulfill(json({ configured: true, model: "typesafe-ai/jev" })));
