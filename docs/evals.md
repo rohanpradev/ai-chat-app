@@ -58,7 +58,7 @@ bun run k8s:validate
 
 ## Model Upgrade Smoke Test
 
-- Add the candidate to `OPENAI_MODEL_OVERRIDES` and confirm it appears in `GET /{BASE_API_SLUG}/ai/models`.
+- Confirm the candidate appears in `GET /{BASE_API_SLUG}/ai/models` through the Vercel AI Gateway catalog.
 - Run the same prompts on the current default and the candidate model.
 - Compare quality, tool-call precision, latency, total tokens, and user-facing tone.
 - Confirm persisted assistant metadata records the resolved model ID.

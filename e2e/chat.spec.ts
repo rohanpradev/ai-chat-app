@@ -31,7 +31,9 @@ async function mockAuthenticatedApp(
 		),
 	);
 	await page.route("**/api/ai/models", (route) =>
-		route.fulfill(json({ data: [{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" }], message: "ok" })),
+		route.fulfill(
+			json({ data: [{ id: "openai/gpt-5-mini", name: "GPT-5 Mini", provider: "vercel-ai-gateway" }], message: "ok" }),
+		),
 	);
 	await page.route("**/api/conversations", async (route) => {
 		if (route.request().method() === "POST") {
@@ -81,6 +83,9 @@ test("loads rich answer renderers in the production bundle", async ({ page }, te
 
 	await expect(page.locator("pre").filter({ hasText: "const answer = 42;" })).toBeVisible();
 	await expect(page.locator(".katex")).toBeVisible();
+	// KaTeX 0.18 prefixes internal classes; markup and lazy-loaded CSS must agree.
+	await expect(page.locator(".katex .katex-base").first()).toBeVisible();
+	await expect(page.locator(".katex .katex-base").first()).toHaveCSS("display", "inline-block");
 	await expect(page.locator(".katex-mathml")).toHaveCSS("position", "absolute");
 	await expect(page.locator('svg[id^="mermaid"]')).toBeVisible();
 	await expect(page.locator("body")).toHaveJSProperty(
@@ -222,4 +227,63 @@ test("retries session loading and revocation while preserving the current device
 	await expect(page.getByRole("listitem").filter({ hasText: "This device" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Sign out other devices" })).toBeDisabled();
 	await page.screenshot({ fullPage: true, path: testInfo.outputPath("profile-sessions.png") });
+});
+
+test("evaluates editable Jev questions and displays distributions", async ({ page }) => {
+	await mockAuthenticatedApp(page);
+	await page.route("**/api/jev/status", (route) => route.fulfill(json({ configured: true, model: "typesafe-ai/jev" })));
+	let submitted: unknown;
+	await page.route("**/api/jev/evaluate", async (route) => {
+		submitted = route.request().postDataJSON();
+		await route.fulfill(
+			json({
+				answers: {
+					department: {
+						choice: "technical",
+						confidence: 0.86,
+						probabilities: { billing: 0.07, other: 0.02, technical: 0.91 },
+						type: "choice",
+					},
+					impact: {
+						confidence: 0.65,
+						probabilities: { "0": 0.01, "1": 0.09, "2": 0.4, "3": 0.5 },
+						score: 2.4,
+						type: "score",
+					},
+					refund: { probability: 0.12, type: "boolean" },
+				},
+				durationMs: 42,
+				model: "typesafe-ai/jev",
+				usage: { inputTokens: 420, outputTokens: 10, totalTokens: 430 },
+			}),
+		);
+	});
+	await page.goto("/chat/jev");
+	await expect(page.getByRole("heading", { name: "Jev Studio" })).toBeVisible();
+	await expect(page.getByText("Gateway key configured")).toBeVisible();
+	await page.getByRole("button", { name: "Run evaluation" }).click();
+	await expect(page.locator("strong").filter({ hasText: "technical" })).toBeVisible();
+	await expect(page.getByText("91%")).toBeVisible();
+	await expect(page.getByText("Confidence: 86%", { exact: true })).toBeVisible();
+	await expect(page.getByText("Needs review", { exact: true })).toBeVisible();
+	expect(submitted).toMatchObject({
+		questions: [
+			{ id: "department", type: "choice" },
+			{ id: "impact", type: "score" },
+			{ id: "refund", type: "boolean" },
+		],
+		stateFormat: "text",
+	});
+});
+
+test("keeps Jev templates available when the Gateway key is missing", async ({ page }) => {
+	await mockAuthenticatedApp(page);
+	await page.route("**/api/jev/status", (route) => route.fulfill(json({ configured: false, model: "typesafe-ai/jev" })));
+	await page.goto("/chat/jev");
+	await expect(page.getByRole("heading", { name: "Jev Studio" })).toBeVisible();
+	await expect(page.getByText("add AI_GATEWAY_API_KEY to the server environment")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Run evaluation" })).toBeDisabled();
+	await page.getByRole("button", { name: /Answer checking/ }).click();
+	await expect(page.getByLabel("State format")).toHaveValue("json");
+	await expect(page.getByLabel("Question 1 name")).toHaveValue("supported");
 });

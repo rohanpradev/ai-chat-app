@@ -5,10 +5,16 @@ import ai from "@/routes/ai/ai.index";
 import conversations from "@/routes/conversations/conversations.index";
 import embeddings from "@/routes/embeddings/embeddings.index";
 import index from "@/routes/index.route";
+import jev from "@/routes/jev/jev.index";
 import profile from "@/routes/profile/profile.index";
 import env from "@/utils/env";
 
-const apiRoutes = createRouter().route("/", profile).route("/", ai).route("/", conversations).route("/", embeddings);
+const apiRoutes = createRouter()
+	.route("/", profile)
+	.route("/", ai)
+	.route("/", conversations)
+	.route("/", embeddings)
+	.route("/", jev);
 
 const app = createApp();
 configureOpenAPI(app);

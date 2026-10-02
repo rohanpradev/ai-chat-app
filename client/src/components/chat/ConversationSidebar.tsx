@@ -1,7 +1,7 @@
 import type { Chat } from "@chat-app/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
-import { Database, FlaskConical, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { Database, FlaskConical, MessageSquare, Plus, ScanLine, Trash2 } from "lucide-react";
 import { type SubmitEvent, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,7 @@ import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 import { Route as AiLabRoute } from "@/routes/chat/ai-lab";
 import { Route as EmbeddingsRoute } from "@/routes/chat/embeddings";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
+import { Route as JevRoute } from "@/routes/chat/jev";
 
 export function ConversationSidebar() {
   const params = useParams({ strict: false });
@@ -197,6 +198,18 @@ export function ConversationSidebar() {
                   <Link onClick={closeMobileSidebar} to={AiLabRoute.to} search={{ redirect: undefined }}>
                     <FlaskConical aria-hidden="true" className="h-4 w-4" />
                     <span className="truncate">AI Lab</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={currentPath === JevRoute.to}
+                  className="w-full justify-start gap-2"
+                >
+                  <Link onClick={closeMobileSidebar} to={JevRoute.to} search={{ redirect: undefined }}>
+                    <ScanLine aria-hidden="true" className="h-4 w-4" />
+                    <span className="truncate">Jev Studio</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

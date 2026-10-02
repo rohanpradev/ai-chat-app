@@ -1,16 +1,16 @@
-import { openai } from "@ai-sdk/openai";
 import { type AIModelDefinition, type AIProvider, defaultModelId, getModelsByProvider } from "@chat-app/shared";
 import { convertToModelMessages, type ModelMessage, pruneMessages, type UIMessage } from "ai";
+import { aiGateway } from "@/lib/ai-gateway";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
 import env from "@/utils/env";
 
-const configuredProviders = (): AIProvider[] => (env.OPENAI_API_KEY ? ["openai"] : []);
+const configuredProviders = (): AIProvider[] => (env.AI_GATEWAY_API_KEY ? ["vercel-ai-gateway"] : []);
 
 const resolveConfiguredModel = (): AIModelDefinition => {
-	const [fallbackModel] = getModelsByProvider("openai");
+	const [fallbackModel] = getModelsByProvider("vercel-ai-gateway");
 
 	if (!fallbackModel) {
-		throw new Error('No models configured for provider "openai"');
+		throw new Error('No models configured for provider "vercel-ai-gateway"');
 	}
 
 	return fallbackModel;
@@ -20,7 +20,7 @@ export const resolveModelSelection = async (requestedModelId?: string): Promise<
 	const availableProviders = configuredProviders();
 
 	if (availableProviders.length === 0) {
-		throw new Error("OPENAI_API_KEY is required");
+		throw new Error("AI_GATEWAY_API_KEY is required");
 	}
 
 	const availableModels = await getAvailableChatModels();
@@ -33,7 +33,7 @@ export const resolveModelSelection = async (requestedModelId?: string): Promise<
 	return availableModels.find((model) => model.id === defaultModelId) ?? resolveConfiguredModel();
 };
 
-export const resolveModel = (requestedModelId?: string) => openai(requestedModelId ?? defaultModelId);
+export const resolveModel = (requestedModelId?: string) => aiGateway.languageModel(requestedModelId ?? defaultModelId);
 
 const assistantMessageNeedsReasoningContext = (message: ModelMessage, index: number, messages: ModelMessage[]) =>
 	message.role === "assistant" &&

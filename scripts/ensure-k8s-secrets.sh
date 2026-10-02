@@ -111,7 +111,7 @@ is_required_placeholder() {
   normalized="$(to_lower "${2:-}")"
 
   case "${name}:${normalized}" in
-    OPENAI_API_KEY:your_openai_api_key_here|OPENAI_API_KEY:replace-me|OPENAI_API_KEY:change-me|\
+    AI_GATEWAY_API_KEY:your_vercel_ai_gateway_api_key_here|AI_GATEWAY_API_KEY:replace-me|AI_GATEWAY_API_KEY:change-me|\
     BETTER_AUTH_SECRET:your_secure_better_auth_secret_here_min_32_characters|\
     BETTER_AUTH_SECRET:your_better_auth_secret_32_chars_minimum_here|BETTER_AUTH_SECRET:replace-me|BETTER_AUTH_SECRET:change-me|\
     DB_PASSWORD:your_db_password_here|DB_PASSWORD:replace-me|DB_PASSWORD:change-me|DB_PASSWORD:changeme)
@@ -159,8 +159,6 @@ POSTGRES_PASSWORD="$(read_env POSTGRES_PASSWORD)"
 GITHUB_CLIENT_ID="$(read_env GITHUB_CLIENT_ID)"
 GITHUB_CLIENT_SECRET="$(read_env GITHUB_CLIENT_SECRET)"
 AI_TOOL_APPROVAL_SECRET="$(read_env AI_TOOL_APPROVAL_SECRET)"
-OPENAI_API_KEY="$(read_env OPENAI_API_KEY)"
-OPENAI_MODEL_OVERRIDES="$(read_env OPENAI_MODEL_OVERRIDES)"
 REDIS_AUTH="$(read_env REDIS_AUTH)"
 LANGFUSE_PUBLIC_KEY="$(read_env LANGFUSE_PUBLIC_KEY)"
 LANGFUSE_SECRET_KEY="$(read_env LANGFUSE_SECRET_KEY)"
@@ -168,6 +166,7 @@ LANGFUSE_BASE_URL="$(read_env LANGFUSE_BASE_URL)"
 if [ -z "${LANGFUSE_BASE_URL}" ]; then
   LANGFUSE_BASE_URL="$(read_env LANGFUSE_BASEURL)"
 fi
+AI_GATEWAY_API_KEY="$(read_env AI_GATEWAY_API_KEY)"
 SERPER_API_KEY="$(read_env SERPER_API_KEY)"
 SENTRY_DSN="$(read_env SENTRY_DSN)"
 K8S_GATEWAY_ENABLED="${K8S_GATEWAY_ENABLED:-$(read_env K8S_GATEWAY_ENABLED)}"
@@ -197,7 +196,7 @@ APP_HOSTNAME="${K8S_APP_HOSTNAME:-app.docker.localhost}"
 SOURCE_DOMAIN="${SOURCE_DOMAIN:-localhost}"
 VALIDATION_MODE="$(resolve_validation_mode "${SECRET_VALIDATION_MODE:-auto}" "${SOURCE_NODE_ENV:-development}" "${SOURCE_DOMAIN}" "${APP_HOSTNAME}")"
 
-require_configured_secret OPENAI_API_KEY "${OPENAI_API_KEY}"
+require_configured_secret AI_GATEWAY_API_KEY "${AI_GATEWAY_API_KEY}"
 require_configured_secret BETTER_AUTH_SECRET "${BETTER_AUTH_SECRET}"
 require_configured_secret DB_PASSWORD "${DB_PASSWORD}"
 
@@ -358,8 +357,7 @@ secrets:
       GITHUB_CLIENT_ID: "$(yaml_escape "${GITHUB_CLIENT_ID:-}")"
       GITHUB_CLIENT_SECRET: "$(yaml_escape "${GITHUB_CLIENT_SECRET:-}")"
       AI_TOOL_APPROVAL_SECRET: "$(yaml_escape "${AI_TOOL_APPROVAL_SECRET:-}")"
-      OPENAI_API_KEY: "$(yaml_escape "${OPENAI_API_KEY:-}")"
-      OPENAI_MODEL_OVERRIDES: "$(yaml_escape "${OPENAI_MODEL_OVERRIDES:-}")"
+      AI_GATEWAY_API_KEY: "$(yaml_escape "${AI_GATEWAY_API_KEY:-}")"
       SERPER_API_KEY: "$(yaml_escape "${SERPER_API_KEY:-}")"
       LANGFUSE_PUBLIC_KEY: "$(yaml_escape "${LANGFUSE_PUBLIC_KEY:-}")"
       LANGFUSE_SECRET_KEY: "$(yaml_escape "${LANGFUSE_SECRET_KEY:-}")"
