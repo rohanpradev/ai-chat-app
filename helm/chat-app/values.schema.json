@@ -781,6 +781,7 @@
 						"data": {
 							"additionalProperties": false,
 							"properties": {
+								"AI_GATEWAY_API_KEY": { "type": "string" },
 								"AI_TOOL_APPROVAL_SECRET": {
 									"type": "string"
 								},
@@ -806,12 +807,6 @@
 									"type": "string"
 								},
 								"LANGFUSE_SECRET_KEY": {
-									"type": "string"
-								},
-								"OPENAI_API_KEY": {
-									"type": "string"
-								},
-								"OPENAI_MODEL_OVERRIDES": {
 									"type": "string"
 								},
 								"POSTGRES_PASSWORD": {

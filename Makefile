@@ -71,7 +71,7 @@ setup: ## Initial setup - Copy .env.example to .env and guide user
 		echo "✅ Created .env file from .env.example"; \
 		echo ""; \
 		echo "📝 Required: Update these 3 values in .env:"; \
-		echo "   1. OPENAI_API_KEY        - Get from platform.openai.com"; \
+		echo "   1. AI_GATEWAY_API_KEY    - Get from Vercel AI Gateway"; \
 		echo "   2. BETTER_AUTH_SECRET    - Generate a random 32+ char string"; \
 		echo "   3. DB_PASSWORD           - Change from the default for non-local use"; \
 		echo ""; \
@@ -96,8 +96,8 @@ validate: ## Validate .env configuration
 		exit 1; \
 	fi
 	@echo "Checking required variables..."
-	@openai_key="$$(sed -n 's/^OPENAI_API_KEY=//p' .env | tail -n 1 | tr -d '"')"; \
-		case "$$openai_key" in ""|your_*|change-me|*_here) echo "❌ OPENAI_API_KEY not set" >&2; exit 1;; esac
+	@gateway_key="$$(sed -n 's/^AI_GATEWAY_API_KEY=//p' .env | tail -n 1 | tr -d '"')"; \
+		case "$$gateway_key" in ""|your_*|change-me|*_here) echo "❌ AI_GATEWAY_API_KEY not set" >&2; exit 1;; esac
 	@auth_secret="$$(sed -n 's/^BETTER_AUTH_SECRET=//p' .env | tail -n 1 | tr -d '"')"; \
 		if [ -z "$$auth_secret" ]; then auth_secret="$$(sed -n 's/^JWT_SECRET=//p' .env | tail -n 1 | tr -d '"')"; fi; \
 		[ "$${#auth_secret}" -ge 32 ] || { echo "❌ BETTER_AUTH_SECRET or JWT_SECRET must contain at least 32 characters" >&2; exit 1; }

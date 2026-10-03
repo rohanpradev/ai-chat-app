@@ -25,12 +25,22 @@ const browserNodeShims = {
 };
 
 const vendorChunkGroups = [
-  { name: "react-vendor", test: /\/react(?:-dom)?\//, priority: 50 },
+  {
+    name: "react-vendor",
+    test: /[\\/]node_modules[\\/](?:react|react-dom)[\\/]/,
+    priority: 50,
+  },
   { name: "router-vendor", test: /@tanstack/, priority: 45 },
-  { name: "ai-vendor", test: /@ai-sdk|ai\//, priority: 40 },
+  {
+    name: "ai-vendor",
+    test: /@ai-sdk|ai\//,
+    entriesAware: true,
+    priority: 40,
+  },
   {
     name: "ui-vendor",
     test: /@radix-ui|lucide-react|class-variance-authority/,
+    entriesAware: true,
     priority: 35,
   },
   {

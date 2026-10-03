@@ -6,9 +6,9 @@ The approved chat model catalog lives in `shared/models.ts`. The server may chec
 
 ## Default Model
 
-The only approved chat model is `gpt-5-mini`. The only approved embedding model is `text-embedding-3-small`.
+The low-cost default chat model is `openai/gpt-5-mini`, routed through Vercel AI Gateway. The embedding model is `openai/text-embedding-3-small`, also routed through Gateway. The dropdown reads currently available Gateway language models.
 
-As of July 25, 2026, OpenAI's current public docs describe GPT-5.6 as the latest GPT-5 family. OpenAI's migration guidance maps an existing mini/balanced role to `gpt-5.6-terra`, while `gpt-5.6-sol` is the flagship quality-first option. This repo should evaluate the role-matched `gpt-5.6-terra` candidate through `OPENAI_MODEL_OVERRIDES` before changing `defaultModelId`; `gpt-5.6-sol` should be evaluated separately if the quality gain justifies its cost and latency.
+The model list is owned by Vercel AI Gateway. A model must appear as `type: language` in the account's Gateway catalog to be shown in the chat selector. Keep `openai/gpt-5-mini` as the fallback because it is a small, inexpensive option.
 
 The default chat model should be capable of:
 
@@ -22,7 +22,7 @@ When changing `defaultModelId`, run the eval checklist in `docs/evals.md` and ve
 ## Upgrade Rules
 
 - Prefer explicit model IDs over ambiguous aliases for reproducible releases.
-- Add candidate model IDs with `OPENAI_MODEL_OVERRIDES` for testing before putting them in `shared/models.ts`.
+- Try a listed Gateway model in the selector and run the eval checklist before changing the shared fallback.
 - Keep older fallback models available until the replacement passes chat, tool, RAG, and latency checks.
 - Do not upgrade model strings and SDK major versions in the same PR unless the SDK migration requires it.
 - Record major model changes in release notes with expected behavior, cost, latency, and tool-calling differences.
@@ -34,7 +34,6 @@ This repo tracks the stable AI SDK 7 line. SDK major upgrades remain migration w
 
 Relevant primary docs:
 
-- OpenAI latest model guide: `https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.6`
-- OpenAI GPT-5.6 migration guide: `https://developers.openai.com/api/docs/guides/upgrading-to-gpt-5p6-sol`
-- OpenAI GPT-5.6 prompting guidance: `https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6`
+- Vercel AI Gateway SDKs and APIs: `https://vercel.com/docs/ai-gateway/sdks-and-apis`
+- Vercel AI Gateway model listing: `https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions/rest-api`
 - AI SDK tool calling: `https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling`

@@ -29,7 +29,7 @@ secrets:
       DB_PASSWORD: runtime-test-password
       REDIS_AUTH: runtime-test-redis
       BETTER_AUTH_SECRET: runtime-test-auth-secret-at-least-32-characters
-      OPENAI_API_KEY: runtime-test-no-provider-calls
+      AI_GATEWAY_API_KEY: runtime-test-no-provider-calls
 
 exposure:
   gateway:

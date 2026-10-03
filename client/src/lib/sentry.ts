@@ -75,6 +75,19 @@ export const initializeSentry = (router: SentryRouter) => {
 
   Sentry.init({
     beforeSend: redactRequest,
+    // v11 collects request and AI content by default; keep telemetry metadata-only.
+    dataCollection: {
+      cookies: false,
+      databaseQueryData: false,
+      genAI: { inputs: false, outputs: false },
+      graphQL: { document: false, variables: false },
+      httpBodies: [],
+      httpHeaders: false,
+      queues: false,
+      stackFrameVariables: false,
+      urlQueryParams: false,
+      userInfo: false,
+    },
     dsn: sentryDsn,
     environment: sentryEnvironment,
     integrations: [
@@ -87,7 +100,6 @@ export const initializeSentry = (router: SentryRouter) => {
     release: sentryRelease,
     replaysOnErrorSampleRate: parseSampleRate(import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE, 0.1),
     replaysSessionSampleRate: parseSampleRate(import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE, 0),
-    sendDefaultPii: false,
     tracePropagationTargets: [/^\/api\//],
     tracesSampleRate: parseSampleRate(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE, 0.1),
   });

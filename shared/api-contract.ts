@@ -28,6 +28,7 @@ import {
 	EmbeddingUploadRequestSchema,
 	RagRequestSchema,
 } from "@chat-app/shared/schemas/embedding.schema";
+import { JevRequestSchema, type JevResponse, type JevStatus } from "@chat-app/shared/schemas/jev.schema";
 import type { GetProfileResponse, UpdateProfileResponse } from "@chat-app/shared/schemas/profile.schema";
 import { UpdateProfileRequestSchema } from "@chat-app/shared/schemas/profile.schema";
 import type {
@@ -46,6 +47,8 @@ const routeParamsSchema = z.object({
 });
 
 export const apiContract = new Hono()
+	.get("/jev/status", (c) => c.json({} as JevStatus, 200))
+	.post("/jev/evaluate", zValidator("json", JevRequestSchema), (c) => c.json({} as JevResponse, 200))
 	.get("/ai/models", (c) => c.json({} as AvailableModelsResponse, 200))
 	.get("/ai/usage", (c) => c.json({} as AIUsageResponse, 200))
 	.post("/ai/plan", zValidator("json", AIPlanRequestSchema), (c) => c.json({} as AIPlanResponse, 200))

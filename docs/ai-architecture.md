@@ -54,7 +54,7 @@ The major provider docs are converging on the same patterns:
 
 The codebase already uses AI SDK agents, streaming, shared schemas, structured output, tool approval, database-native RAG, durable usage metering, and Langfuse/OpenTelemetry. The next substantial product upgrades should be MCP tool registration, first-class eval fixtures, and richer generative UI cards for approved tool results.
 
-Model IDs are deliberately allowlisted. The shared fallback catalog lives in `shared/models.ts`, and deployments can add comma-separated account-specific IDs with `OPENAI_MODEL_OVERRIDES`. Streamed message metadata records the resolved model ID, with `requestedModel` included only when the request fell back to a different approved model.
+The server uses the Vercel AI Gateway provider for chat and embeddings. The selector fetches available language models from the Gateway `/v1/models` catalog and excludes non-chat modalities; `shared/models.ts` contains the inexpensive fallback. Streamed message metadata records the resolved Gateway model ID, with `requestedModel` included only when the request fell back to the configured default.
 
 ## Observability
 
@@ -68,4 +68,4 @@ Stream errors are explicitly captured because handled AI SDK errors are not repo
 - Tool input/output must be schema validated.
 - Tools that reach the network, mutate data, execute code, or spend money must require approval.
 - Model output must not be trusted as authorization. Use authenticated user IDs from server-side session state.
-- Newly released model IDs should enter through `OPENAI_MODEL_OVERRIDES` first, then graduate into `shared/models.ts` only after evals and streaming/tool approval checks pass.
+- Gateway models appear in the selector when the account reports them as language models. Validate streaming, tool calling, and eval behavior before changing the shared fallback model.

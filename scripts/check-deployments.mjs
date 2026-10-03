@@ -159,11 +159,22 @@ if (composeConfig.networks?.["chat-app-docker-api"]?.internal !== true) {
 	throw new Error("Docker socket proxy network must remain internal.");
 }
 
-for (const serviceName of ["client", "server", "migrate", "redis"]) {
+for (const serviceName of ["client", "server", "migrate"]) {
 	const service = composeConfig.services?.[serviceName];
 	if (!service?.cap_drop?.includes("ALL")) {
 		throw new Error(`${serviceName} must drop all Linux capabilities.`);
 	}
+}
+
+const redisService = composeConfig.services?.redis;
+if (
+	redisService?.cap_drop?.length ||
+	redisService?.cap_add?.length ||
+	!redisService?.security_opt?.includes("no-new-privileges:true")
+) {
+	throw new Error(
+		"Redis must retain its official image startup privileges for permission repair and privilege dropping.",
+	);
 }
 
 for (const serviceName of ["client", "server", "migrate"]) {

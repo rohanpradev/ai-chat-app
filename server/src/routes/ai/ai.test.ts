@@ -7,7 +7,9 @@ const saveConversationMock = mock(async () => {
 	if (persistenceFailure) throw persistenceFailure;
 });
 const modelStreamMock = mock(() => {});
-const getAvailableChatModelsMock = mock(async () => [{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" }]);
+const getAvailableChatModelsMock = mock(async () => [
+	{ id: "openai/gpt-5-mini", name: "GPT-5 Mini", provider: "vercel-ai-gateway" }
+]);
 const settleUsageMock = mock(async () => {});
 let streamFailure: Error | null = null;
 let modelInitializationFailure: Error | null = null;
@@ -28,7 +30,7 @@ const mockPlanOutput = {
 	intent: "Research and implement an AI feature",
 	needsFreshness: true,
 	recommendedAgentMode: "research",
-	recommendedModel: "gpt-5-mini",
+	recommendedModel: "openai/gpt-5-mini",
 	recommendedTools: ["serper"],
 	risks: [{ mitigation: "Verify with primary sources", risk: "Stale documentation", severity: "medium" }],
 	steps: [{ action: "Review official SDK docs", expectedOutput: "Implementation notes", title: "Research" }],
@@ -143,10 +145,10 @@ mock.module("@/utils/index", () => ({
 			}
 		});
 	},
-	resolveModelSelection: async (model = "gpt-5-mini") => ({
+	resolveModelSelection: async (model = "openai/gpt-5-mini") => ({
 		id: model,
 		name: "Mock Model",
-		provider: "openai"
+		provider: "vercel-ai-gateway"
 	}),
 	transformPrompt: async () => [{ content: "test", role: "user" }]
 }));
@@ -173,7 +175,7 @@ describe("AI Routes", () => {
 
 		expect(response.status).toBe(200);
 		const payload = await response.json();
-		expect(payload.data).toEqual([{ id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" }]);
+		expect(payload.data).toEqual([{ id: "openai/gpt-5-mini", name: "GPT-5 Mini", provider: "vercel-ai-gateway" }]);
 	});
 
 	it("generates a structured AI work plan", async () => {
@@ -194,7 +196,7 @@ describe("AI Routes", () => {
 		const payload = await response.json();
 		expect(payload.data.recommendedAgentMode).toBe("research");
 		expect(payload.data.recommendedTools).toEqual(["serper"]);
-		expect(payload.metadata.model).toBe("gpt-5-mini");
+		expect(payload.metadata.model).toBe("openai/gpt-5-mini");
 		expect(payload.metadata.usage.totalTokens).toBe(30);
 	});
 

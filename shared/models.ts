@@ -1,4 +1,4 @@
-export const providers = ["openai"] as const;
+export const providers = ["vercel-ai-gateway"] as const;
 
 export type AIProvider = (typeof providers)[number];
 
@@ -15,15 +15,15 @@ export interface AIModelDefinition {
 
 export const modelCatalog: AIModelDefinition[] = [
 	{
-		id: "gpt-5-mini",
+		id: "openai/gpt-5-mini",
 		name: "GPT-5 Mini",
-		provider: "openai",
+		provider: "vercel-ai-gateway",
 		source: "fallback",
 	},
 ];
 
 export const modelIds = modelCatalog.map((model) => model.id);
-export const defaultModelId: AIModelId = modelCatalog[0]?.id ?? "gpt-5-mini";
+export const defaultModelId: AIModelId = modelCatalog[0]?.id ?? "openai/gpt-5-mini";
 
 const modelLookup = new Map<string, AIModelDefinition>(modelCatalog.map((model) => [model.id, model]));
 

@@ -76,6 +76,11 @@ function getErrorMessage(details: unknown, fallback: string): string {
 
 export const getApiClient = () => {
   return {
+    jev: {
+      status: () => parseApiResponse(apiClient.jev.status.$get()),
+      evaluate: (payload: InferRequestType<typeof apiClient.jev.evaluate.$post>["json"], signal?: AbortSignal) =>
+        parseApiResponse(apiClient.jev.evaluate.$post({ json: payload }, { init: { signal } })),
+    },
     ai: {
       models: async () => {
         const result = await parseApiResponse(apiClient.ai.models.$get());

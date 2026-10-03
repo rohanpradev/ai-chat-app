@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { openai } from "@ai-sdk/openai";
 import type { EmbeddingDocument, EmbeddingSearchRequest, EmbeddingSearchResult, RagRequest } from "@chat-app/shared";
 import { embed, embedMany, generateText } from "ai";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
@@ -7,6 +6,7 @@ import { cosineDistance } from "drizzle-orm/sql/functions/vector";
 import { extractText, getDocumentProxy } from "unpdf";
 import { db } from "@/db";
 import { embeddingChunks, embeddingDocuments } from "@/db/schema";
+import { aiGateway } from "@/lib/ai-gateway";
 import {
 	EMBEDDING_DIMENSIONS,
 	EMBEDDING_MODEL_ID,
@@ -359,7 +359,7 @@ export const createEmbeddingDocument = async ({
 		const embeddingResult = await embedMany({
 			abortSignal,
 			maxParallelCalls: EMBEDDING_MAX_PARALLEL_CALLS,
-			model: openai.embedding(EMBEDDING_MODEL_ID),
+			model: aiGateway.embeddingModel(EMBEDDING_MODEL_ID),
 			telemetry: buildAiTelemetrySettings("ai-embed-document"),
 			values: chunks.map((chunk) => chunk.content)
 		});
@@ -483,7 +483,7 @@ export const searchEmbeddings = async (userId: string, request: EmbeddingSearchR
 	try {
 		const queryEmbedding = await embed({
 			abortSignal,
-			model: openai.embedding(EMBEDDING_MODEL_ID),
+			model: aiGateway.embeddingModel(EMBEDDING_MODEL_ID),
 			telemetry: buildAiTelemetrySettings("ai-embed-search-query"),
 			value: request.query
 		});

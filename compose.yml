@@ -170,8 +170,6 @@ services:
       - *security-defaults
       - *logging-defaults
     image: ${REDIS_IMAGE:-redis:8.10.2-trixie}
-    cap_drop:
-      - ALL
     pull_policy: always
     container_name: chat-app-redis
     environment:
@@ -376,12 +374,11 @@ services:
       - AI_TOOL_APPROVAL_SECRET=${AI_TOOL_APPROVAL_SECRET:-}
       - REDIS_URL=${REDIS_URL:-redis://:${REDIS_AUTH:-redis_password}@redis:6379}
       - LOG_LEVEL=${LOG_LEVEL:-info}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - AI_DAILY_REQUEST_LIMIT=${AI_DAILY_REQUEST_LIMIT:-200}
       - AI_DAILY_TOKEN_LIMIT=${AI_DAILY_TOKEN_LIMIT:-1000000}
       - EMBEDDING_DAILY_TOKEN_LIMIT=${EMBEDDING_DAILY_TOKEN_LIMIT:-1000000}
       - EMBEDDING_STORAGE_BYTE_LIMIT=${EMBEDDING_STORAGE_BYTE_LIMIT:-104857600}
-      - OPENAI_MODEL_OVERRIDES=${OPENAI_MODEL_OVERRIDES:-}
+      - AI_GATEWAY_API_KEY=${AI_GATEWAY_API_KEY}
       - SERPER_API_KEY=${SERPER_API_KEY:-}
       - LANGFUSE_BASEURL=${LANGFUSE_BASEURL:-https://cloud.langfuse.com}
       - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-${LANGFUSE_BASEURL:-https://cloud.langfuse.com}}

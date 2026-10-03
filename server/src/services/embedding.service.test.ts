@@ -10,7 +10,7 @@ let insertedDocumentValues: StoredValue | undefined;
 let insertedChunkValues: StoredValue[] = [];
 let searchRows: StoredValue[] = [];
 
-const openaiEmbeddingMock = mock((modelId: string) => {
+const gatewayEmbeddingMock = mock((modelId: string) => {
 	embeddingModelIds.push(modelId);
 	return currentEmbeddingModel;
 });
@@ -80,10 +80,8 @@ const searchBuilder = {
 
 const vector = (first: number, second: number) => [first, second, ...Array.from({ length: 1534 }, () => 0)];
 
-mock.module("@ai-sdk/openai", () => ({
-	openai: {
-		embedding: openaiEmbeddingMock
-	}
+mock.module("@/lib/ai-gateway", () => ({
+	aiGateway: { embeddingModel: gatewayEmbeddingMock }
 }));
 
 mock.module("@/db", () => ({
@@ -127,7 +125,7 @@ beforeEach(() => {
 		}),
 		maxEmbeddingsPerCall: null,
 		modelId: "text-embedding-3-small",
-		provider: "openai"
+		provider: "vercel-ai-gateway"
 	});
 });
 
@@ -147,7 +145,7 @@ describe("embedding service", () => {
 			userId: "00000000-0000-0000-0000-000000000001"
 		});
 
-		expect(embeddingModelIds).toEqual(["text-embedding-3-small"]);
+		expect(embeddingModelIds).toEqual(["openai/text-embedding-3-small"]);
 		expect(currentEmbeddingModel.doEmbedCalls).toHaveLength(1);
 		expect(currentEmbeddingModel.doEmbedCalls[0]?.abortSignal).toBe(abortController.signal);
 		expect(currentEmbeddingModel.doEmbedCalls[0]?.values).toHaveLength(3);
@@ -156,7 +154,7 @@ describe("embedding service", () => {
 		expect(currentEmbeddingModel.doEmbedCalls[0]?.values[2]).toContain("gamma");
 
 		expect(insertedDocumentValues?.embeddingDimensions).toBe(1536);
-		expect(insertedDocumentValues?.embeddingModel).toBe("text-embedding-3-small");
+		expect(insertedDocumentValues?.embeddingModel).toBe("openai/text-embedding-3-small");
 		expect(insertedDocumentValues?.chunkCount).toBe(3);
 		expect(insertedChunkValues.map((chunk) => (chunk.embedding as number[]).slice(0, 2))).toEqual([
 			[1, 0.25],
@@ -176,7 +174,7 @@ describe("embedding service", () => {
 				warnings: []
 			}),
 			modelId: "text-embedding-3-small",
-			provider: "openai"
+			provider: "vercel-ai-gateway"
 		});
 		searchRows = [
 			{
@@ -216,7 +214,7 @@ describe("embedding service", () => {
 			query: "find the exact context"
 		});
 
-		expect(embeddingModelIds).toEqual(["text-embedding-3-small"]);
+		expect(embeddingModelIds).toEqual(["openai/text-embedding-3-small"]);
 		expect(currentEmbeddingModel.doEmbedCalls).toHaveLength(1);
 		expect(currentEmbeddingModel.doEmbedCalls[0]?.values).toEqual(["find the exact context"]);
 		expect(result.dimensions).toBe(1536);

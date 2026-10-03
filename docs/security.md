@@ -8,7 +8,7 @@
 - Active sessions can be revoked from Profile; database session checks make revocation effective immediately. Auth instrumentation spans are disabled.
 - Better Auth provides auth endpoint protections. Traefik still provides the outer production rate limit.
 - Request bodies are capped globally, and embedding uploads have a tighter route-level cap.
-- Sentry defaults avoid sending PII unless `SENTRY_SEND_DEFAULT_PII=true` is explicitly configured.
+- Sentry 11 uses explicit `dataCollection` settings. Cookies, HTTP headers and bodies, URL query parameters, database values, queue payloads, stack variables, and AI inputs/outputs are excluded. `SENTRY_SEND_DEFAULT_PII=true` only enables automatic server user information; it does not enable private content collection. The browser always disables automatic user information.
 
 ## Proxy Controls
 

@@ -19,7 +19,7 @@ const started = docker([
 	"--env=CLIENT_URL=http://127.0.0.1:8080",
 	"--env=DB_URL=postgres://postgres:postgres@127.0.0.1:5432/chatapp",
 	"--env=REDIS_URL=redis://127.0.0.1:6379",
-	"--env=OPENAI_API_KEY=test-key-no-provider-access",
+	"--env=AI_GATEWAY_API_KEY=test-key-no-provider-access",
 	image,
 ]);
 if (started.error) throw started.error;

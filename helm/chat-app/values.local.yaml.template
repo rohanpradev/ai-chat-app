@@ -49,8 +49,7 @@ secrets:
       DB_URL: ""
       GITHUB_CLIENT_ID: ""
       GITHUB_CLIENT_SECRET: ""
-      OPENAI_API_KEY: local-test-openai-key
-      OPENAI_MODEL_OVERRIDES: ""
+      AI_GATEWAY_API_KEY: ""
       SERPER_API_KEY: ""
       LANGFUSE_PUBLIC_KEY: ""
       LANGFUSE_SECRET_KEY: ""

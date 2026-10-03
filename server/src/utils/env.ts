@@ -48,6 +48,7 @@ const EnvSchema = z
 	.object({
 		AI_DAILY_REQUEST_LIMIT: z.coerce.number().int().min(1).default(200),
 		AI_DAILY_TOKEN_LIMIT: z.coerce.number().int().min(1).default(1_000_000),
+		AI_GATEWAY_API_KEY: z.preprocess(emptyStringToUndefined, z.string().optional()),
 		AI_TOOL_APPROVAL_SECRET: z.preprocess(emptyStringToUndefined, z.string().min(32).optional()),
 		BASE_API_SLUG: z.string().default("api"),
 		BETTER_AUTH_SECRET: z.string().min(32),
@@ -70,8 +71,6 @@ const EnvSchema = z
 		LANGFUSE_SECRET_KEY: z.preprocess(emptyStringToUndefined, z.string().optional()),
 		LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 		NODE_ENV: z.string().default("production"),
-		OPENAI_API_KEY: z.string().min(1),
-		OPENAI_MODEL_OVERRIDES: z.preprocess(emptyStringToUndefined, z.string().optional()),
 		REDIS_URL: urlSchema,
 		SENTRY_DSN: z.preprocess(emptyStringToUndefined, urlSchema.optional()),
 		SENTRY_ENVIRONMENT: z.preprocess(emptyStringToUndefined, z.string().optional()),

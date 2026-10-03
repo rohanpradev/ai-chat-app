@@ -52,7 +52,7 @@ export const ModelSchema = z
 	.object({
 		id: z.string().describe("Model ID"),
 		name: z.string().describe("Display name of the model"),
-		provider: z.enum(providers).describe("AI provider (e.g., openai, anthropic, google)"),
+		provider: z.enum(providers).describe("AI provider used by the application (Vercel AI Gateway)"),
 		source: z.enum(["api", "fallback", "override"]).optional().describe("How the deployment resolved the model"),
 	})
 	.openapi({

@@ -84,19 +84,28 @@ export function setupSentryForHono(app: AppOpenAPI) {
 		asAppMiddleware(
 			sentry(app, {
 				beforeSend: redactRequest,
+				// Keep private request and AI content out of v11's expanded collection defaults.
+				dataCollection: {
+					cookies: false,
+					databaseQueryData: false,
+					genAI: { inputs: false, outputs: false },
+					graphQL: { document: false, variables: false },
+					httpBodies: [],
+					httpHeaders: false,
+					queues: false,
+					stackFrameVariables: false,
+					urlQueryParams: false,
+					userInfo: env.SENTRY_SEND_DEFAULT_PII
+				},
 				dsn: env.SENTRY_DSN,
 				environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV,
 				integrations: [
 					Sentry.vercelAIIntegration({
-						enableTruncation: true,
-						force: true,
 						recordInputs: false,
 						recordOutputs: false
 					})
 				],
 				release: env.SENTRY_RELEASE,
-				sendDefaultPii: env.SENTRY_SEND_DEFAULT_PII,
-				streamGenAiSpans: true,
 				tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE
 			})
 		)
