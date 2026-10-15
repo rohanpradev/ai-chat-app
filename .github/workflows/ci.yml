@@ -18,10 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BUN_VERSION: 1.4.2
-  BUN_IMAGE: oven/bun:1.4.2-alpine@sha256:d888c0ae6c86d7866ff10c5aafdd9077b36aee6455b33dd270fb93c0dd5cef6f
+  BUN_VERSION: 1.4.3
+  BUN_IMAGE: oven/bun:1.4.3-alpine@sha256:629e17411f1f129dbec3af78d5af9c9f2a937435c80349437206c6b0b7422373
   NGINX_IMAGE: nginx:1.31.6-alpine3.24@sha256:adad2ae9204d0fd7a34f40299bc838c3782be1293b10005eac4315ff5a1abf4e
-  HELM_VERSION: 4.3.0
+  HELM_VERSION: 4.3.1
   KIND_VERSION: v0.33.0
   KIND_NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
   KUBECTL_VERSION: v1.37.1
@@ -66,7 +66,7 @@ jobs:
       - name: Check Drizzle migrations
         run: bun run check:migrations
 
-      - name: Type check with TypeScript
+      - name: Type check with Bun
         run: bun run typecheck
 
       - name: Run tests
@@ -159,6 +159,9 @@ jobs:
           node_image: ${{ env.KIND_NODE_IMAGE }}
           version: ${{ env.KIND_VERSION }}
           wait: 120s
+
+      - name: Check Kubernetes client and server compatibility
+        run: kubectl version -o json | bun run check:k8s-versions
 
       - name: Validate manifests against Kubernetes API server
         run: |
@@ -349,6 +352,14 @@ jobs:
           set -euo pipefail
           docker compose config --quiet
           echo "Docker Compose configuration is valid"
+
+      - name: Test migration container runtime
+        run: |
+          docker run --rm --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges:true \
+            --env EXPECTED_BUN_VERSION=${{ env.BUN_VERSION }} \
+            --entrypoint bun chat-app-migrate:latest \
+            -e 'if (process.getuid() === 0) throw new Error("Migration must run as non-root"); if (Bun.version !== process.env.EXPECTED_BUN_VERSION) throw new Error("Migration must use the pinned Bun release"); console.log("Migration runtime verified: Bun " + Bun.version);'
 
       - name: Setup Helm for runtime checks
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1

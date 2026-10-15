@@ -1,6 +1,6 @@
 x-bun-build-args: &bun-build-args
-  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.2-alpine}
-  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.2-alpine}
+  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.3-alpine}
+  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.3-alpine}
   NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.6-alpine3.24}
 
 x-security-defaults: &security-defaults
@@ -379,6 +379,7 @@ services:
       - EMBEDDING_DAILY_TOKEN_LIMIT=${EMBEDDING_DAILY_TOKEN_LIMIT:-1000000}
       - EMBEDDING_STORAGE_BYTE_LIMIT=${EMBEDDING_STORAGE_BYTE_LIMIT:-104857600}
       - AI_GATEWAY_API_KEY=${AI_GATEWAY_API_KEY}
+      - MCP_SERVERS=${MCP_SERVERS:-[]}
       - SERPER_API_KEY=${SERPER_API_KEY:-}
       - LANGFUSE_BASEURL=${LANGFUSE_BASEURL:-https://cloud.langfuse.com}
       - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-${LANGFUSE_BASEURL:-https://cloud.langfuse.com}}

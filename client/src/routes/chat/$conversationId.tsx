@@ -1,4 +1,5 @@
 import { coerceCompatibleMyUIMessages } from "@chat-app/shared";
+import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useRef } from "react";
@@ -13,11 +14,13 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ApiRequestError } from "@/composables/useApi";
 import { useAgentChat } from "@/hooks/useAgentChat";
+import { mcpDraftKey } from "@/lib/mcp-draft";
 import { getAiModelsQuery } from "@/queries/getAiModels";
 import { getConversationQuery } from "@/queries/getConversation";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
 
 const conversationSearchSchema = z.object({
+  mcp: z.literal("1").optional().catch(undefined),
   autoSend: z.literal("1").optional().catch(undefined),
   prompt: z.string().max(4_000).optional().catch(undefined),
   redirect: z.string().optional().catch(undefined),
@@ -110,8 +113,22 @@ export const Route = createFileRoute("/chat/$conversationId")({
 
 function ConversationChat() {
   const { conversationId } = Route.useParams();
-  const { autoSend, prompt } = Route.useSearch();
+  const { autoSend, prompt, mcp: initialMcp } = Route.useSearch();
   const { initialMessages } = Route.useLoaderData();
+  const { auth } = Route.useRouteContext();
+  const queryClient = useQueryClient();
+  const draftUserId = auth.user?.id ?? "";
+  useEffect(
+    () => () => {
+      queryClient.removeQueries({ queryKey: mcpDraftKey(draftUserId, conversationId), exact: true });
+    },
+    [queryClient, draftUserId, conversationId],
+  );
+  const { data: mcpDraft } = useQuery<string>({
+    queryKey: mcpDraftKey(auth.user?.id ?? "", conversationId),
+    queryFn: skipToken,
+    gcTime: 0,
+  });
   const navigate = useNavigate();
   const autoSendStartedRef = useRef(false);
   const {
@@ -129,13 +146,16 @@ function ConversationChat() {
     setInput,
     setModel,
     setWebSearch,
+    mcp,
+    setMcp,
     showAgentGuide,
     status,
     stop,
     webSearch,
   } = useAgentChat({
     conversationId,
-    initialInput: initialMessages.length === 0 ? prompt : undefined,
+    initialMcp: initialMcp === "1",
+    initialInput: initialMessages.length === 0 ? (mcpDraft ?? prompt) : undefined,
     initialMessages,
   });
 
@@ -197,6 +217,8 @@ function ConversationChat() {
             setModel={setModel}
             webSearch={webSearch}
             setWebSearch={setWebSearch}
+            mcp={mcp}
+            setMcp={setMcp}
             onMessageSend={sendPromptMessage}
             onStop={stop}
             showAgentGuide={showAgentGuide}

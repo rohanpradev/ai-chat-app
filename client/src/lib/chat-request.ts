@@ -8,6 +8,7 @@ interface ChatRequestBodyOptions {
   agentMode: AgentMode;
   model: AIModelId;
   webSearch: boolean;
+  mcp?: boolean;
 }
 
 type ChatRequestBody = {
@@ -22,9 +23,10 @@ export const buildChatRequestBody = ({
   agentMode,
   model,
   webSearch,
+  mcp = false,
 }: ChatRequestBodyOptions): ChatRequestBody => ({
   agentMode,
   model,
-  ...(webSearch ? { tools: [webSearchToolId] } : {}),
+  ...(webSearch || mcp ? { tools: [...(webSearch ? [webSearchToolId] : []), ...(mcp ? ["mcp" as const] : [])] } : {}),
   ...(conversationId ? { chatId: conversationId } : {}),
 });

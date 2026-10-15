@@ -26,6 +26,7 @@ import { convertFilesToDataURLs } from "@/utils/fileUtils";
 interface UseAgentChatOptions {
   conversationId?: string;
   initialInput?: string;
+  initialMcp?: boolean;
   initialMessages?: MyUIMessage[];
 }
 
@@ -34,15 +35,17 @@ const aiStreamApiPath = `${apiBasePath}${apiClient.ai["text-stream"].$path()}`;
 export function useAgentChat({
   conversationId,
   initialInput = "",
+  initialMcp = false,
   initialMessages = [],
 }: Readonly<UseAgentChatOptions>) {
   const [input, setInput] = useState(initialInput);
   const [agentMode, setAgentMode] = useState<AgentMode>(defaultAgentMode);
   const [model, setModel] = useState<AIModelId>(defaultModelId);
+  const [mcp, setMcp] = useState(initialMcp);
   const [webSearch, setWebSearch] = useState(false);
   const availableModelsQuery = useQuery(getAiModelsQuery());
 
-  const requestBodyRef = useRef(buildChatRequestBody({ conversationId, agentMode, model, webSearch }));
+  const requestBodyRef = useRef(buildChatRequestBody({ conversationId, agentMode, model, webSearch, mcp }));
   const transportRef = useRef(
     new DefaultChatTransport<MyUIMessage>({
       api: aiStreamApiPath,
@@ -65,6 +68,7 @@ export function useAgentChat({
     agentMode,
     model,
     webSearch,
+    mcp,
   });
 
   const chat = useChat<MyUIMessage>({
@@ -158,7 +162,9 @@ export function useAgentChat({
     setInput,
     setModel,
     setWebSearch,
+    setMcp,
     showAgentGuide: chat.messages.length === 0,
     webSearch,
+    mcp,
   };
 }

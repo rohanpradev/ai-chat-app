@@ -7,7 +7,7 @@ import {
   isAvailableModelId,
 } from "@chat-app/shared";
 import type { ChatStatus } from "ai";
-import { GlobeIcon } from "lucide-react";
+import { GlobeIcon, Plug } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 import {
@@ -53,6 +53,8 @@ interface ChatInputProps {
   model: AIModelId;
   setModel: (value: AIModelId) => void;
   webSearch: boolean;
+  mcp: boolean;
+  setMcp: (value: boolean) => void;
   setWebSearch: (value: boolean) => void;
   onMessageSend: (message: PromptInputMessage) => void | Promise<void>;
   onStop: () => void;
@@ -107,6 +109,8 @@ export function ChatInput({
   model,
   setModel,
   webSearch,
+  mcp,
+  setMcp,
   setWebSearch,
   onMessageSend,
   onStop,
@@ -165,6 +169,7 @@ export function ChatInput({
         <PromptInputAttachmentsDisplay />
         <PromptInputBody>
           <PromptInputTextarea
+            aria-label="Prompt"
             className="min-h-20 px-5 pt-5 text-base sm:text-base"
             disabled={status !== "ready" && status !== "error"}
             onChange={(e) => setInput(e.target.value)}
@@ -189,6 +194,16 @@ export function ChatInput({
             >
               <GlobeIcon size={16} />
               <span className="hidden sm:inline">Web Search</span>
+            </PromptInputButton>
+            <PromptInputButton
+              aria-label="Toggle MCP connections"
+              aria-pressed={mcp}
+              className="rounded-full"
+              variant={mcp ? "default" : "ghost"}
+              onClick={() => setMcp(!mcp)}
+            >
+              <Plug size={16} />
+              <span className="hidden sm:inline">MCP</span>
             </PromptInputButton>
             <PromptInputSelect onValueChange={handleAgentModeChange} value={agentMode}>
               <PromptInputSelectTrigger aria-label="Agent mode" className="rounded-full">

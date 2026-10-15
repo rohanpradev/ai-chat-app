@@ -32,9 +32,10 @@ Both endpoints use shared schemas from `shared/schemas/ai.schema.ts`, return tok
 
 Agent profiles live in `server/src/lib/agents.ts`. Tool definitions live in `server/src/lib/tools.ts`.
 
-Current server-side tool:
+Current server-side tools:
 
 - `serper` - live web search for current information
+- `mcp` - approval-gated, on-demand discovery and use of allowed MCP tools, resources, and prompts; see [MCP workspace](mcp.md)
 
 The search tool is approval gated with AI SDK `toolApproval`, strict Zod input/output schemas, timeouts, output normalization, and model-facing summaries rather than raw full-page content. Set `AI_TOOL_APPROVAL_SECRET` in shared environments so AI SDK can sign approval responses and reject replayed or tampered approvals.
 
@@ -52,7 +53,7 @@ The major provider docs are converging on the same patterns:
 - Evals, traces, and feedback loops before model upgrades
 - Human approval for sensitive tools
 
-The codebase already uses AI SDK agents, streaming, shared schemas, structured output, tool approval, database-native RAG, durable usage metering, and Langfuse/OpenTelemetry. The next substantial product upgrades should be MCP tool registration, first-class eval fixtures, and richer generative UI cards for approved tool results.
+The codebase already uses AI SDK agents, streaming, shared schemas, structured output, tool approval, database-native RAG, durable usage metering, and Langfuse/OpenTelemetry. The MCP workspace adds capability discovery and previews without loading every remote schema into every model request.
 
 The server uses the Vercel AI Gateway provider for chat and embeddings. The selector fetches available language models from the Gateway `/v1/models` catalog and excludes non-chat modalities; `shared/models.ts` contains the inexpensive fallback. Streamed message metadata records the resolved Gateway model ID, with `requestedModel` included only when the request fell back to the configured default.
 

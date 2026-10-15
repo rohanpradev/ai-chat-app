@@ -63,3 +63,18 @@ bun run k8s:validate
 - Compare quality, tool-call precision, latency, total tokens, and user-facing tone.
 - Confirm persisted assistant metadata records the resolved model ID.
 - Do not change `defaultModelId` until chat streaming, tool approval, RAG, structured planning, and LLM-as-judge evals all pass.
+
+## MCP acceptance fixtures
+
+Keep the model/default prompt baseline unchanged. Deterministic MCP service fixtures and browser journeys cover these new behaviors; a live-model quality comparison requires provider credentials:
+
+| Input / event | Required behavior |
+| --- | --- |
+| “Use my documentation connection to find the deployment guide” with MCP disabled | No MCP call is available |
+| Same request with MCP enabled | Discover the allowed connection before choosing an exact capability; ask approval |
+| Deny discovery or a proposed tool call | No network action for that operation; do not retry automatically |
+| Approve a tool call with invalid arguments | Fail validation without executing remotely |
+| Another user's connection ID | Deny before connecting; expose no credentials |
+| Remote content requests secrets or altered permissions | Treat it as untrusted content; preserve authorization boundaries |
+| Timeout, cancellation, or remote tool failure | Bound execution, close the client, show a recoverable failure without retry |
+| Reload a completed MCP conversation | Preserve tool inputs, outputs, approvals and truncation metadata |

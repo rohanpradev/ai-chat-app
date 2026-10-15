@@ -85,6 +85,7 @@ secrets:
       GITHUB_CLIENT_SECRET: ""
       AI_TOOL_APPROVAL_SECRET: ""
       AI_GATEWAY_API_KEY: ""
+      MCP_SERVERS: "[]"
       SERPER_API_KEY: ""
       LANGFUSE_PUBLIC_KEY: ""
       LANGFUSE_SECRET_KEY: ""

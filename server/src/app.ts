@@ -6,6 +6,7 @@ import conversations from "@/routes/conversations/conversations.index";
 import embeddings from "@/routes/embeddings/embeddings.index";
 import index from "@/routes/index.route";
 import jev from "@/routes/jev/jev.index";
+import mcp from "@/routes/mcp/mcp.index";
 import profile from "@/routes/profile/profile.index";
 import env from "@/utils/env";
 
@@ -14,7 +15,8 @@ const apiRoutes = createRouter()
 	.route("/", ai)
 	.route("/", conversations)
 	.route("/", embeddings)
-	.route("/", jev);
+	.route("/", jev)
+	.route("/", mcp);
 
 const app = createApp();
 configureOpenAPI(app);

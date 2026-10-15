@@ -25,7 +25,7 @@ K8S_TRAEFIK_DASHBOARD_URL ?= https://$(K8S_TRAEFIK_DASHBOARD_HOSTNAME):$(K8S_GAT
 DOCKER_TRAEFIK_DASHBOARD_URL ?= https://traefik.$(DOMAIN)
 K8S_BUILD_ARGS ?=
 K8S_MIN_MINOR ?= 35
-K8S_MAX_MINOR ?= 36
+K8S_MAX_MINOR ?= 37
 RUNTIME_WAIT_SECONDS ?= 60
 LOCAL_PID_DIR ?= .local
 LOCAL_PID_FILE ?= $(LOCAL_PID_DIR)/dev.pids
@@ -321,12 +321,7 @@ k8s-prerequisites: runtime-start ## Verify supported Kubernetes and Helm version
 	@kubectl cluster-info >/dev/null 2>&1 || { echo "Kubernetes is not reachable for context '$$(kubectl config current-context 2>/dev/null || echo unknown)'" >&2; exit 1; }
 	@helm_major="$$(helm version --template '{{.Version}}' | sed -E 's/^v?([0-9]+).*/\1/')"; \
 		[ "$$helm_major" -eq 4 ] || { echo "Helm 4.x is required; found $$(helm version --short)." >&2; exit 1; }
-	@kube_minor="$$(kubectl version -o json | sed -nE 's/.*"minor"[[:space:]]*:[[:space:]]*"([0-9]+).*/\1/p' | tail -n 1)"; \
-		[ -n "$$kube_minor" ] || { echo "Unable to determine Kubernetes server version." >&2; exit 1; }; \
-		[ "$$kube_minor" -ge "$(K8S_MIN_MINOR)" ] && [ "$$kube_minor" -le "$(K8S_MAX_MINOR)" ] || { \
-			echo "Kubernetes 1.$(K8S_MIN_MINOR)-1.$(K8S_MAX_MINOR) is required; current server is $$(kubectl version -o json | sed -nE 's/.*"gitVersion"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | tail -n 1)." >&2; \
-			exit 1; \
-		}
+	@kubectl version -o json | K8S_MIN_MINOR="$(K8S_MIN_MINOR)" K8S_MAX_MINOR="$(K8S_MAX_MINOR)" bun run check:k8s-versions
 	@echo "Prerequisites ready (context: $$(kubectl config current-context), server: $$(kubectl version -o json | sed -nE 's/.*"gitVersion"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | tail -n 1), Helm: $$(helm version --short))."
 
 k8s-setup: ## Create Helm local values override from template

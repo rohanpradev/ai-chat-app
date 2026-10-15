@@ -52,10 +52,8 @@
 			"ignoreBinaries": ["kubectl", "make"]
 		},
 		"client": {
-			"ignoreBinaries": ["vite!"],
+			"ignoreBinaries": ["check", "vite!"],
 			"ignoreDependencies": [
-				"@testing-library/dom",
-				"@testing-library/react",
 				"@radix-ui/react-hover-card",
 				"@radix-ui/react-progress",
 				"@radix-ui/react-scroll-area",
@@ -86,8 +84,11 @@
 				"config": []
 			},
 			"entry": ["drizzle.config.ts", "src/instrumentation.ts"],
+			"ignoreBinaries": ["check"],
 			"ignoreFiles": ["src/utils/db-utils.ts"]
 		},
-		"shared": {}
+		"shared": {
+			"ignoreBinaries": ["check"]
+		}
 	}
 }

@@ -72,11 +72,12 @@ const manifestDocument = (rendered, kind, name) => {
 	return document;
 };
 
-const expectFailure = ({ args, command, name, stderrIncludes }) => {
+const expectFailure = ({ args, command, input, name, stderrIncludes }) => {
 	console.log(`\n==> ${name}`);
 	const result = spawnSync(command, args, {
 		cwd: rootDir,
 		encoding: "utf8",
+		input,
 		stdio: "pipe",
 	});
 
@@ -222,12 +223,31 @@ if (dockerBuildChecksEnabled) {
 const helmValueArgs = valuesFiles.flatMap((file) => ["-f", file]);
 
 for (const supportedKubeVersion of kubeVersions) {
+	const [major, minor] = supportedKubeVersion.split(".");
+	const version = { gitVersion: `v${supportedKubeVersion}`, major, minor };
+	run({
+		args: ["scripts/check-k8s-versions.mjs"],
+		command: "bun",
+		input: JSON.stringify({ clientVersion: version, serverVersion: version }),
+		name: `Accept Kubernetes prerequisites (${supportedKubeVersion})`,
+	});
 	run({
 		args: ["lint", "--strict", "--kube-version", supportedKubeVersion, "helm/chat-app", ...helmValueArgs],
 		command: "helm",
 		name: `Helm lint (Kubernetes ${supportedKubeVersion})`,
 	});
 }
+
+expectFailure({
+	args: ["scripts/check-k8s-versions.mjs"],
+	command: "bun",
+	input: JSON.stringify({
+		clientVersion: { gitVersion: "v1.33.9", major: "1", minor: "33" },
+		serverVersion: { gitVersion: "v1.36.5", major: "1", minor: "36+" },
+	}),
+	name: "Reject unsupported kubectl/server version skew",
+	stderrIncludes: "Upgrade kubectl to within one minor version",
+});
 
 const localRender = run({
 	args: [

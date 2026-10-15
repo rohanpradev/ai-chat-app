@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_VERSION=1.4.2
+ARG BUN_VERSION=1.4.3
 ARG BUN_DEV_IMAGE=oven/bun:${BUN_VERSION}-alpine
 ARG BUN_RUNTIME_IMAGE=oven/bun:${BUN_VERSION}-alpine
 ARG NGINX_IMAGE=nginx:1.31.6-alpine3.24

@@ -9,6 +9,7 @@ const sourceRoot = new URL("../src/", import.meta.url);
 const packageJson = (await Bun.file(new URL("package.json", serverRoot)).json()) as ServerPackage;
 
 const result = await Bun.build({
+	check: true,
 	entrypoints: [
 		new URL("index.ts", sourceRoot).pathname,
 		new URL("instrumentation.ts", sourceRoot).pathname,
@@ -18,6 +19,7 @@ const result = await Bun.build({
 	plugins: [sentryBunPlugin()],
 	root: sourceRoot.pathname,
 	target: "bun",
+	tsconfig: new URL("tsconfig.json", serverRoot).pathname,
 });
 
 if (!result.success) {

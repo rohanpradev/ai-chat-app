@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { setTimeout } from "node:timers/promises";
 
 const image = process.argv[2] ?? "chat-app-server:latest";
+const expectedBunVersion = JSON.parse(
+	readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+).packageManager.slice(4);
 const docker = (args) => spawnSync("docker", args, { encoding: "utf8", timeout: 30_000 });
 const started = docker([
 	"run",
@@ -27,6 +31,15 @@ assert.equal(started.status, 0, `Server container did not start: ${started.stder
 const containerId = started.stdout.trim();
 
 try {
+	const runtime = docker([
+		"exec",
+		containerId,
+		"bun",
+		"-e",
+		'if (process.getuid() === 0) throw new Error("Server must run as non-root"); console.log(Bun.version)',
+	]);
+	assert.equal(runtime.status, 0, `Could not inspect server runtime: ${runtime.stderr}`);
+	assert.equal(runtime.stdout.trim(), expectedBunVersion, "Server container must use the pinned Bun release");
 	const deadline = Date.now() + 30_000;
 	let ready = false;
 	while (Date.now() < deadline) {
@@ -50,7 +63,9 @@ try {
 		const logs = docker(["logs", containerId]);
 		throw new Error(`Server health probes failed:\n${logs.stdout}\n${logs.stderr}`);
 	}
-	console.log("Production server health and readiness passed (non-root, read-only, no network).");
+	console.log(
+		`Production server health and readiness passed (Bun ${expectedBunVersion}, non-root, read-only, no network).`,
+	);
 } finally {
 	const removed = docker(["rm", "--force", containerId]);
 	if (removed.error || removed.status !== 0) {

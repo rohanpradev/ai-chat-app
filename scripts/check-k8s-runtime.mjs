@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 const context = process.argv[2];
 if (!context || context.startsWith("-")) {
@@ -9,6 +10,7 @@ if (!context || context.startsWith("-")) {
 const gatewayService = process.env.K8S_TEST_GATEWAY_SERVICE;
 const gatewayNamespace = process.env.K8S_TEST_GATEWAY_NAMESPACE ?? "traefik";
 const rootDir = new URL("..", import.meta.url);
+const expectedBunVersion = JSON.parse(readFileSync(new URL("package.json", rootDir), "utf8")).packageManager.slice(4);
 const namespace = `chat-app-test-${randomUUID().slice(0, 8)}`;
 const release = "chat-app";
 const imageTag = process.env.K8S_TEST_IMAGE_TAG ?? "latest";
@@ -111,6 +113,12 @@ try {
 		"10m",
 	]);
 	run("helm", ["test", release, ...helmArgs, "--timeout", "3m", "--logs"]);
+	const deployedBunVersion = run(
+		"kubectl",
+		[...kubeArgs, "exec", "deployment/chat-app-server", "--", "bun", "--version"],
+		{ capture: true },
+	);
+	assert.equal(deployedBunVersion, expectedBunVersion, "Deployed server must use the pinned Bun release");
 	if (gatewayService) {
 		run("kubectl", [...kubeArgs, "wait", "--for=condition=Programmed", "gateway/traefik-gateway", "--timeout=90s"]);
 	}

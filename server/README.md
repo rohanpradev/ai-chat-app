@@ -13,6 +13,8 @@ bun run --filter @chat-app/server dev
 
 The API listens on `SERVER_PORT`, defaulting to `3000`.
 
+Use Bun 1.4.3, matching the root package-manager pin and CI. Development uses `--check` with watch mode to reject type errors before running or restarting the server.
+
 ## Build and Checks
 
 ```bash
@@ -20,6 +22,8 @@ bun run --filter @chat-app/server typecheck
 bun run --filter @chat-app/server test
 bun run --filter @chat-app/server build
 ```
+
+`typecheck` uses Bun's built-in checker; `typecheck:tsc` retains the installed TypeScript 7 compiler for comparison. Tests use `bun test --check` with the environment preload and one isolated worker. Production builds enable `Bun.build({ check: true })` with the server tsconfig, retaining both the application and instrumentation entrypoints.
 
 ## Database
 

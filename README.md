@@ -64,9 +64,9 @@ docs/                   Architecture, security, eval, and policy docs
 
 ## Prerequisites
 
-- Bun `1.4.2` (matches CI and the production runtime)
+- Bun `1.4.3` (matches CI and the production runtime)
 - Docker Desktop or OrbStack
-- `kubectl` and `helm` for Kubernetes workflows
+- `kubectl` within one minor version of the cluster server, plus Helm `4.3.1`, for Kubernetes workflows
 - OpenAI API key
 
 Optional:
@@ -164,7 +164,7 @@ bun run check
 
 ## Docker
 
-The Compose stack pins current public upstream images (Bun 1.4.2, Nginx 1.31.6, Traefik 3.7.13, pgvector 0.8.6 on PostgreSQL 18, Redis 8.10.2, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
+The Compose stack pins current public upstream images (Bun 1.4.3, Nginx 1.31.6, Traefik 3.7.13, pgvector 0.8.6 on PostgreSQL 18, Redis 8.10.2, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
 
 Compose uses the official Nginx entrypoint and a writable, temporary `/etc/nginx/conf.d` to render `BASE_API_SLUG`, `SERVER_HOST`, and `SERVER_PORT` at startup. Nginx request variables are preserved by an explicit substitution filter. Compose Nginx overrides must provide `/docker-entrypoint.sh` and its template support. Kubernetes starts Nginx directly with a chart-rendered ConfigMap, which also supports shell-less image overrides.
 
@@ -253,11 +253,13 @@ Dependabot uses one root Bun workspace update to keep the catalog, workspace man
 
 Sonar client coverage uses `bun run --filter @chat-app/client test:coverage`, backed by Vitest and its matching V8 coverage package. Server coverage uses the server's existing Bun test script so its environment preload and concurrency settings are preserved.
 
-TypeScript checks run through the stable native TypeScript 7 compiler (`tsc`) from `typescript`:
+TypeScript checks use Bun 1.4.3's built-in checker with each workspace's tsconfig:
 
 ```bash
 bun run typecheck
 ```
+
+TypeScript 7.0.2 remains installed for editors and the comparison/fallback command `bun run typecheck:tsc`. At the repository root, use `bun run typecheck`: the existing `check` package script shadows bare `bun check`. Standalone client builds check types before Vite runs; server builds use `Bun.build({ check: true })`. Server development and tests also use `--check`, preserving the instrumentation/environment preloads and test isolation.
 
 The repo uses Bun's isolated linker:
 
@@ -321,7 +323,7 @@ The bundle report follows the Vite manifest's static imports and enforces an 800
 
 Renderer styles are scanned from the client's workspace dependencies, matching Bun's isolated linker. KaTeX styles and fonts load with the math plugin, so equations render correctly without adding math assets to the initial page load.
 
-Upgrade references: [Bun 1.4.2 release notes](https://bun.com/blog/bun-v1.4.2), [AI SDK 7 migration guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-7-0), and [Rolldown code splitting](https://rolldown.rs/reference/OutputOptions.codeSplitting).
+Upgrade references: [Bun 1.4.3 audit and rollout](docs/bun-upgrade.md), [Bun 1.4.3 release notes](https://bun.com/blog/bun-v1.4.3), [AI SDK 7 migration guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-7-0), and [Rolldown code splitting](https://rolldown.rs/reference/OutputOptions.codeSplitting).
 
 The October 2, 2026 dependency refresh uses the newest releases allowed by the 72-hour waiting period in `bunfig.toml`, including AI SDK 7.0.122, Sentry 11.0.0, Vite 8.3.1, and Vitest 5.0.2. [Sentry 11's migration guide](https://github.com/getsentry/sentry-javascript/blob/11.0.0/MIGRATION.md) requires explicit privacy settings and removal of obsolete AI integration options; both client and server retain content-free telemetry. Self-hosted Sentry must be version 26.4.2 or newer. KaTeX 0.18.9 is overridden across the dependency tree so Streamdown, Mermaid, and the lazy-loaded stylesheet use matching markup and styles. Babel 7 and Mermaid 11 remain on their newest compatible versions because their consumers still require those major versions; Drizzle remains on its current `rc` release, 1.0.0-rc.4.
 
@@ -345,3 +347,7 @@ make clean-generated
 ### Jev Studio
 
 Visit `/chat/jev` for a separate workspace to classify, score and check text or JSON with TypeSafe Jev through Vercel AI Gateway. Set the server-only `AI_GATEWAY_API_KEY` and restart the server to enable live evaluations. Templates remain available before configuration. See [Jev setup, capabilities and interpretation](docs/jev.md).
+
+### MCP workspace
+
+Explore connected tools, resources, and prompts in **Workspace → MCP workspace**, then use them in chat with per-action approval. Includes live discovery, capability search, schema inspection, resource/prompt previews, and user-scoped server access. See [MCP setup and rollout](docs/mcp.md) for runtime configuration and supported protocol features.

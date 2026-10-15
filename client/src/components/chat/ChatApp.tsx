@@ -48,6 +48,8 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
     setInput,
     setModel,
     setWebSearch,
+    mcp,
+    setMcp,
     showAgentGuide,
     status,
     stop,
@@ -103,6 +105,8 @@ export function ChatApp({ user }: Readonly<ChatAppProps>) {
               setModel={setModel}
               webSearch={webSearch}
               setWebSearch={setWebSearch}
+              mcp={mcp}
+              setMcp={setMcp}
               onMessageSend={sendPromptMessage}
               onStop={stop}
               showAgentGuide={showAgentGuide}

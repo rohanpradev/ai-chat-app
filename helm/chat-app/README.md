@@ -67,8 +67,10 @@ make k8s-destroy-data CONFIRM=chat-app
 
 ## Runtime verification and rollout
 
-`bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, replaces the API pod, checks persisted sessions/conversations, and cleans up. See [modernization notes](../../docs/modernization-2026-09.md) for Gateway-mode testing and the Better Auth migration sequence.
+`bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, verifies the deployed Bun version against the root package-manager pin, replaces the API pod, checks persisted sessions/conversations, and cleans up. See the [Kubernetes runbook](../../k8s/README.md) for supported tools and the [Bun upgrade audit](../../docs/bun-upgrade.md) for container and rollout evidence.
 
 The API needs at least 40 seconds of termination grace: 10 seconds for routing propagation, then the application's stream drain and cleanup. The chart rejects shorter values.
 
 When `exposure.gateway.create=true`, set `httpPort` and `httpsPort` to the controller's actual listening ports. The defaults (8000/8443) match the generated Traefik configuration. Disabling TLS now omits the HTTPS listener entirely.
+
+MCP connections are optional. Set `secrets.app.data.MCP_SERVERS` to the JSON connection array, or include `MCP_SERVERS` in the existing app Secret. The default is `[]`. Each connection must specify allowed user IDs and tool names; production also requires `AI_TOOL_APPROVAL_SECRET`. See [MCP configuration](../../docs/mcp.md).

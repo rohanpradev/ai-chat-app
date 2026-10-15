@@ -1,7 +1,7 @@
 import type { Chat } from "@chat-app/shared";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
-import { Database, FlaskConical, MessageSquare, Plus, ScanLine, Trash2 } from "lucide-react";
+import { Database, FlaskConical, MessageSquare, Plug, Plus, ScanLine, Trash2 } from "lucide-react";
 import { type SubmitEvent, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -174,9 +174,17 @@ export function ConversationSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Knowledge</SidebarGroupLabel>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={currentPath === "/chat/mcp"}>
+                  <Link onClick={closeMobileSidebar} to="/chat/mcp" search={{ redirect: undefined }}>
+                    <Plug aria-hidden="true" className="h-4 w-4" />
+                    <span>MCP workspace</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
