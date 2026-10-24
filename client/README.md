@@ -13,7 +13,7 @@ bun run --filter @chat-app/client dev
 
 The Vite dev server runs on `http://localhost:5173`.
 
-Use Bun 1.4.3, matching the root package-manager pin and CI.
+Use Bun 1.4.4, matching the root package-manager pin and CI.
 
 ## Build and Checks
 

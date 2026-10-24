@@ -133,6 +133,62 @@ test("creates a conversation from a prompt and completes a streamed response", a
 	await expect(page.getByText("Production-ready answer")).toBeVisible();
 });
 
+test("hands off a long first prompt without putting its content in the URL", async ({ page }) => {
+	await mockAuthenticatedApp(page);
+	await page.goto("/chat");
+	const prompt = `Private release plan ${"with supporting context ".repeat(200)}`;
+	await page.getByLabel("Prompt").fill(prompt);
+	const request = page.waitForRequest("**/api/ai/text-stream");
+	await page.getByRole("button", { name: "Start conversation" }).click();
+	await expect(page).toHaveURL(/\/chat\/chat-e2e$/);
+	expect((await request).postDataJSON().message.parts).toContainEqual({ text: prompt.trim(), type: "text" });
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await expect(page.locator(".is-user")).toHaveCount(1);
+});
+
+test("restores streamed history and isolates composer state when switching chats", async ({ page }, testInfo) => {
+	const otherConversation = { ...conversation, id: "chat-other", title: "Other conversation" };
+	await mockAuthenticatedApp(page, { conversations: [conversation, otherConversation] });
+	await page.route("**/api/conversations/chat-other", (route) =>
+		route.fulfill(json({ data: otherConversation, message: "ok" })),
+	);
+	await page.goto("/chat/chat-e2e");
+	await page.getByLabel("Prompt").fill("Retain my saved history");
+	await page.getByRole("button", { name: "Submit" }).click();
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await page.getByLabel("Prompt").fill("Draft belonging to the first chat");
+	await page.getByLabel("Upload files").setInputFiles({
+		buffer: Buffer.from("Attachment belonging to the first chat"),
+		mimeType: "text/plain",
+		name: "first-chat-only.txt",
+	});
+	await expect(page.getByText("first-chat-only.txt")).toBeVisible();
+	await page.getByLabel("Toggle MCP connections").click();
+	await page.getByLabel("Toggle web search").click();
+
+	const visitChat = async (title: string) => {
+		if ((page.viewportSize()?.width ?? 1280) < 768) {
+			await page.getByRole("button", { name: "Open navigation sidebar" }).click();
+		}
+		await page.getByRole("link", { exact: true, name: title }).click();
+		if ((page.viewportSize()?.width ?? 1280) < 768) {
+			await expect(page.locator('[data-sidebar="sidebar"][data-mobile="true"]')).toHaveCount(0);
+		}
+	};
+	await visitChat("Other conversation");
+	await expect(page).toHaveURL(/\/chat\/chat-other$/);
+	await expect(page.getByLabel("Prompt")).toHaveValue("");
+	await expect(page.getByLabel("Toggle MCP connections")).toHaveAttribute("aria-pressed", "false");
+	await expect(page.getByLabel("Toggle web search")).toHaveAttribute("aria-pressed", "false");
+	await expect(page.getByText("first-chat-only.txt")).toHaveCount(0);
+	await expect(page.getByText("Production-ready answer")).toHaveCount(0);
+
+	await visitChat("E2E conversation");
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await expect(page.locator(".is-user").getByText("Retain my saved history", { exact: true })).toBeVisible();
+	await page.screenshot({ fullPage: true, path: testInfo.outputPath("restored-conversation.png") });
+});
+
 test("deletes the current conversation through the confirmation flow", async ({ page }) => {
 	await mockAuthenticatedApp(page, { conversations: [conversation] });
 	await page.goto("/chat/chat-e2e");

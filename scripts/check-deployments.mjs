@@ -95,6 +95,12 @@ const expectFailure = ({ args, command, input, name, stderrIncludes }) => {
 	}
 };
 
+run({
+	args: ["scripts/check-helm-runtime-config.mjs"],
+	command: process.execPath,
+	name: "Check Helm credential, port, and volume configuration regressions",
+});
+
 if (existsSync(new URL(".env", rootDir)) && !useValuesTemplate) {
 	run({
 		args: ["scripts/ensure-k8s-secrets.sh"],
@@ -297,9 +303,12 @@ for (const [needle, label] of [
 	["kind: NetworkPolicy", "NetworkPolicies"],
 	["kind: HorizontalPodAutoscaler", "HPAs"],
 	["kind: PodDisruptionBudget", "PDBs"],
-	["docker.io/pgvector/pgvector:0.8.6-pg18-trixie", "pgvector-enabled PostgreSQL image"],
-	["dhi.io/redis:8.10.2-debian13", "Redis image"],
-	["curlimages/curl:8.22.0", "Helm test image"],
+	[
+		"docker.io/pgvector/pgvector@sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0",
+		"pgvector-enabled PostgreSQL image",
+	],
+	["dhi.io/redis@sha256:cfe44744ab9042a64dbfa89d2be9037d7058d12347e496521b31ce00f410c1a5", "Redis image"],
+	["curlimages/curl@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777", "Helm test image"],
 	["AI_DAILY_TOKEN_LIMIT", "AI quota configuration"],
 	["kind: HTTPRoute", "Gateway HTTPRoutes"],
 	["startupProbe:", "startup probes"],

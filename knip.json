@@ -49,10 +49,16 @@
 	"treatConfigHintsAsErrors": true,
 	"workspaces": {
 		".": {
-			"ignoreBinaries": ["kubectl", "make"]
+			"entry": [
+				"scripts/check-helm-runtime-config.mjs",
+				"scripts/check-k8s-gateway.test.mjs",
+				"scripts/ensure-kubectl.mjs",
+				"scripts/kubectl.test.mjs"
+			],
+			"ignoreBinaries": ["helm", "kubectl", "make"]
 		},
 		"client": {
-			"ignoreBinaries": ["check", "vite!"],
+			"ignoreBinaries": ["vite!"],
 			"ignoreDependencies": [
 				"@radix-ui/react-hover-card",
 				"@radix-ui/react-progress",
@@ -84,11 +90,7 @@
 				"config": []
 			},
 			"entry": ["drizzle.config.ts", "src/instrumentation.ts"],
-			"ignoreBinaries": ["check"],
 			"ignoreFiles": ["src/utils/db-utils.ts"]
-		},
-		"shared": {
-			"ignoreBinaries": ["check"]
 		}
 	}
 }

@@ -13,7 +13,7 @@ bun run --filter @chat-app/server dev
 
 The API listens on `SERVER_PORT`, defaulting to `3000`.
 
-Use Bun 1.4.3, matching the root package-manager pin and CI. Development uses `--check` with watch mode to reject type errors before running or restarting the server.
+Use Bun 1.4.4, matching the root package-manager pin and CI. Development uses `--check` with watch mode to reject type errors before running or restarting the server.
 
 ## Build and Checks
 

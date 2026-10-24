@@ -60,10 +60,10 @@ TRAEFIK_WEBSECURE_NODE_PORT="${TRAEFIK_WEBSECURE_NODE_PORT:-31443}"
 TRAEFIK_LOG_LEVEL="${TRAEFIK_LOG_LEVEL:-INFO}"
 TRAEFIK_DASHBOARD_USER="${TRAEFIK_DASHBOARD_USER:-admin}"
 TRAEFIK_DASHBOARD_PASSWORD="${TRAEFIK_DASHBOARD_PASSWORD:-change-me}"
-TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-dhi.io}"
-TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-traefik}"
-TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-3.7.13-debian13-dev}"
-TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.13}"
+TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-docker.io}"
+TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-library/traefik}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-v3.7.16}"
+TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.16}"
 
 for node_port in "${TRAEFIK_WEB_NODE_PORT}" "${TRAEFIK_WEBSECURE_NODE_PORT}"; do
   if [[ ! "${node_port}" =~ ^[0-9]+$ ]] || ((node_port < 30000 || node_port > 32767)); then
@@ -213,14 +213,14 @@ providers:
     allowEmptyServices: true
     safeNaming: true
     crossProviderNamespaces:
-      - default
+      - ${K8S_APP_NAMESPACE}
       - ${TRAEFIK_NAMESPACE}
   kubernetesIngress:
     enabled: false
   kubernetesGateway:
     enabled: true
     crossProviderNamespaces:
-      - default
+      - ${K8S_APP_NAMESPACE}
       - ${TRAEFIK_NAMESPACE}
 
 gateway:

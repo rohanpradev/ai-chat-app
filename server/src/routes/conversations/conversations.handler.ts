@@ -10,14 +10,12 @@ import type {
 	GetConversationsRoute,
 	UpdateConversationRoute
 } from "@/routes/conversations/conversations.route";
+import { deleteStoredConversation } from "@/services/conversation.service";
 
 export const deleteConversation: AppRouteHandler<DeleteConversationRoute> = async (c) => {
 	const userJwt = c.get("jwtPayload").sub;
 	const { id } = c.req.valid("param");
-	const [deletedChat] = await db
-		.delete(chats)
-		.where(and(eq(chats.id, id), eq(chats.userId, userJwt.id)))
-		.returning({ id: chats.id });
+	const deletedChat = await deleteStoredConversation(id, userJwt.id);
 
 	if (!deletedChat) {
 		return c.json({ message: "Conversation not found" }, HttpStatusCodes.NOT_FOUND);

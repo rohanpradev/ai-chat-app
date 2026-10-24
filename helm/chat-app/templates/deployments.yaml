@@ -82,7 +82,7 @@ spec:
               value: --data-checksums --wal-segsize=64
           ports:
             - name: postgres
-              containerPort: {{ .Values.db.service.port }}
+              containerPort: 5432
           livenessProbe:
             exec:
               command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
@@ -198,7 +198,7 @@ spec:
             - "10000"
           ports:
             - name: redis
-              containerPort: {{ .Values.redis.service.port }}
+              containerPort: 6379
           livenessProbe:
             exec:
               command: ["redis-cli", "ping"]
@@ -323,7 +323,7 @@ spec:
                 name: {{ $appSecretName }}
           ports:
             - name: http
-              containerPort: {{ .Values.server.service.port }}
+              containerPort: {{ .Values.config.env.SERVER_PORT }}
           startupProbe:
             {{- toYaml .Values.server.startupProbe | nindent 12 }}
           readinessProbe:
@@ -426,7 +426,7 @@ spec:
                 name: {{ $configMapName }}
           ports:
             - name: http
-              containerPort: {{ .Values.client.service.port }}
+              containerPort: 8080
           startupProbe:
             {{- toYaml .Values.client.startupProbe | nindent 12 }}
           readinessProbe:

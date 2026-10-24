@@ -1,0 +1,67 @@
+# Disposable kind Gateway runtime fixture. This never reads .env or user secrets.
+fullnameOverride: chat-app-gateway-traefik
+image:
+  registry: docker.io
+  repository: library/traefik
+  tag: v3.7.16
+  digest: sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
+  pullPolicy: IfNotPresent
+versionOverride: "3.7.16"
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+service:
+  spec:
+    type: ClusterIP
+ports:
+  web:
+    port: 8000
+    exposedPort: 80
+  websecure:
+    expose:
+      default: false
+api:
+  dashboard: false
+  insecure: false
+ingressClass:
+  enabled: false
+gateway:
+  enabled: false
+gatewayClass:
+  enabled: true
+  name: traefik
+providers:
+  kubernetesIngress:
+    enabled: false
+  kubernetesCRD:
+    enabled: true
+    safeNaming: true
+    namespaces:
+      - chat-app-gateway-runtime
+      - traefik
+    crossProviderNamespaces:
+      - chat-app-gateway-runtime
+      - traefik
+  kubernetesGateway:
+    enabled: true
+    namespaces:
+      - chat-app-gateway-runtime
+      - traefik
+    crossProviderNamespaces:
+      - chat-app-gateway-runtime
+      - traefik
+    gateways:
+      - name: traefik-gateway
+        namespace: chat-app-gateway-runtime
+additionalArguments:
+  - "--entryPoints.metrics.http.aliasHeadersStrategy=reject"
+  - "--entryPoints.traefik.http.aliasHeadersStrategy=reject"
+  - "--entryPoints.web.http.aliasHeadersStrategy=reject"
+  - "--entryPoints.websecure.http.aliasHeadersStrategy=reject"
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

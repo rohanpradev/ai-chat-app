@@ -59,12 +59,20 @@ describe("Jev evaluation through AI SDK", () => {
 		expect(doEvaluate).toHaveBeenCalledTimes(1);
 		expect(doEvaluate.mock.calls[0]?.[0]).toMatchObject({
 			questions: { team: { type: "choice" }, tone: { type: "score" }, urgent: { type: "boolean" } },
-			state: { message: "I was charged twice. Please fix this today." }
+			state: [{ type: "json", value: { message: "I was charged twice. Please fix this today." } }]
 		});
 		expect(reserveUsage).toHaveBeenCalledWith(
 			expect.objectContaining({ category: "jev-evaluation", scope: "ai", userId: "user-1" })
 		);
 		expect(settleUsage).toHaveBeenCalledWith("reservation", { inputTokens: 200, outputTokens: 40, totalTokens: 240 });
+	});
+	it("preserves JSON arrays as data instead of interpreting them as SDK message parts", async () => {
+		const { service, doEvaluate } = setup();
+		await service.evaluate(
+			JevRequestSchema.parse({ ...request, state: '["charged twice", { "urgent": true }]' }),
+			"user-1"
+		);
+		expect(doEvaluate.mock.calls[0]?.[0].state).toEqual([{ type: "json", value: ["charged twice", { urgent: true }] }]);
 	});
 	it("keeps missing confidence unavailable", async () => {
 		const { service } = setup({ ...providerResult, providerMetadata: undefined });

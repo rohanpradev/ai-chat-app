@@ -2,7 +2,7 @@ import { coerceCompatibleMyUIMessages } from "@chat-app/shared";
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
   Conversation,
@@ -14,6 +14,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ApiRequestError } from "@/composables/useApi";
 import { useAgentChat } from "@/hooks/useAgentChat";
+import { type ConversationDraft, conversationDraftKey } from "@/lib/conversation-draft";
 import { mcpDraftKey } from "@/lib/mcp-draft";
 import { getAiModelsQuery } from "@/queries/getAiModels";
 import { getConversationQuery } from "@/queries/getConversation";
@@ -27,66 +28,72 @@ const conversationSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/chat/$conversationId")({
+  remountDeps: ({ params }) => params.conversationId,
   validateSearch: zodValidator(conversationSearchSchema),
-  loader: async ({ context, params }) => {
-    const chatQuery = getConversationQuery(params.conversationId);
+  loader: {
+    // Chat state is initialized once; never mount it from an old router snapshot.
+    staleReloadMode: "blocking",
+    handler: async ({ context, params }) => {
+      const chatQuery = getConversationQuery(params.conversationId);
 
-    try {
-      const conversation = await context.queryClient.query({ ...chatQuery, staleTime: "static" });
-      void context.queryClient.query(getAiModelsQuery()).catch(() => undefined);
+      try {
+        const conversation = await context.queryClient.query(chatQuery);
+        void context.queryClient.query(getAiModelsQuery()).catch(() => undefined);
 
-      if (!conversation) {
-        throw redirect({
-          search: { redirect: undefined },
-          to: ChatIndexRoute.to,
-        });
-      }
+        if (!conversation) {
+          throw redirect({
+            search: { redirect: undefined },
+            to: ChatIndexRoute.to,
+          });
+        }
 
-      type MessageRole = "user" | "assistant" | "system";
-      const normalizeRole = (role: string): MessageRole => {
-        if (role === "assistant" || role === "system") return role;
-        return "user";
-      };
+        type MessageRole = "user" | "assistant" | "system";
+        const normalizeRole = (role: string): MessageRole => {
+          if (role === "assistant" || role === "system") return role;
+          return "user";
+        };
 
-      const toMetadata = (metadata: unknown, createdAt: string | undefined) => {
-        const normalizedMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
-        return createdAt ? { ...normalizedMetadata, createdAt } : normalizedMetadata;
-      };
+        const toMetadata = (metadata: unknown, createdAt: string | undefined) => {
+          const normalizedMetadata =
+            metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
+          return createdAt ? { ...normalizedMetadata, createdAt } : normalizedMetadata;
+        };
 
-      const rawMessages = (conversation.messages || []).map((msg) => {
-        const uiParts = msg.parts.map((part) => {
-          if (typeof part === "string") {
-            return { type: "text" as const, text: part };
-          }
-          return part;
+        const rawMessages = (conversation.messages || []).map((msg) => {
+          const uiParts = msg.parts.map((part) => {
+            if (typeof part === "string") {
+              return { type: "text" as const, text: part };
+            }
+            return part;
+          });
+
+          return {
+            id: msg.id,
+            metadata: toMetadata(msg.metadata, msg.createdAt),
+            parts: uiParts,
+            role: normalizeRole(msg.role),
+          };
         });
 
         return {
-          id: msg.id,
-          metadata: toMetadata(msg.metadata, msg.createdAt),
-          parts: uiParts,
-          role: normalizeRole(msg.role),
+          chat: conversation,
+          initialMessages: await coerceCompatibleMyUIMessages(rawMessages),
         };
-      });
+      } catch (error) {
+        if (error && typeof error === "object" && "to" in error) {
+          throw error;
+        }
 
-      return {
-        chat: conversation,
-        initialMessages: await coerceCompatibleMyUIMessages(rawMessages),
-      };
-    } catch (error) {
-      if (error && typeof error === "object" && "to" in error) {
+        if (error instanceof ApiRequestError && error.status === 404) {
+          throw redirect({
+            search: { redirect: undefined },
+            to: ChatIndexRoute.to,
+          });
+        }
+
         throw error;
       }
-
-      if (error instanceof ApiRequestError && error.status === 404) {
-        throw redirect({
-          search: { redirect: undefined },
-          to: ChatIndexRoute.to,
-        });
-      }
-
-      throw error;
-    }
+    },
   },
   component: ConversationChat,
   errorComponent: () => (
@@ -118,9 +125,13 @@ function ConversationChat() {
   const { auth } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const draftUserId = auth.user?.id ?? "";
+  const [initialDraft] = useState(() =>
+    queryClient.getQueryData<ConversationDraft>(conversationDraftKey(draftUserId, conversationId)),
+  );
   useEffect(
     () => () => {
       queryClient.removeQueries({ queryKey: mcpDraftKey(draftUserId, conversationId), exact: true });
+      queryClient.removeQueries({ queryKey: conversationDraftKey(draftUserId, conversationId), exact: true });
     },
     [queryClient, draftUserId, conversationId],
   );
@@ -155,28 +166,45 @@ function ConversationChat() {
   } = useAgentChat({
     conversationId,
     initialMcp: initialMcp === "1",
-    initialInput: initialMessages.length === 0 ? (mcpDraft ?? prompt) : undefined,
+    initialInput: initialMessages.length === 0 ? (mcpDraft ?? initialDraft?.text ?? prompt) : undefined,
     initialMessages,
   });
 
+  const firstPrompt = initialDraft?.text ?? prompt;
+  const shouldAutoSend = initialDraft?.autoSend || autoSend === "1";
   useEffect(() => {
-    if (autoSend !== "1" || !prompt || initialMessages.length > 0 || autoSendStartedRef.current) {
+    if (!shouldAutoSend || !firstPrompt || initialMessages.length > 0 || autoSendStartedRef.current) {
       return;
     }
 
     autoSendStartedRef.current = true;
     setInput("");
-    void sendPromptMessage({ files: [], text: prompt })
-      .catch(() => setInput(prompt))
+    void sendPromptMessage({ files: [], text: firstPrompt })
+      .catch(() => setInput(firstPrompt))
       .finally(() => {
-        void navigate({
-          params: { conversationId },
-          replace: true,
-          search: { autoSend: undefined, prompt: undefined, redirect: undefined },
-          to: Route.to,
-        });
+        queryClient.removeQueries({ queryKey: conversationDraftKey(draftUserId, conversationId), exact: true });
+        if (autoSend || prompt) {
+          void navigate({
+            params: { conversationId },
+            replace: true,
+            search: { autoSend: undefined, prompt: undefined, redirect: undefined },
+            to: Route.to,
+          });
+        }
       });
-  }, [autoSend, conversationId, initialMessages.length, navigate, prompt, sendPromptMessage, setInput]);
+  }, [
+    autoSend,
+    conversationId,
+    draftUserId,
+    firstPrompt,
+    initialMessages.length,
+    navigate,
+    prompt,
+    queryClient,
+    sendPromptMessage,
+    setInput,
+    shouldAutoSend,
+  ]);
   const hasMessages = messages.length > 0;
   const canDownloadConversation = hasMessages && status !== "submitted" && status !== "streaming";
 

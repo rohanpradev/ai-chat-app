@@ -27,6 +27,7 @@ const authenticated = asRouteMiddleware(authMiddleware);
 const ingestLimiter = asRouteMiddleware(embeddingIngestRateLimit);
 const ragLimiter = asRouteMiddleware(embeddingRagRateLimit);
 const searchLimiter = asRouteMiddleware(embeddingSearchRateLimit);
+const unavailableResponse = jsonContent(CommonErrorResponseSchema, "Embedding provider or storage unavailable");
 const uploadBodyLimit = asRouteMiddleware(
 	bodyLimit({
 		maxSize: MAX_EMBEDDING_UPLOAD_BYTES + 1024 * 1024,
@@ -85,6 +86,7 @@ export const ingestText = createRoute({
 		body: jsonBody(EmbeddingIngestTextRequestSchema, "Text content to vectorize")
 	},
 	responses: {
+		[HttpStatusCodes.SERVICE_UNAVAILABLE]: unavailableResponse,
 		[HttpStatusCodes.CREATED]: jsonContent(EmbeddingIngestResponseSchema, "Vectorized document"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
 		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many ingestion requests"),
@@ -112,6 +114,7 @@ export const uploadDocument = createRoute({
 		}
 	},
 	responses: {
+		[HttpStatusCodes.SERVICE_UNAVAILABLE]: unavailableResponse,
 		[HttpStatusCodes.CREATED]: jsonContent(EmbeddingIngestResponseSchema, "Vectorized uploaded document"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid upload"),
 		[HttpStatusCodes.PAYLOAD_TOO_LARGE]: jsonContent(CommonBadRequestResponseSchema, "Upload too large"),
@@ -132,6 +135,7 @@ export const searchEmbeddings = createRoute({
 		body: jsonBody(EmbeddingSearchRequestSchema, "Semantic search request")
 	},
 	responses: {
+		[HttpStatusCodes.SERVICE_UNAVAILABLE]: unavailableResponse,
 		[HttpStatusCodes.OK]: jsonContent(EmbeddingSearchResponseSchema, "Semantic search results"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
 		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many search requests"),
@@ -151,6 +155,7 @@ export const rag = createRoute({
 		body: jsonBody(RagRequestSchema, "RAG request")
 	},
 	responses: {
+		[HttpStatusCodes.SERVICE_UNAVAILABLE]: unavailableResponse,
 		[HttpStatusCodes.OK]: jsonContent(RagResponseSchema, "Grounded answer with source chunks"),
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
 		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many RAG requests"),

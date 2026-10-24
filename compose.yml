@@ -1,7 +1,7 @@
 x-bun-build-args: &bun-build-args
-  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.3-alpine}
-  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.3-alpine}
-  NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.6-alpine3.24}
+  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.4-alpine}
+  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.4-alpine}
+  NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.8-alpine3.24@sha256:1ef7ca94d7879df82421428ce13bd1eaa412404953859cf7a5b6512c25e67a60}
 
 x-security-defaults: &security-defaults
   security_opt:
@@ -45,7 +45,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${TRAEFIK_IMAGE:-traefik:v3.7.13}
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.16@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2}
     cap_drop:
       - ALL
     cap_add:
@@ -130,7 +130,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${POSTGRES_IMAGE:-pgvector/pgvector:0.8.6-pg18-trixie}
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:0.8.7-pg18-trixie@sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0}
     pull_policy: always
     container_name: chat-app-db
     environment:

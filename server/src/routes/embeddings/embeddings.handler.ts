@@ -1,4 +1,5 @@
 import { HTTPException } from "hono/http-exception";
+import { EmbeddingInputError } from "@/lib/embedding-errors";
 import * as HttpStatusCodes from "@/lib/http-status-codes";
 import type { AppRouteHandler } from "@/lib/types";
 import type {
@@ -23,12 +24,15 @@ const textEncoder = new TextEncoder();
 
 const getUserId = (c: Parameters<AppRouteHandler<ListDocumentsRoute>>[0]) => c.get("jwtPayload").sub.id;
 
-const asBadRequest = (error: unknown, fallback: string) =>
+const asEmbeddingError = (error: unknown, fallback: string) =>
 	error instanceof HTTPException
 		? error
-		: new HTTPException(HttpStatusCodes.BAD_REQUEST, {
-				message: error instanceof Error ? error.message : fallback
-			});
+		: new HTTPException(
+				error instanceof EmbeddingInputError ? HttpStatusCodes.BAD_REQUEST : HttpStatusCodes.SERVICE_UNAVAILABLE,
+				{
+					message: error instanceof EmbeddingInputError ? error.message : fallback
+				}
+			);
 
 export const listDocuments: AppRouteHandler<ListDocumentsRoute> = async (c) => {
 	const documents = await listEmbeddingDocuments(getUserId(c));
@@ -78,7 +82,7 @@ export const ingestText: AppRouteHandler<IngestTextRoute> = async (c) => {
 			HttpStatusCodes.CREATED
 		);
 	} catch (error) {
-		throw asBadRequest(error, "Failed to vectorize content");
+		throw asEmbeddingError(error, "Failed to vectorize content");
 	}
 };
 
@@ -104,7 +108,7 @@ export const uploadDocument: AppRouteHandler<UploadDocumentRoute> = async (c) =>
 			HttpStatusCodes.CREATED
 		);
 	} catch (error) {
-		throw asBadRequest(error, "Failed to vectorize uploaded document");
+		throw asEmbeddingError(error, "Failed to vectorize uploaded document");
 	}
 };
 
@@ -119,7 +123,7 @@ export const searchEmbeddings: AppRouteHandler<SearchEmbeddingsRoute> = async (c
 			message: "Embedding search completed successfully"
 		});
 	} catch (error) {
-		throw asBadRequest(error, "Embedding search failed");
+		throw asEmbeddingError(error, "Embedding search failed");
 	}
 };
 
@@ -134,6 +138,6 @@ export const rag: AppRouteHandler<RagRoute> = async (c) => {
 			message: "RAG answer generated successfully"
 		});
 	} catch (error) {
-		throw asBadRequest(error, "RAG answer generation failed");
+		throw asEmbeddingError(error, "RAG answer generation failed");
 	}
 };

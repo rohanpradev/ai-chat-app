@@ -22,6 +22,7 @@
 **/.vite
 **/.vite-cache
 **/.cache
+**/.local
 **/coverage
 **/*.tsbuildinfo
 

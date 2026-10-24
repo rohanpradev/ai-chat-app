@@ -48,11 +48,11 @@ export const ChatRequestSchema = z
 	.object({
 		agentMode: z.enum(agentModeIds).optional().describe("Agent mode to use for this request"),
 		// Accept multiple aliases from different clients/transports
-		chatId: z.string().optional().describe("Chat ID for persistence"),
-		conversationId: z.string().optional().describe("Alias for chatId used by older clients"),
-		id: z.string().optional().describe("Alias for chatId used by default useChat transport"),
+		chatId: z.string().min(1).max(255).optional().describe("Chat ID for persistence"),
+		conversationId: z.string().min(1).max(255).optional().describe("Alias for chatId used by older clients"),
+		id: z.string().min(1).max(255).optional().describe("Alias for chatId used by default useChat transport"),
 		message: UIMessageSchema.optional().describe("Latest chat message for persisted conversations"),
-		messageId: z.string().optional().describe("Message ID used by regenerate requests"),
+		messageId: z.string().min(1).max(255).optional().describe("Message ID used by regenerate requests"),
 		messages: UIMessagesArraySchema.min(1, {
 			error: "No messages provided",
 		})
@@ -68,6 +68,14 @@ export const ChatRequestSchema = z
 	.refine((request) => Boolean(request.message || request.messages?.length), {
 		error: "No messages provided",
 	})
+	.refine(
+		(request) =>
+			!request.messages || new Set(request.messages.map((message) => message.id)).size === request.messages.length,
+		{
+			error: "Message IDs must be unique",
+			path: ["messages"],
+		},
+	)
 	.refine((request) => JSON.stringify(request).length <= 20 * 1024 * 1024, {
 		error: "Chat request payload is too large",
 	});

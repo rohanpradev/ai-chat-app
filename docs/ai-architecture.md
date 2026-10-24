@@ -9,13 +9,21 @@
 5. The agent streams UI-message parts back through SSE.
 6. Completed conversations update a current-message projection and append immutable message revisions.
 
-Conversation writes take a PostgreSQL advisory transaction lock per chat, which prevents two server replicas from interleaving revisions. Regeneration and resumed streams update the current projection without erasing prior message bodies. Deleting a conversation remains a deliberate cascade over both current messages and their revision history.
+Conversation writes take a PostgreSQL advisory transaction lock per chat and compare the current message revisions with the request's snapshot inside that lock. Concurrent accepted inputs return `409` before starting a provider call. A stream that finishes after a newer turn or deletion keeps the latest stored projection intact and still settles its provider usage. Deletion uses the same lock and cascades over current messages and revision history, so an earlier stream cannot recreate a deleted chat.
+
+Ordinary submissions preserve stored message content and append new IDs, including when an older client sends a stale full history. Only the current assistant's pending tool approval decision can update an existing message; the server retains its original call, input, signature, metadata, and sibling parts. Repeated or stale approval responses return `409`, while a mismatched input or signature returns `400`. Explicit regeneration may replace the current projection's tail, while immutable revisions retain previous message bodies.
+
+If a removed message ID returns to the same conversation, its revision continues after the highest immutable revision. IDs retained by another conversation cannot be reused, and concurrent claims roll back atomically with a safe `409` response.
+
+The client synchronizes the current transcript to its conversation cache when a stream completes, fails, or is stopped. Conversation navigation waits for the current loader snapshot before initializing chat state, and switching conversation IDs resets the composer, attachments, and tool selections. First prompts pass from the home screen through a user- and conversation-scoped in-memory draft rather than URL search parameters; the draft is removed after handoff or when leaving the conversation.
 
 ## Retrieval and Usage Control
 
 Document chunks use `vector(1536)` and an HNSW cosine index provided by pgvector. Similarity filtering, ordering, and limiting run in PostgreSQL; vectors are not loaded into application memory for ranking.
 
 AI and embedding calls reserve quota in `usage_event` before contacting a provider, then settle provider-reported token usage. PostgreSQL advisory locks make daily limits consistent across replicas. Reservations older than 15 minutes stop consuming token or upload capacity, protecting users from a crashed worker. `GET /{BASE_API_SLUG}/ai/usage` exposes daily request/token usage, embedding token usage, storage usage, and the UTC reset time.
+
+Failed operations with measured provider tokens count toward daily token and request quotas. A failure before any measured consumption releases its unused reservation. Repeated error cleanup cannot erase tokens already settled for that request.
 
 Default limits can be overridden with `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, `EMBEDDING_DAILY_TOKEN_LIMIT`, and `EMBEDDING_STORAGE_BYTE_LIMIT`.
 

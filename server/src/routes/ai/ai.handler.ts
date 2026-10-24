@@ -16,7 +16,7 @@ import type {
 	GetUsageRoute
 } from "@/routes/ai/ai.route";
 import { evaluateAIOutput, generateStructuredPlan } from "@/services/ai-structured.service";
-import { loadConversationMessages, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
+import { loadConversationSnapshot, mergeConversationMessages, saveConversation } from "@/services/conversation.service";
 import { getAvailableChatModels } from "@/services/model-catalog.service";
 import { estimateTokens, getUsageSummary, reserveUsage, settleUsage } from "@/services/usage.service";
 import { resolveModelSelection } from "@/utils/index";
@@ -81,14 +81,9 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 	const { agentMode, model = defaultModelId, tools: toolNames = [] } = requestBody;
 	const userJwt = c.get("jwtPayload").sub;
 	const incomingMessages = requestBody.messages ?? (requestBody.message ? [requestBody.message] : []);
-	if (requestBody.messages && coalescedChatId) {
-		await loadConversationMessages(coalescedChatId, userJwt.id);
-	}
-	const storedMessages = requestBody.messages ? [] : await loadConversationMessages(coalescedChatId, userJwt.id);
-	const candidateMessages = requestBody.messages
-		? incomingMessages
-		: mergeConversationMessages(storedMessages, incomingMessages);
-	const validation = await safeValidateMyUIMessages(candidateMessages);
+	const snapshot = await loadConversationSnapshot(coalescedChatId, userJwt.id);
+	let conversationVersion = snapshot.version;
+	const validation = await safeValidateMyUIMessages(incomingMessages);
 
 	if (!validation.success) {
 		throw new HTTPException(HttpStatusCodes.BAD_REQUEST, {
@@ -96,12 +91,15 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 		});
 	}
 
-	const validatedMessages = validation.data;
-	if (validatedMessages.some((message) => message.role === "system")) {
+	if (validation.data.some((message) => message.role === "system")) {
 		throw new HTTPException(HttpStatusCodes.BAD_REQUEST, {
 			message: "Client-authored system messages are not allowed"
 		});
 	}
+	const validatedMessages =
+		requestBody.trigger === "regenerate-message" && requestBody.messages
+			? validation.data
+			: mergeConversationMessages(snapshot.messages, validation.data);
 	const normalizedMessages = normalizeMessagesForAgent(validatedMessages);
 	const logger = c.get("logger");
 	const selectedAgentMode = resolveAgentMode(agentMode);
@@ -157,8 +155,19 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 				return undefined;
 			},
 			onEnd: async ({ isAborted, messages: finalMessages, outcome }) => {
+				const persistFinalMessages = async () => {
+					if (!coalescedChatId) return;
+					try {
+						await saveConversation(coalescedChatId, finalMessages, userJwt.id, conversationVersion);
+					} catch (error) {
+						if (!(error instanceof HTTPException) || error.status !== HttpStatusCodes.CONFLICT) throw error;
+						// A later turn or deletion owns the projection now. The client has
+						// already received its finish event; keep the completed stream valid.
+						logger.info({ selectedAgentMode }, "Skipped stale AI stream persistence after conversation changed");
+					}
+				};
 				await Promise.all([
-					saveConversation(coalescedChatId, finalMessages, userJwt.id),
+					persistFinalMessages(),
 					settleUsage(usageRequestId, {
 						inputTokens,
 						outputTokens,
@@ -213,7 +222,7 @@ export const aiStream: AppRouteHandler<AIStreamRoute> = async (c) => {
 		// Persist accepted input before model preparation so refreshes and provider
 		// failures cannot discard a prompt. Do not spend tokens if storage is down.
 		if (coalescedChatId) {
-			await saveConversation(coalescedChatId, validatedMessages, userJwt.id);
+			conversationVersion = await saveConversation(coalescedChatId, validatedMessages, userJwt.id, snapshot.version);
 		}
 
 		return isLangfuseTelemetryEnabled

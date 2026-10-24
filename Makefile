@@ -1,6 +1,8 @@
 # Chat App - Production Docker Compose
 # Modern chat application with Bun, Hono, React, and AI capabilities
 
+export PATH := $(CURDIR)/scripts/bin:$(PATH)
+
 K8S_NAMESPACE ?= default
 K8S_RELEASE ?= chat-app
 K8S_SERVER_IMAGE ?= chat-app-server:latest

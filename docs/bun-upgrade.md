@@ -1,5 +1,7 @@
 # Bun 1.4.3 upgrade audit
 
+Historical October 15 review. The current runtime upgrade and validation are recorded in [Bun 1.4.4](bun-upgrade-1.4.4.md).
+
 Reviewed on October 15, 2026 against the [1.4.3 release notes](https://bun.com/blog/bun-v1.4.3), [official releases](https://github.com/oven-sh/bun/releases), and [type-checking documentation](https://bun.com/docs/runtime/check). The repository previously targeted 1.4.2; the local runtime already runs 1.4.3.
 
 ## File plan

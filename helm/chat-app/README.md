@@ -50,10 +50,15 @@ Do not commit `values.local.yaml`.
 - Unknown top-level values, invalid types, inverted HPA ranges, incompatible secret modes, and missing external service hosts fail rendering.
 - App pods run without service account tokens, drop capabilities, disallow privilege escalation, and use RuntimeDefault seccomp.
 
+Service ports are independent of container listeners. The client listens on 8080, the server uses `config.env.SERVER_PORT`, and the bundled PostgreSQL and Redis listeners remain 5432 and 6379. Proxies and generated connection URLs use the corresponding Service port; NetworkPolicies use the destination pod's listener port.
+
+Generated database and Redis URLs percent-encode credentials, including reserved characters and spaces. An explicit `secrets.app.data.DB_URL` is preserved as supplied. Redis runs as UID/GID 65532 with `fsGroup: 65532` for PVC access, a read-only root filesystem, and no Linux capabilities; the official and hardened image profiles share this configuration.
+
 ## Validate
 
 ```bash
 DEPLOY_CHECK_USE_VALUES_TEMPLATE=1 bun run check:deploy
+node scripts/check-helm-runtime-config.mjs
 helm lint --strict --kube-version 1.37.1 helm/chat-app
 helm template chat-app helm/chat-app --set exposure.gateway.enabled=false
 ```
@@ -68,6 +73,8 @@ make k8s-destroy-data CONFIRM=chat-app
 ## Runtime verification and rollout
 
 `bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, verifies the deployed Bun version against the root package-manager pin, replaces the API pod, checks persisted sessions/conversations, and cleans up. See the [Kubernetes runbook](../../k8s/README.md) for supported tools and the [Bun upgrade audit](../../docs/bun-upgrade.md) for container and rollout evidence.
+
+The disposable profile deliberately uses reserved characters in database/Redis passwords and client/server Service ports 80/8081 to exercise URL encoding and Service-to-container routing.
 
 The API needs at least 40 seconds of termination grace: 10 seconds for routing propagation, then the application's stream drain and cleanup. The chart rejects shorter values.
 

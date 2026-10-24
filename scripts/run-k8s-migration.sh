@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="${ROOT_DIR}/scripts/bin:${PATH}"
 CHART_DIR="${ROOT_DIR}/helm/chat-app"
 NAMESPACE="${NAMESPACE:-default}"
 RELEASE_NAME="${RELEASE_NAME:-chat-app}"

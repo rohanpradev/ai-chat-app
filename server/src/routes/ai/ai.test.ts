@@ -1,11 +1,20 @@
 import { describe, expect, it, mock } from "bun:test";
+import type { MyUIMessage } from "@chat-app/shared";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
+import { HTTPException } from "hono/http-exception";
 
 let persistenceFailure: Error | null = null;
 const saveConversationMock = mock(async () => {
 	if (persistenceFailure) throw persistenceFailure;
+	return "accepted-version";
 });
+const loadConversationSnapshotMock = mock(
+	async (): Promise<{ messages: MyUIMessage[]; version: string | null }> => ({
+		messages: [],
+		version: null
+	})
+);
 const modelStreamMock = mock(() => {});
 const getAvailableChatModelsMock = mock(async () => [
 	{ id: "openai/gpt-5-mini", name: "GPT-5 Mini", provider: "vercel-ai-gateway" }
@@ -61,7 +70,7 @@ mock.module("@/middlewares/auth-middleware", () => ({
 }));
 
 mock.module("@/services/conversation.service", () => ({
-	loadConversationMessages: mock(async () => []),
+	loadConversationSnapshot: loadConversationSnapshotMock,
 	mergeConversationMessages: <TMessage>(storedMessages: TMessage[], incomingMessages: TMessage[]) => [
 		...storedMessages,
 		...incomingMessages
@@ -329,7 +338,7 @@ describe("AI Routes", () => {
 
 			expect(response.status).toBe(500);
 			expect(saveConversationMock).toHaveBeenCalledTimes(1);
-			expect(saveConversationMock).toHaveBeenCalledWith("chat-persist", messages, "test-user");
+			expect(saveConversationMock).toHaveBeenCalledWith("chat-persist", messages, "test-user", null);
 		} finally {
 			modelInitializationFailure = null;
 		}
@@ -361,6 +370,110 @@ describe("AI Routes", () => {
 		} finally {
 			persistenceFailure = null;
 		}
+	});
+
+	it("rejects a stale accepted prompt before starting the provider", async () => {
+		settleUsageMock.mockClear();
+		modelStreamMock.mockClear();
+		persistenceFailure = new HTTPException(409, { message: "Conversation changed. Reload it before trying again." });
+		try {
+			const { createApp } = await import("@/lib/create-app");
+			const { default: router } = await import("@/routes/ai/ai.index");
+			const response = await createApp()
+				.route("/", router)
+				.request("/ai/text-stream", {
+					body: JSON.stringify({
+						chatId: "chat-conflict",
+						message: { id: "prompt", parts: [{ text: "New turn", type: "text" }], role: "user" }
+					}),
+					headers: { "Content-Type": "application/json" },
+					method: "POST"
+				});
+			expect(response.status).toBe(409);
+			expect(modelStreamMock).not.toHaveBeenCalled();
+			expect(settleUsageMock).toHaveBeenCalledWith("usage-test", { status: "failed" });
+		} finally {
+			persistenceFailure = null;
+		}
+	});
+
+	it("settles usage and completes the stream when a newer turn supersedes its saved snapshot", async () => {
+		settleUsageMock.mockClear();
+		saveConversationMock.mockClear();
+		saveConversationMock.mockImplementationOnce(async () => "accepted-version");
+		saveConversationMock.mockImplementationOnce(async () => {
+			throw new HTTPException(409);
+		});
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/ai/ai.index");
+		const response = await createApp()
+			.route("/", router)
+			.request("/ai/text-stream", {
+				body: JSON.stringify({
+					chatId: "chat-superseded",
+					message: { id: "prompt", parts: [{ text: "New turn", type: "text" }], role: "user" }
+				}),
+				headers: { "Content-Type": "application/json" },
+				method: "POST"
+			});
+		expect(response.status).toBe(200);
+		expect(await response.text()).toContain("data: [DONE]");
+		expect(saveConversationMock).toHaveBeenLastCalledWith(
+			"chat-superseded",
+			expect.any(Array),
+			"test-user",
+			"accepted-version"
+		);
+		expect(settleUsageMock).toHaveBeenCalledWith(
+			"usage-test",
+			expect.objectContaining({ status: "completed", totalTokens: 5 })
+		);
+	});
+
+	it("preserves unseen stored turns from stale full-history submissions", async () => {
+		saveConversationMock.mockClear();
+		const stored: MyUIMessage = { id: "unseen", parts: [{ text: "Other tab's turn", type: "text" }], role: "user" };
+		loadConversationSnapshotMock.mockResolvedValueOnce({ messages: [stored], version: "stored-version" });
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/ai/ai.index");
+		const incoming: MyUIMessage = { id: "new", parts: [{ text: "This tab's turn", type: "text" }], role: "user" };
+		const response = await createApp()
+			.route("/", router)
+			.request("/ai/text-stream", {
+				body: JSON.stringify({ chatId: "chat-stale-history", messages: [incoming] }),
+				headers: { "Content-Type": "application/json" },
+				method: "POST"
+			});
+		await response.text();
+		expect(response.status).toBe(200);
+		expect(saveConversationMock).toHaveBeenNthCalledWith(
+			1,
+			"chat-stale-history",
+			[stored, incoming],
+			"test-user",
+			"stored-version"
+		);
+	});
+
+	it("allows explicit regeneration to replace the current conversation tail", async () => {
+		saveConversationMock.mockClear();
+		const prompt: MyUIMessage = { id: "question", parts: [{ text: "Question", type: "text" }], role: "user" };
+		loadConversationSnapshotMock.mockResolvedValueOnce({
+			messages: [prompt, { id: "old-answer", parts: [{ text: "Old", type: "text" }], role: "assistant" }],
+			version: "stored-version"
+		});
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/ai/ai.index");
+		const response = await createApp()
+			.route("/", router)
+			.request("/ai/text-stream", {
+				body: JSON.stringify({ chatId: "chat-regenerate", messages: [prompt], trigger: "regenerate-message" }),
+				headers: { "Content-Type": "application/json" },
+				method: "POST"
+			});
+		await response.text();
+		expect(response.status).toBe(200);
+		expect(saveConversationMock).toHaveBeenNthCalledWith(1, "chat-regenerate", [prompt], "test-user", "stored-version");
 	});
 
 	it("rejects client-authored system messages", async () => {
@@ -396,6 +509,44 @@ describe("AI Routes", () => {
 		});
 
 		expect(response.status).toBe(400);
+	});
+
+	it("rejects duplicate message IDs before persistence or provider work", async () => {
+		saveConversationMock.mockClear();
+		modelStreamMock.mockClear();
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/ai/ai.index");
+		const message = { id: "duplicate", parts: [{ text: "test", type: "text" }], role: "user" };
+		const response = await createApp()
+			.route("/", router)
+			.request("/ai/text-stream", {
+				body: JSON.stringify({ chatId: "chat-duplicates", messages: [message, message] }),
+				headers: { "Content-Type": "application/json" },
+				method: "POST"
+			});
+
+		await response.text();
+		expect(response.status).toBe(400);
+		expect(saveConversationMock).not.toHaveBeenCalled();
+		expect(modelStreamMock).not.toHaveBeenCalled();
+	});
+
+	it.each(["", "x".repeat(256)])("rejects invalid message and conversation identifiers: %s", async (id) => {
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/ai/ai.index");
+		const app = createApp().route("/", router);
+		for (const request of [
+			{ messages: [{ id, parts: [{ text: "test", type: "text" }], role: "user" }] },
+			{ chatId: id, messages: [{ id: "valid", parts: [{ text: "test", type: "text" }], role: "user" }] }
+		]) {
+			const response = await app.request("/ai/text-stream", {
+				body: JSON.stringify(request),
+				headers: { "Content-Type": "application/json" },
+				method: "POST"
+			});
+			await response.text();
+			expect(response.status).toBe(400);
+		}
 	});
 
 	it("accepts SDK v7 tool approval message parts", async () => {

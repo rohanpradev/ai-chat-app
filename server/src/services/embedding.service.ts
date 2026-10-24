@@ -13,6 +13,7 @@ import {
 	MAX_EMBEDDING_UPLOAD_BYTES,
 	MAX_EXTRACTED_TEXT_CHARS
 } from "@/lib/embedding-config";
+import { EmbeddingInputError } from "@/lib/embedding-errors";
 import { buildAiTelemetrySettings } from "@/lib/instrumentation";
 import { estimateTokens as estimateUsageTokens, reserveUsage, settleUsage } from "@/services/usage.service";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
@@ -263,9 +264,14 @@ const metadataFromString = (metadata?: string) => {
 		return undefined;
 	}
 
-	const parsed = JSON.parse(metadata) as unknown;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(metadata);
+	} catch {
+		throw new EmbeddingInputError("Metadata must be a JSON object");
+	}
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new Error("Metadata must be a JSON object");
+		throw new EmbeddingInputError("Metadata must be a JSON object");
 	}
 
 	return parsed as Record<string, unknown>;
@@ -274,11 +280,13 @@ const metadataFromString = (metadata?: string) => {
 const assertExtractedText = (content: string) => {
 	const normalized = normalizeText(content);
 	if (!normalized) {
-		throw new Error("No extractable text was found in the document");
+		throw new EmbeddingInputError("No extractable text was found in the document");
 	}
 
 	if (normalized.length > MAX_EXTRACTED_TEXT_CHARS) {
-		throw new Error(`Extracted text is too large. Limit is ${MAX_EXTRACTED_TEXT_CHARS.toLocaleString()} characters`);
+		throw new EmbeddingInputError(
+			`Extracted text is too large. Limit is ${MAX_EXTRACTED_TEXT_CHARS.toLocaleString()} characters`
+		);
 	}
 
 	return normalized;
@@ -286,25 +294,32 @@ const assertExtractedText = (content: string) => {
 
 const extractPdfText = async (file: File) => {
 	const buffer = new Uint8Array(await file.arrayBuffer());
-	const pdf = await getDocumentProxy(buffer);
-	const result = await extractText(pdf, { mergePages: true });
-	return {
-		metadata: { totalPages: result.totalPages },
-		text: result.text
-	};
+	try {
+		const pdf = await getDocumentProxy(buffer);
+		try {
+			const result = await extractText(pdf, { mergePages: true });
+			return { metadata: { totalPages: result.totalPages }, text: result.text };
+		} finally {
+			await pdf.loadingTask.destroy();
+		}
+	} catch {
+		throw new EmbeddingInputError("The PDF could not be read. Upload an unencrypted PDF with selectable text.");
+	}
 };
 
 export const extractUploadContent = async (file: File, options: { metadata?: string; title?: string }) => {
 	if (file.size <= 0) {
-		throw new Error("Uploaded file is empty");
+		throw new EmbeddingInputError("Uploaded file is empty");
 	}
 
 	if (file.size > MAX_EMBEDDING_UPLOAD_BYTES) {
-		throw new Error(`Uploaded file must be smaller than ${Math.floor(MAX_EMBEDDING_UPLOAD_BYTES / 1024 / 1024)}MB`);
+		throw new EmbeddingInputError(
+			`Uploaded file must be smaller than ${Math.floor(MAX_EMBEDDING_UPLOAD_BYTES / 1024 / 1024)}MB`
+		);
 	}
 
 	if (!isAllowedUpload(file)) {
-		throw new Error("Upload must be a PDF or supported text-like file");
+		throw new EmbeddingInputError("Upload must be a PDF or supported text-like file");
 	}
 
 	const contentType = normalizeContentType(file.type, file.name);
@@ -343,7 +358,7 @@ export const createEmbeddingDocument = async ({
 	const normalizedContent = assertExtractedText(content);
 	const chunks = chunkDocumentText(normalizedContent);
 	if (chunks.length === 0) {
-		throw new Error("No chunks could be produced from the document");
+		throw new EmbeddingInputError("No chunks could be produced from the document");
 	}
 
 	const usageRequestId = await reserveUsage({
@@ -354,6 +369,7 @@ export const createEmbeddingDocument = async ({
 		scope: "embedding",
 		userId
 	});
+	let consumedTokens: number | undefined;
 
 	try {
 		const embeddingResult = await embedMany({
@@ -363,6 +379,15 @@ export const createEmbeddingDocument = async ({
 			telemetry: buildAiTelemetrySettings("ai-embed-document"),
 			values: chunks.map((chunk) => chunk.content)
 		});
+		consumedTokens = embeddingResult.usage?.tokens;
+		if (
+			embeddingResult.embeddings.length !== chunks.length ||
+			embeddingResult.embeddings.some(
+				(embedding) => embedding.length !== EMBEDDING_DIMENSIONS || embedding.some((value) => !Number.isFinite(value))
+			)
+		) {
+			throw new Error("Embedding provider returned invalid vectors");
+		}
 		const [firstEmbedding] = embeddingResult.embeddings;
 		if (!firstEmbedding) {
 			throw new Error("Embedding provider returned no vectors");
@@ -448,7 +473,7 @@ export const createEmbeddingDocument = async ({
 		});
 		return result;
 	} catch (error) {
-		await settleUsage(usageRequestId, { status: "failed" });
+		await settleUsage(usageRequestId, { inputTokens: consumedTokens, status: "failed", totalTokens: consumedTokens });
 		throw error;
 	}
 };
@@ -480,6 +505,7 @@ export const searchEmbeddings = async (userId: string, request: EmbeddingSearchR
 		scope: "embedding",
 		userId
 	});
+	let consumedTokens: number | undefined;
 	try {
 		const queryEmbedding = await embed({
 			abortSignal,
@@ -487,12 +513,16 @@ export const searchEmbeddings = async (userId: string, request: EmbeddingSearchR
 			telemetry: buildAiTelemetrySettings("ai-embed-search-query"),
 			value: request.query
 		});
+		consumedTokens = queryEmbedding.usage?.tokens;
 		const filters = [eq(embeddingChunks.userId, userId)];
 		if (request.documentId) {
 			filters.push(eq(embeddingChunks.documentId, request.documentId));
 		}
 
-		if (queryEmbedding.embedding.length !== EMBEDDING_DIMENSIONS) {
+		if (
+			queryEmbedding.embedding.length !== EMBEDDING_DIMENSIONS ||
+			queryEmbedding.embedding.some((value) => !Number.isFinite(value))
+		) {
 			throw new Error(
 				`Embedding provider returned ${queryEmbedding.embedding.length} dimensions; expected ${EMBEDDING_DIMENSIONS}`
 			);
@@ -540,7 +570,7 @@ export const searchEmbeddings = async (userId: string, request: EmbeddingSearchR
 		});
 		return result;
 	} catch (error) {
-		await settleUsage(usageRequestId, { status: "failed" });
+		await settleUsage(usageRequestId, { inputTokens: consumedTokens, status: "failed", totalTokens: consumedTokens });
 		throw error;
 	}
 };

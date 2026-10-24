@@ -2,11 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="${ROOT_DIR}/scripts/bin:${PATH}"
 CHART_DIR="${ROOT_DIR}/helm/chat-app"
 NAMESPACE="${NAMESPACE:-default}"
 RELEASE_NAME="${RELEASE_NAME:-chat-app}"
 ROLLBACK_ON_FAILURE="${ROLLBACK_ON_FAILURE:-true}"
 HELM_HISTORY_MAX="${HELM_HISTORY_MAX:-10}"
+
+kubectl version -o json | bun "${ROOT_DIR}/scripts/check-k8s-versions.mjs"
 
 bash "${ROOT_DIR}/scripts/ensure-k8s-secrets.sh"
 NAMESPACE="${NAMESPACE}" SECRET_NAME="dhi-registry" bash "${ROOT_DIR}/scripts/ensure-k8s-registry-secret.sh"

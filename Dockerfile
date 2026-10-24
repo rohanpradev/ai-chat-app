@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_VERSION=1.4.3
+ARG BUN_VERSION=1.4.4
 ARG BUN_DEV_IMAGE=oven/bun:${BUN_VERSION}-alpine
 ARG BUN_RUNTIME_IMAGE=oven/bun:${BUN_VERSION}-alpine
-ARG NGINX_IMAGE=nginx:1.31.6-alpine3.24
+ARG NGINX_IMAGE=nginx:1.31.8-alpine3.24@sha256:1ef7ca94d7879df82421428ce13bd1eaa412404953859cf7a5b6512c25e67a60
 
 # Stage 1: Workspace manifests only.
 FROM ${BUN_DEV_IMAGE} AS workspace-manifests

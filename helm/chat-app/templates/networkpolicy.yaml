@@ -67,7 +67,7 @@ spec:
                   {{- toYaml .Values.networkPolicy.gatewayNamespaces | nindent 18 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.server.service.port }}
+          port: {{ .Values.config.env.SERVER_PORT }}
   egress:
     {{- if .Values.db.enabled }}
     - to:
@@ -76,7 +76,7 @@ spec:
               {{- include "chat-app.componentLabels" (dict "root" . "component" "db") | nindent 14 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.db.service.port }}
+          port: 5432
     {{- else }}
     {{- range .Values.externalDatabase.egressCidrs }}
     - to:
@@ -94,7 +94,7 @@ spec:
               {{- include "chat-app.componentLabels" (dict "root" . "component" "redis") | nindent 14 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.redis.service.port }}
+          port: 6379
     {{- else }}
     {{- range .Values.externalRedis.egressCidrs }}
     - to:
@@ -142,7 +142,7 @@ spec:
         {{- end }}
       ports:
         - protocol: TCP
-          port: {{ .Values.client.service.port }}
+          port: 8080
   egress:
     - to:
         - podSelector:
@@ -150,7 +150,7 @@ spec:
               {{- include "chat-app.componentLabels" (dict "root" . "component" "server") | nindent 14 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.server.service.port }}
+          port: {{ .Values.config.env.SERVER_PORT }}
     {{- if .Values.networkPolicy.allowInternetEgressForClient }}
     - to:
         - ipBlock:
@@ -180,7 +180,7 @@ spec:
               {{- include "chat-app.componentLabels" (dict "root" . "component" "client") | nindent 14 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.client.service.port }}
+          port: 8080
 {{- end }}
 {{- if .Values.db.enabled }}
 ---
@@ -206,7 +206,7 @@ spec:
               {{- include "chat-app.componentLabels" (dict "root" . "component" "migration") | nindent 14 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.db.service.port }}
+          port: 5432
 {{- end }}
 {{- if .Values.redis.enabled }}
 ---
@@ -229,7 +229,7 @@ spec:
               {{- include "chat-app.componentLabels" (dict "root" . "component" "server") | nindent 14 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.redis.service.port }}
+          port: 6379
 {{- end }}
 ---
 apiVersion: networking.k8s.io/v1
@@ -252,7 +252,7 @@ spec:
               {{- include "chat-app.componentLabels" (dict "root" . "component" "db") | nindent 14 }}
       ports:
         - protocol: TCP
-          port: {{ .Values.db.service.port }}
+          port: 5432
     {{- else }}
     {{- range .Values.externalDatabase.egressCidrs }}
     - to:
