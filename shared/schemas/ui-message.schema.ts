@@ -8,7 +8,7 @@ const UIMessagePartSchema = z.looseObject({
 });
 
 export const UIMessageSchema = z.object({
-	id: z.string(),
+	id: z.string().min(1).max(255),
 	metadata: z.unknown().optional(),
 	parts: z.array(UIMessagePartSchema).min(1).max(32),
 	role: z.enum(["system", "user", "assistant"]),

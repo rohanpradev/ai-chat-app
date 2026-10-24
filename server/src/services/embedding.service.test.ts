@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { MockEmbeddingModelV4 } from "ai/test";
+import { selectablePdf } from "@/test/pdf-fixture";
 
 type DoEmbedOptions = Parameters<MockEmbeddingModelV4["doEmbed"]>[0];
 type StoredValue = Record<string, unknown>;
@@ -14,6 +15,7 @@ const gatewayEmbeddingMock = mock((modelId: string) => {
 	embeddingModelIds.push(modelId);
 	return currentEmbeddingModel;
 });
+const settleUsageMock = mock(async (_id: string, _usage: Record<string, unknown>) => {});
 
 const createStoredDocument = (values: StoredValue) => ({
 	byteSize: values.byteSize,
@@ -107,12 +109,13 @@ mock.module("@/services/usage.service", () => ({
 		resetsAt: "2026-07-15T00:00:00.000Z"
 	})),
 	reserveUsage: mock(async () => "usage-test"),
-	settleUsage: mock(async () => {})
+	settleUsage: settleUsageMock
 }));
 
 const paragraph = (label: string) => `${label}: ${"semantic retrieval context ".repeat(34)}${label} conclusion.`;
 
 beforeEach(() => {
+	settleUsageMock.mockClear();
 	embeddingModelIds = [];
 	insertedDocumentValues = undefined;
 	insertedChunkValues = [];
@@ -130,6 +133,36 @@ beforeEach(() => {
 });
 
 describe("embedding service", () => {
+	it("rejects a malformed vector anywhere in a batch before storing and accounts for billed tokens", async () => {
+		currentEmbeddingModel = new MockEmbeddingModelV4({
+			doEmbed: async () => ({ embeddings: [vector(1, 0), [1, 2], vector(3, 0)], usage: { tokens: 33 }, warnings: [] }),
+			maxEmbeddingsPerCall: null
+		});
+		const { createEmbeddingDocument } = await import("@/services/embedding.service");
+		await expect(
+			createEmbeddingDocument({
+				byteSize: 4096,
+				content: [paragraph("alpha"), paragraph("beta"), paragraph("gamma")].join("\n\n"),
+				contentType: "text/plain",
+				sourceType: "text",
+				userId: "00000000-0000-0000-0000-000000000001"
+			})
+		).rejects.toThrow("invalid vectors");
+		expect(insertedDocumentValues).toBeUndefined();
+		expect(settleUsageMock).toHaveBeenLastCalledWith("usage-test", {
+			inputTokens: 33,
+			status: "failed",
+			totalTokens: 33
+		});
+	});
+
+	it("extracts a selectable PDF and releases its loading task", async () => {
+		const { extractUploadContent } = await import("@/services/embedding.service");
+		const result = await extractUploadContent(selectablePdf(), {});
+		expect(result.content).toBe("Upload extraction works");
+		expect(result.metadata).toMatchObject({ totalPages: 1 });
+	});
+
 	it("stores batch embeddings in the same order returned by AI SDK embedMany", async () => {
 		const { createEmbeddingDocument } = await import("@/services/embedding.service");
 		const abortController = new AbortController();

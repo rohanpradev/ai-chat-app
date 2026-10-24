@@ -6,6 +6,7 @@ import {
 	serperOutputSchema
 } from "@chat-app/shared";
 import { tool, zodSchema } from "ai";
+import { createMcpTool } from "@/lib/mcp";
 import env from "@/utils/env";
 
 type SerperOrganicResult = SerperToolOutput["organic"][number];
@@ -217,6 +218,7 @@ const buildSerperModelOutput = (output: SerperToolOutput): string => {
 };
 
 export const tools = {
+	mcp: createMcpTool(""),
 	serper: tool<SerperToolInput, SerperToolOutput, Record<string, never>>({
 		description:
 			"Search the live web for up-to-date factual information. Use this for recent news, current product or company details, changing regulations, or anything that may have changed after training. Returns summarized search results and links, not full page contents.",

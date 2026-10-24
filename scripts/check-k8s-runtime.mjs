@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { delimiter } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const context = process.argv[2];
 if (!context || context.startsWith("-")) {
@@ -9,7 +12,12 @@ if (!context || context.startsWith("-")) {
 const gatewayService = process.env.K8S_TEST_GATEWAY_SERVICE;
 const gatewayNamespace = process.env.K8S_TEST_GATEWAY_NAMESPACE ?? "traefik";
 const rootDir = new URL("..", import.meta.url);
-const namespace = `chat-app-test-${randomUUID().slice(0, 8)}`;
+process.env.PATH = `${fileURLToPath(new URL("scripts/bin", rootDir))}${delimiter}${process.env.PATH ?? ""}`;
+const expectedBunVersion = JSON.parse(readFileSync(new URL("package.json", rootDir), "utf8")).packageManager.slice(4);
+const namespace = process.env.K8S_TEST_NAMESPACE ?? `chat-app-test-${randomUUID().slice(0, 8)}`;
+if (!/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(namespace) || namespace.length > 63) {
+	throw new Error("K8S_TEST_NAMESPACE must be a valid Kubernetes namespace name.");
+}
 const release = "chat-app";
 const imageTag = process.env.K8S_TEST_IMAGE_TAG ?? "latest";
 const kubeArgs = ["--context", context, "--namespace", namespace];
@@ -17,11 +25,12 @@ const helmArgs = ["--kube-context", context, "--namespace", namespace];
 let namespaceCreated = false;
 let forward;
 
-const run = (command, args, { capture = false, optional = false } = {}) => {
+const run = (command, args, { capture = false, input, optional = false } = {}) => {
 	const result = spawnSync(command, args, {
 		cwd: rootDir,
 		encoding: "utf8",
-		stdio: capture ? "pipe" : "inherit",
+		input,
+		stdio: input !== undefined ? ["pipe", "inherit", "inherit"] : capture ? "pipe" : "inherit",
 		timeout: 660_000,
 	});
 	if (!optional && (result.error || result.status !== 0)) {
@@ -30,7 +39,7 @@ const run = (command, args, { capture = false, optional = false } = {}) => {
 	return result.stdout?.trim();
 };
 
-const portForward = () =>
+const portForward = (servicePort) =>
 	new Promise((resolve, reject) => {
 		forward = spawn(
 			"kubectl",
@@ -41,7 +50,7 @@ const portForward = () =>
 				gatewayService ? gatewayNamespace : namespace,
 				"port-forward",
 				`service/${gatewayService ?? "chat-app-client"}`,
-				gatewayService ? ":80" : ":8080",
+				`:${servicePort}`,
 				"--address",
 				"127.0.0.1",
 			],
@@ -73,6 +82,8 @@ const portForward = () =>
 
 try {
 	console.log(`Testing context ${context} in disposable namespace ${namespace}`);
+	const versions = run("kubectl", ["--context", context, "version", "--output=json"], { capture: true });
+	run("bun", ["--no-env-file", "scripts/check-k8s-versions.mjs"], { input: versions });
 	// A create failure must never result in deleting somebody else's namespace.
 	run("kubectl", ["--context", context, "create", "namespace", namespace]);
 	namespaceCreated = true;
@@ -111,10 +122,22 @@ try {
 		"10m",
 	]);
 	run("helm", ["test", release, ...helmArgs, "--timeout", "3m", "--logs"]);
+	const deployedBunVersion = run(
+		"kubectl",
+		[...kubeArgs, "exec", "deployment/chat-app-server", "--", "bun", "--version"],
+		{ capture: true },
+	);
+	assert.equal(deployedBunVersion, expectedBunVersion, "Deployed server must use the pinned Bun release");
 	if (gatewayService) {
 		run("kubectl", [...kubeArgs, "wait", "--for=condition=Programmed", "gateway/traefik-gateway", "--timeout=90s"]);
 	}
-	const baseUrl = await portForward();
+	const clientServicePort = run(
+		"kubectl",
+		[...kubeArgs, "get", "service/chat-app-client", "-o", "jsonpath={.spec.ports[0].port}"],
+		{ capture: true },
+	);
+	assert.match(clientServicePort, /^\d+$/, "Client Service must expose a numeric port");
+	const baseUrl = await portForward(gatewayService ? "80" : clientServicePort);
 	const request = async (path, { method = "GET", body, cookie, status = 200 } = {}) => {
 		const response = await fetch(`${baseUrl}${path}`, {
 			body: body ? JSON.stringify(body) : undefined,
@@ -216,7 +239,7 @@ try {
 		],
 		{ capture: true },
 	);
-	assert.equal(vector, "0.8.6", "pgvector extension version");
+	assert.equal(vector, "0.8.7", "pgvector extension version");
 	const redis = run("kubectl", [...kubeArgs, "exec", "statefulset/chat-app-redis", "--", "redis-cli", "ping"], {
 		capture: true,
 	});

@@ -72,11 +72,12 @@ const manifestDocument = (rendered, kind, name) => {
 	return document;
 };
 
-const expectFailure = ({ args, command, name, stderrIncludes }) => {
+const expectFailure = ({ args, command, input, name, stderrIncludes }) => {
 	console.log(`\n==> ${name}`);
 	const result = spawnSync(command, args, {
 		cwd: rootDir,
 		encoding: "utf8",
+		input,
 		stdio: "pipe",
 	});
 
@@ -93,6 +94,12 @@ const expectFailure = ({ args, command, name, stderrIncludes }) => {
 		throw new Error(`${name} failed for the wrong reason; expected output to include: ${stderrIncludes}`);
 	}
 };
+
+run({
+	args: ["scripts/check-helm-runtime-config.mjs"],
+	command: process.execPath,
+	name: "Check Helm credential, port, and volume configuration regressions",
+});
 
 if (existsSync(new URL(".env", rootDir)) && !useValuesTemplate) {
 	run({
@@ -222,12 +229,31 @@ if (dockerBuildChecksEnabled) {
 const helmValueArgs = valuesFiles.flatMap((file) => ["-f", file]);
 
 for (const supportedKubeVersion of kubeVersions) {
+	const [major, minor] = supportedKubeVersion.split(".");
+	const version = { gitVersion: `v${supportedKubeVersion}`, major, minor };
+	run({
+		args: ["scripts/check-k8s-versions.mjs"],
+		command: "bun",
+		input: JSON.stringify({ clientVersion: version, serverVersion: version }),
+		name: `Accept Kubernetes prerequisites (${supportedKubeVersion})`,
+	});
 	run({
 		args: ["lint", "--strict", "--kube-version", supportedKubeVersion, "helm/chat-app", ...helmValueArgs],
 		command: "helm",
 		name: `Helm lint (Kubernetes ${supportedKubeVersion})`,
 	});
 }
+
+expectFailure({
+	args: ["scripts/check-k8s-versions.mjs"],
+	command: "bun",
+	input: JSON.stringify({
+		clientVersion: { gitVersion: "v1.33.9", major: "1", minor: "33" },
+		serverVersion: { gitVersion: "v1.36.5", major: "1", minor: "36+" },
+	}),
+	name: "Reject unsupported kubectl/server version skew",
+	stderrIncludes: "Upgrade kubectl to within one minor version",
+});
 
 const localRender = run({
 	args: [
@@ -277,9 +303,12 @@ for (const [needle, label] of [
 	["kind: NetworkPolicy", "NetworkPolicies"],
 	["kind: HorizontalPodAutoscaler", "HPAs"],
 	["kind: PodDisruptionBudget", "PDBs"],
-	["docker.io/pgvector/pgvector:0.8.6-pg18-trixie", "pgvector-enabled PostgreSQL image"],
-	["dhi.io/redis:8.10.2-debian13", "Redis image"],
-	["curlimages/curl:8.22.0", "Helm test image"],
+	[
+		"docker.io/pgvector/pgvector@sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0",
+		"pgvector-enabled PostgreSQL image",
+	],
+	["dhi.io/redis@sha256:cfe44744ab9042a64dbfa89d2be9037d7058d12347e496521b31ce00f410c1a5", "Redis image"],
+	["curlimages/curl@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777", "Helm test image"],
 	["AI_DAILY_TOKEN_LIMIT", "AI quota configuration"],
 	["kind: HTTPRoute", "Gateway HTTPRoutes"],
 	["startupProbe:", "startup probes"],

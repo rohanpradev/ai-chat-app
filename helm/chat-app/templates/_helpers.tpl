@@ -80,3 +80,23 @@ emptyDir: {}
 {{- define "chat-app.redisHost" -}}
 {{- default (include "chat-app.componentName" (dict "root" . "component" "redis")) .Values.externalRedis.host -}}
 {{- end -}}
+
+{{- define "chat-app.dbServicePort" -}}
+{{- if .Values.db.enabled -}}
+{{- .Values.db.service.port -}}
+{{- else -}}
+{{- default .Values.config.env.DB_PORT .Values.externalDatabase.port -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "chat-app.redisServicePort" -}}
+{{- if .Values.redis.enabled -}}
+{{- .Values.redis.service.port -}}
+{{- else -}}
+{{- default .Values.config.env.REDIS_PORT .Values.externalRedis.port -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "chat-app.urlComponent" -}}
+{{- . | toString | urlquery | replace "+" "%20" -}}
+{{- end -}}

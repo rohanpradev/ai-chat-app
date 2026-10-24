@@ -1,4 +1,5 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight, Code2, Database, Rocket, Sparkles } from "lucide-react";
 import { useId, useState } from "react";
@@ -12,6 +13,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { Label } from "@/components/ui/label";
+import { type ConversationDraft, conversationDraftKey } from "@/lib/conversation-draft";
 import { useCreateChat } from "@/queries/createChat";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 
@@ -59,6 +61,8 @@ const CONVERSATION_STARTERS = [
 
 export function ChatEmptyState() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { auth } = useRouteContext({ strict: false });
   const [prompt, setPrompt] = useState("");
   const { mutate: createChat, status } = useCreateChat();
   const promptId = useId();
@@ -73,10 +77,14 @@ export function ChatEmptyState() {
     createChat(chatTitle, {
       onSuccess: (response) => {
         if (response?.id) {
+          queryClient.setQueryData<ConversationDraft>(conversationDraftKey(auth?.user?.id ?? "", response.id), {
+            autoSend: true,
+            text: message,
+          });
           navigate({
             to: ConversationRoute.to,
             params: { conversationId: response.id },
-            search: { autoSend: "1", prompt: message, redirect: undefined },
+            search: { redirect: undefined },
           });
         }
       },

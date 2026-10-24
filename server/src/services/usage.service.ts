@@ -1,5 +1,5 @@
 import { generateId } from "ai";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gt, gte, ne, or, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { db } from "@/db";
 import { embeddingDocuments, usageEvents } from "@/db/schema";
@@ -42,6 +42,10 @@ const limitsFor = (scope: UsageScope) =>
 		? { requests: env.AI_DAILY_REQUEST_LIMIT, tokens: env.AI_DAILY_TOKEN_LIMIT }
 		: { requests: Number.POSITIVE_INFINITY, tokens: env.EMBEDDING_DAILY_TOKEN_LIMIT };
 
+// A failed response can still consume provider tokens (for example, an agent
+// step completed before its next step failed). Release only unused reservations.
+const chargeableUsage = () => or(ne(usageEvents.status, "failed"), gt(usageEvents.totalTokens, 0));
+
 export const estimateTokens = (value: unknown) => Math.max(1, Math.ceil(JSON.stringify(value).length / 4));
 
 export const reserveUsage = async ({
@@ -69,7 +73,7 @@ export const reserveUsage = async ({
 					eq(usageEvents.userId, userId),
 					eq(usageEvents.scope, scope),
 					gte(usageEvents.createdAt, startOfUtcDay()),
-					sql`${usageEvents.status} <> 'failed'`
+					chargeableUsage()
 				)
 			);
 
@@ -120,15 +124,15 @@ export const reserveUsage = async ({
 export const settleUsage = async (requestId: string, usage: SettleUsageInput) => {
 	const inputTokens = Math.max(0, Math.ceil(usage.inputTokens ?? 0));
 	const outputTokens = Math.max(0, Math.ceil(usage.outputTokens ?? 0));
-	const totalTokens = Math.max(0, Math.ceil(usage.totalTokens ?? inputTokens + outputTokens));
+	const totalTokens = Math.max(inputTokens + outputTokens, Math.ceil(usage.totalTokens ?? 0));
 
 	await db
 		.update(usageEvents)
 		.set({
-			inputTokens,
-			outputTokens,
+			inputTokens: sql`greatest(${usageEvents.inputTokens}, ${inputTokens})`,
+			outputTokens: sql`greatest(${usageEvents.outputTokens}, ${outputTokens})`,
 			status: usage.status ?? "completed",
-			totalTokens,
+			totalTokens: sql`greatest(${usageEvents.totalTokens}, ${totalTokens})`,
 			updatedAt: new Date()
 		})
 		.where(eq(usageEvents.requestId, requestId));
@@ -142,13 +146,7 @@ export const getUsageSummary = async (userId: string) => {
 			tokens: sql<number>`coalesce(sum(case when ${usageEvents.status} = 'reserved' and ${usageEvents.createdAt} >= ${activeReservationCutoff()} then ${usageEvents.reservedTokens} else ${usageEvents.totalTokens} end), 0)`
 		})
 		.from(usageEvents)
-		.where(
-			and(
-				eq(usageEvents.userId, userId),
-				gte(usageEvents.createdAt, startOfUtcDay()),
-				sql`${usageEvents.status} <> 'failed'`
-			)
-		)
+		.where(and(eq(usageEvents.userId, userId), gte(usageEvents.createdAt, startOfUtcDay()), chargeableUsage()))
 		.groupBy(usageEvents.scope);
 	const [storage] = await db
 		.select({ bytes: sql<number>`coalesce(sum(${embeddingDocuments.byteSize}), 0)` })

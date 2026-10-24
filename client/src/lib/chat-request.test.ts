@@ -34,3 +34,10 @@ describe("buildChatRequestBody", () => {
     });
   });
 });
+
+it("sends MCP only when explicitly enabled and composes it with web search", () => {
+  const base = { agentMode: "assistant" as const, model: "openai/gpt-5-mini", webSearch: false };
+  expect(buildChatRequestBody(base).tools).toBeUndefined();
+  expect(buildChatRequestBody({ ...base, mcp: true }).tools).toEqual(["mcp"]);
+  expect(buildChatRequestBody({ ...base, mcp: true, webSearch: true }).tools).toEqual(["serper", "mcp"]);
+});

@@ -124,7 +124,7 @@ If a check cannot run, record the command, the blocker, and the closest evidence
 
 ## Preserve These Project Invariants
 
-- Use Bun and repo-native scripts. Use `tsgo` through declared package scripts; do not reintroduce `baseUrl` or hide errors with `any`, broad casts, or `@ts-ignore`.
+- Use Bun and repo-native scripts. Use Bun native type checking through declared package scripts, with `typecheck:tsc` for the TypeScript comparison. Keep Node.js on PATH for the declared Vitest/jsdom scripts. Do not reintroduce `baseUrl` or hide errors with `any`, broad casts, or `@ts-ignore`.
 - Import contracts through `@chat-app/shared`; do not duplicate schemas, DTOs, model IDs, agent definitions, tool IDs, or UI-message types.
 - Render AI SDK messages from typed `message.parts`. Keep provider-specific code and privileged metadata off the client.
 - Keep tools server-side, allowlisted, schema-validated, and approval-gated when they reach networks, mutate data, execute code, expose private data, or spend money.

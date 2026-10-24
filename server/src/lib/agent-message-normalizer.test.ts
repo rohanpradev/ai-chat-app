@@ -60,3 +60,30 @@ describe("normalizeMessagesForAgent", () => {
 		expect(normalizedMessages).toEqual(messages);
 	});
 });
+
+it("preserves completed MCP results when a saved conversation resumes", () => {
+	const messages: MyUIMessage[] = [
+		{
+			id: "mcp-result",
+			parts: [
+				{
+					input: { action: "call", argumentsJson: "{}", name: "search", serverId: "docs" },
+					output: {
+						action: "call",
+						durationMs: 5,
+						isError: false,
+						name: "search",
+						serverId: "docs",
+						text: "Found",
+						truncated: false
+					},
+					state: "output-available",
+					toolCallId: "mcp-call",
+					type: "tool-mcp"
+				}
+			],
+			role: "assistant"
+		}
+	];
+	expect(normalizeMessagesForAgent(messages)).toEqual(messages);
+});

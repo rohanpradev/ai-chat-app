@@ -133,6 +133,62 @@ test("creates a conversation from a prompt and completes a streamed response", a
 	await expect(page.getByText("Production-ready answer")).toBeVisible();
 });
 
+test("hands off a long first prompt without putting its content in the URL", async ({ page }) => {
+	await mockAuthenticatedApp(page);
+	await page.goto("/chat");
+	const prompt = `Private release plan ${"with supporting context ".repeat(200)}`;
+	await page.getByLabel("Prompt").fill(prompt);
+	const request = page.waitForRequest("**/api/ai/text-stream");
+	await page.getByRole("button", { name: "Start conversation" }).click();
+	await expect(page).toHaveURL(/\/chat\/chat-e2e$/);
+	expect((await request).postDataJSON().message.parts).toContainEqual({ text: prompt.trim(), type: "text" });
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await expect(page.locator(".is-user")).toHaveCount(1);
+});
+
+test("restores streamed history and isolates composer state when switching chats", async ({ page }, testInfo) => {
+	const otherConversation = { ...conversation, id: "chat-other", title: "Other conversation" };
+	await mockAuthenticatedApp(page, { conversations: [conversation, otherConversation] });
+	await page.route("**/api/conversations/chat-other", (route) =>
+		route.fulfill(json({ data: otherConversation, message: "ok" })),
+	);
+	await page.goto("/chat/chat-e2e");
+	await page.getByLabel("Prompt").fill("Retain my saved history");
+	await page.getByRole("button", { name: "Submit" }).click();
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await page.getByLabel("Prompt").fill("Draft belonging to the first chat");
+	await page.getByLabel("Upload files").setInputFiles({
+		buffer: Buffer.from("Attachment belonging to the first chat"),
+		mimeType: "text/plain",
+		name: "first-chat-only.txt",
+	});
+	await expect(page.getByText("first-chat-only.txt")).toBeVisible();
+	await page.getByLabel("Toggle MCP connections").click();
+	await page.getByLabel("Toggle web search").click();
+
+	const visitChat = async (title: string) => {
+		if ((page.viewportSize()?.width ?? 1280) < 768) {
+			await page.getByRole("button", { name: "Open navigation sidebar" }).click();
+		}
+		await page.getByRole("link", { exact: true, name: title }).click();
+		if ((page.viewportSize()?.width ?? 1280) < 768) {
+			await expect(page.locator('[data-sidebar="sidebar"][data-mobile="true"]')).toHaveCount(0);
+		}
+	};
+	await visitChat("Other conversation");
+	await expect(page).toHaveURL(/\/chat\/chat-other$/);
+	await expect(page.getByLabel("Prompt")).toHaveValue("");
+	await expect(page.getByLabel("Toggle MCP connections")).toHaveAttribute("aria-pressed", "false");
+	await expect(page.getByLabel("Toggle web search")).toHaveAttribute("aria-pressed", "false");
+	await expect(page.getByText("first-chat-only.txt")).toHaveCount(0);
+	await expect(page.getByText("Production-ready answer")).toHaveCount(0);
+
+	await visitChat("E2E conversation");
+	await expect(page.getByText("Production-ready answer")).toBeVisible();
+	await expect(page.locator(".is-user").getByText("Retain my saved history", { exact: true })).toBeVisible();
+	await page.screenshot({ fullPage: true, path: testInfo.outputPath("restored-conversation.png") });
+});
+
 test("deletes the current conversation through the confirmation flow", async ({ page }) => {
 	await mockAuthenticatedApp(page, { conversations: [conversation] });
 	await page.goto("/chat/chat-e2e");
@@ -285,4 +341,213 @@ test("keeps Jev templates available when the Gateway key is missing", async ({ p
 	await page.getByRole("button", { name: /Answer checking/ }).click();
 	await expect(page.getByLabel("State format")).toHaveValue("json");
 	await expect(page.getByLabel("Question 1 name")).toHaveValue("supported");
+});
+
+const mcpCapabilities = [
+	{
+		description: "Find reliable answers across your team's documentation.",
+		inputSchema: { properties: { query: { type: "string" } }, required: ["query"], type: "object" },
+		kind: "tool",
+		name: "search_docs",
+		title: "Search documentation",
+	},
+	{
+		description: "The current deployment checklist and operational notes.",
+		kind: "resource",
+		name: "docs://guide",
+		title: "Deployment guide",
+	},
+	{
+		arguments: [{ description: "What would you like to investigate?", name: "topic", required: true }],
+		description: "A reusable outline for an evidence-based research brief.",
+		kind: "prompt",
+		name: "brief",
+		title: "Research brief",
+	},
+];
+async function mockMcp(
+	page: Page,
+	servers = [
+		{ description: "Shared knowledge for better answers", id: "docs", name: "Team documentation", toolCount: 1 },
+	],
+) {
+	await mockAuthenticatedApp(page);
+	await page.route("**/api/mcp/servers", (route) => route.fulfill(json({ servers })));
+	await page.route("**/api/mcp/inspect", (route) =>
+		route.fulfill(
+			json({
+				capabilities: mcpCapabilities,
+				durationMs: 82,
+				protocolVersion: "2026-07-28",
+				serverId: "docs",
+				serverVersion: "1",
+				truncated: false,
+			}),
+		),
+	);
+	await page.route("**/api/mcp/preview", (route) => {
+		const request: { action: string; name: string } = route.request().postDataJSON();
+		return route.fulfill(
+			json({
+				action: request.action,
+				durationMs: 18,
+				isError: false,
+				name: request.name,
+				serverId: "docs",
+				text: "<script>window.mcpInjected = true</script>\nDeployment checklist",
+				truncated: false,
+			}),
+		);
+	});
+}
+
+test("MCP workspace discovers, filters, previews and hands off to chat", async ({ page }, testInfo) => {
+	await mockMcp(page);
+	let inspections = 0;
+	page.on("request", (request) => {
+		if (request.url().endsWith("/mcp/inspect")) inspections++;
+	});
+	await page.goto("/chat/mcp");
+	await expect(page.getByRole("heading", { name: "MCP workspace" })).toBeVisible();
+	expect(inspections).toBe(0);
+	await page.getByRole("button", { name: "Discover capabilities" }).click();
+	await expect(page.getByText(/Last check succeeded/)).toBeVisible();
+	await page.getByLabel("Search capabilities").fill("no such capability");
+	await expect(page.getByText("No capabilities match your search.")).toBeVisible();
+	await page.getByLabel("Search capabilities").fill("");
+	await page.getByRole("button", { exact: true, name: "Resources 1" }).click();
+	await page.getByRole("button", { exact: true, name: "Read resource" }).click();
+	await expect(page.locator("pre").filter({ hasText: "Deployment checklist" })).toBeVisible();
+	expect(await page.evaluate(() => "mcpInjected" in window)).toBe(false);
+	await page.getByRole("button", { exact: true, name: "Prompts 1" }).click();
+	await expect(page.getByRole("button", { name: "Preview prompt" })).toBeDisabled();
+	await page.getByLabel("topic (required)").fill("MCP architecture");
+	await expect(page.getByRole("button", { name: "Preview prompt" })).toBeEnabled();
+	await page.getByRole("button", { exact: true, name: "Tools 1" }).click();
+	await page.getByText("Input schema", { exact: true }).click();
+	await expect(page.locator("pre").filter({ hasText: '"query"' })).toBeVisible();
+	await expect(page.locator("body")).toHaveJSProperty(
+		"scrollWidth",
+		await page.locator("body").evaluate((body) => body.clientWidth),
+	);
+	await page.screenshot({ fullPage: true, path: testInfo.outputPath("mcp-workspace.png") });
+	await page.getByRole("button", { name: "Use in chat" }).click();
+	await expect(page).toHaveURL(/\/chat\/chat-e2e/);
+	await expect(page.getByLabel("Toggle MCP connections")).toHaveAttribute("aria-pressed", "true");
+	await expect(page.getByLabel("Prompt")).toHaveValue(/search_docs/);
+});
+
+test("MCP workspace explains empty connections and recovers from a failed check", async ({ page }) => {
+	await mockMcp(page, []);
+	await page.goto("/chat/mcp");
+	await expect(page.getByRole("heading", { name: "Your next connection starts here" })).toBeVisible();
+	await page.route("**/api/mcp/servers", (route) =>
+		route.fulfill(json({ servers: [{ description: "", id: "docs", name: "Team documentation", toolCount: 1 }] })),
+	);
+	await page.getByRole("button", { name: "Check again" }).click();
+	await page.route("**/api/mcp/inspect", (route) =>
+		route.fulfill(json({ message: "Connection timed out. Try again." }, 504)),
+	);
+	await page.getByRole("button", { name: "Discover capabilities" }).click();
+	await expect(page.getByRole("alert")).toContainText("Connection timed out");
+	await page.route("**/api/mcp/inspect", (route) =>
+		route.fulfill(
+			json({
+				capabilities: [],
+				durationMs: 2,
+				protocolVersion: "2026-07-28",
+				serverId: "docs",
+				serverVersion: "1",
+				truncated: false,
+			}),
+		),
+	);
+	await page.getByRole("button", { name: "Discover capabilities" }).click();
+	await expect(page.getByText(/No allowed capabilities were advertised/)).toBeVisible();
+});
+
+test("MCP prompt handoff preserves arguments and selected preview outside the URL", async ({ page }, testInfo) => {
+	await mockMcp(page);
+	await page.goto("/chat/mcp");
+	await page.getByRole("button", { name: "Discover capabilities" }).click();
+	await page.getByRole("button", { exact: true, name: "Prompts 1" }).click();
+	await page.getByLabel("topic (required)").fill("Private release planning");
+	await page.getByRole("button", { name: "Preview prompt" }).click();
+	await expect(page.getByText("Deployment checklist", { exact: false })).toBeVisible();
+	await page.getByLabel("Include this preview in the chat draft").check();
+	await page.screenshot({ fullPage: true, path: testInfo.outputPath("mcp-preview-draft.png") });
+	await page.getByRole("button", { name: "Use in chat" }).click();
+	await expect(page.getByLabel("Prompt")).toHaveValue(/Private release planning/);
+	await expect(page.getByLabel("Prompt")).toHaveValue(/Deployment checklist/);
+	expect(page.url()).not.toContain("Private");
+	expect(page.url()).not.toContain("prompt=");
+	expect(await page.evaluate(() => "mcpInjected" in window)).toBe(false);
+	await expect(page.getByLabel("Toggle MCP connections")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("MCP discovery and previews can be cancelled and restarted", async ({ page }) => {
+	await mockMcp(page);
+	let finishDiscovery: (() => void) | undefined;
+	await page.route("**/api/mcp/inspect", async (route) => {
+		await new Promise<void>((resolve) => {
+			finishDiscovery = resolve;
+		});
+		await route
+			.fulfill(
+				json({
+					capabilities: mcpCapabilities,
+					durationMs: 82,
+					protocolVersion: "2026-07-28",
+					serverId: "docs",
+					serverVersion: "1",
+					truncated: false,
+				}),
+			)
+			.catch(() => {});
+	});
+	await page.goto("/chat/mcp");
+	await page.getByRole("button", { name: "Discover capabilities" }).click();
+	await page.getByRole("button", { name: "Cancel discovery" }).click();
+	await expect(page.getByRole("status")).toContainText("Discovery cancelled");
+	finishDiscovery?.();
+	await page.unroute("**/api/mcp/inspect");
+	await page.route("**/api/mcp/inspect", (route) =>
+		route.fulfill(
+			json({
+				capabilities: mcpCapabilities,
+				durationMs: 82,
+				protocolVersion: "2026-07-28",
+				serverId: "docs",
+				serverVersion: "1",
+				truncated: false,
+			}),
+		),
+	);
+	await page.getByRole("button", { name: "Discover capabilities" }).click();
+	await page.getByRole("button", { exact: true, name: "Resources 1" }).click();
+	let finishPreview: (() => void) | undefined;
+	await page.route("**/api/mcp/preview", async (route) => {
+		await new Promise<void>((resolve) => {
+			finishPreview = resolve;
+		});
+		await route
+			.fulfill(
+				json({
+					action: "read",
+					durationMs: 18,
+					isError: false,
+					name: "docs://guide",
+					serverId: "docs",
+					text: "Late preview",
+					truncated: false,
+				}),
+			)
+			.catch(() => {});
+	});
+	await page.getByRole("button", { exact: true, name: "Read resource" }).click();
+	await page.getByRole("button", { name: "Cancel preview" }).click();
+	await expect(page.getByRole("status")).toContainText("Preview cancelled");
+	finishPreview?.();
+	await expect(page.getByText("Late preview", { exact: true })).toHaveCount(0);
+	await expect(page.getByRole("button", { exact: true, name: "Read resource" })).toBeEnabled();
 });

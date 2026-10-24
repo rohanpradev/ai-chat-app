@@ -15,7 +15,7 @@ import SerperResults from "@/components/chat/SerperResults";
 import { Spinner } from "@/components/ui/spinner";
 
 type ChatMessagePart = MyUIMessage["parts"][number];
-type ToolMessagePart = Extract<ChatMessagePart, { type: "tool-deepSearch" | "tool-serper" }>;
+type ToolMessagePart = Extract<ChatMessagePart, { type: "tool-deepSearch" | "tool-serper" | "tool-mcp" }>;
 type ApprovalRequestedToolPart = Extract<ToolMessagePart, { state: "approval-requested" }>;
 type ToolPartState = ToolMessagePart["state"];
 
@@ -26,6 +26,8 @@ interface ToolPartRendererProps {
 
 const getToolApprovalPrompt = (part: ApprovalRequestedToolPart) => {
   switch (part.type) {
+    case "tool-mcp":
+      return `Allow MCP ${part.input.action} on "${part.input.serverId}"${part.input.name ? `: ${part.input.name}` : ""}?`;
     case "tool-serper":
       return `Allow web search for "${part.input.q}"?`;
     case "tool-deepSearch":
@@ -92,7 +94,10 @@ function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRen
   return (
     <Tool defaultOpen={part.state !== "output-available"}>
       <ToolHeader
-        title={part.title ?? (part.type === "tool-serper" ? "Search the web" : "Research")}
+        title={
+          part.title ??
+          (part.type === "tool-serper" ? "Search the web" : part.type === "tool-mcp" ? "MCP connection" : "Research")
+        }
         type={part.type}
         state={part.state}
       />
@@ -137,6 +142,17 @@ function ToolPartRenderer({ part, onToolApprovalResponse }: Readonly<ToolPartRen
           (part.type === "tool-serper" ? (
             <div className="p-4">
               <SerperResults data={part.output} />
+            </div>
+          ) : part.type === "tool-mcp" ? (
+            <div className="space-y-2 p-4">
+              <p className="text-xs text-muted-foreground">
+                {part.output.serverId} · {part.output.action} · {part.output.durationMs} ms
+                {part.output.truncated ? " · truncated" : ""}
+              </p>
+              <ToolOutput
+                output={part.output.text}
+                errorText={part.output.isError ? "The remote tool reported a failure." : undefined}
+              />
             </div>
           ) : (
             <ToolOutput output={part.output} errorText={undefined} />

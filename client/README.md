@@ -13,6 +13,8 @@ bun run --filter @chat-app/client dev
 
 The Vite dev server runs on `http://localhost:5173`.
 
+Use Bun 1.4.4, matching the root package-manager pin and CI.
+
 ## Build and Checks
 
 ```bash
@@ -20,6 +22,8 @@ bun run --filter @chat-app/client build
 bun run --filter @chat-app/client typecheck
 bun run --filter @chat-app/client test
 ```
+
+`typecheck` uses Bun's built-in checker. Both `build` and `build:report` require it to pass before Vite bundles the client. Use `bun run --filter @chat-app/client typecheck:tsc` to compare with the installed TypeScript 7 compiler.
 
 ## Notes
 

@@ -70,6 +70,7 @@ const EnvSchema = z
 		// Langfuse observability configuration (optional)
 		LANGFUSE_SECRET_KEY: z.preprocess(emptyStringToUndefined, z.string().optional()),
 		LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+		MCP_SERVERS: z.string().default("[]"),
 		NODE_ENV: z.string().default("production"),
 		REDIS_URL: urlSchema,
 		SENTRY_DSN: z.preprocess(emptyStringToUndefined, urlSchema.optional()),
@@ -95,10 +96,10 @@ const EnvSchema = z
 			});
 		}
 
-		if (value.SERPER_API_KEY && !value.AI_TOOL_APPROVAL_SECRET) {
+		if ((value.SERPER_API_KEY || value.MCP_SERVERS !== "[]") && !value.AI_TOOL_APPROVAL_SECRET) {
 			context.addIssue({
 				code: "custom",
-				message: "AI_TOOL_APPROVAL_SECRET is required when web search is enabled in production",
+				message: "AI_TOOL_APPROVAL_SECRET is required when network tools are enabled in production",
 				path: ["AI_TOOL_APPROVAL_SECRET"]
 			});
 		}

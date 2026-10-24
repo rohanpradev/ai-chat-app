@@ -3,13 +3,14 @@ import {
   type AgentMode,
   type AIModelDefinition,
   type AIModelId,
+  type ConversationDetail,
   defaultAgentMode,
   defaultModelId,
   models as fallbackModels,
   type MyUIMessage,
   myUIMessageMetadataSchema,
 } from "@chat-app/shared";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ChatAddToolApproveResponseFunction,
   DefaultChatTransport,
@@ -22,10 +23,12 @@ import { buildChatRequestBody } from "@/lib/chat-request";
 import { captureSentryException } from "@/lib/sentry";
 import { getAiModelsQuery } from "@/queries/getAiModels";
 import { convertFilesToDataURLs } from "@/utils/fileUtils";
+import { AI_QUERY_KEY, CHAT_QUERY_KEY } from "@/utils/query-key";
 
 interface UseAgentChatOptions {
   conversationId?: string;
   initialInput?: string;
+  initialMcp?: boolean;
   initialMessages?: MyUIMessage[];
 }
 
@@ -34,15 +37,18 @@ const aiStreamApiPath = `${apiBasePath}${apiClient.ai["text-stream"].$path()}`;
 export function useAgentChat({
   conversationId,
   initialInput = "",
+  initialMcp = false,
   initialMessages = [],
 }: Readonly<UseAgentChatOptions>) {
+  const queryClient = useQueryClient();
   const [input, setInput] = useState(initialInput);
   const [agentMode, setAgentMode] = useState<AgentMode>(defaultAgentMode);
   const [model, setModel] = useState<AIModelId>(defaultModelId);
+  const [mcp, setMcp] = useState(initialMcp);
   const [webSearch, setWebSearch] = useState(false);
   const availableModelsQuery = useQuery(getAiModelsQuery());
 
-  const requestBodyRef = useRef(buildChatRequestBody({ conversationId, agentMode, model, webSearch }));
+  const requestBodyRef = useRef(buildChatRequestBody({ conversationId, agentMode, model, webSearch, mcp }));
   const transportRef = useRef(
     new DefaultChatTransport<MyUIMessage>({
       api: aiStreamApiPath,
@@ -65,12 +71,22 @@ export function useAgentChat({
     agentMode,
     model,
     webSearch,
+    mcp,
   });
 
   const chat = useChat<MyUIMessage>({
     ...(conversationId ? { id: conversationId } : {}),
     messageMetadataSchema: myUIMessageMetadataSchema,
     messages: initialMessages,
+    onFinish: ({ messages }) => {
+      if (conversationId) {
+        queryClient.setQueryData<ConversationDetail>(CHAT_QUERY_KEY.conversation(conversationId), (current) =>
+          current ? { ...current, messages } : current,
+        );
+        void queryClient.invalidateQueries({ queryKey: CHAT_QUERY_KEY.chats, exact: true });
+      }
+      void queryClient.invalidateQueries({ queryKey: AI_QUERY_KEY.usage, exact: true });
+    },
     onError: (error) => {
       captureSentryException(error);
       console.error("AI chat request failed:", error);
@@ -158,7 +174,9 @@ export function useAgentChat({
     setInput,
     setModel,
     setWebSearch,
+    setMcp,
     showAgentGuide: chat.messages.length === 0,
     webSearch,
+    mcp,
   };
 }

@@ -29,6 +29,13 @@ import {
 	RagRequestSchema,
 } from "@chat-app/shared/schemas/embedding.schema";
 import { JevRequestSchema, type JevResponse, type JevStatus } from "@chat-app/shared/schemas/jev.schema";
+import {
+	type McpInspection,
+	McpInspectSchema,
+	McpPreviewSchema,
+	type McpResult,
+	type McpServer,
+} from "@chat-app/shared/schemas/mcp.schema";
 import type { GetProfileResponse, UpdateProfileResponse } from "@chat-app/shared/schemas/profile.schema";
 import { UpdateProfileRequestSchema } from "@chat-app/shared/schemas/profile.schema";
 import type {
@@ -47,6 +54,9 @@ const routeParamsSchema = z.object({
 });
 
 export const apiContract = new Hono()
+	.get("/mcp/servers", (c) => c.json({} as { servers: McpServer[] }, 200))
+	.post("/mcp/inspect", zValidator("json", McpInspectSchema), (c) => c.json({} as McpInspection, 200))
+	.post("/mcp/preview", zValidator("json", McpPreviewSchema), (c) => c.json({} as McpResult, 200))
 	.get("/jev/status", (c) => c.json({} as JevStatus, 200))
 	.post("/jev/evaluate", zValidator("json", JevRequestSchema), (c) => c.json({} as JevResponse, 200))
 	.get("/ai/models", (c) => c.json({} as AvailableModelsResponse, 200))

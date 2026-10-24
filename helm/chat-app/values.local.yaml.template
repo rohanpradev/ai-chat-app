@@ -11,12 +11,14 @@ images:
   db:
     registry: ""
     repository: pgvector/pgvector
-    tag: 0.8.6-pg18-trixie
+    tag: 0.8.7-pg18-trixie
+    digest: sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0
     pullPolicy: IfNotPresent
   redis:
     registry: ""
     repository: redis
     tag: 8.10.2-trixie
+    digest: sha256:97ec88159e6d7cfb5ddef9015386087d58a912de80112f06ebdfa78fa5989901
     pullPolicy: IfNotPresent
 
 config:

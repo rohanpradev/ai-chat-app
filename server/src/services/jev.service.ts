@@ -32,7 +32,12 @@ export function createJevService(options: {
 			);
 			const state =
 				request.stateFormat === "json"
-					? z.union([z.record(z.string(), z.json()), z.array(z.json())]).parse(JSON.parse(request.state))
+					? [
+							{
+								type: "json" as const,
+								value: z.union([z.record(z.string(), z.json()), z.array(z.json())]).parse(JSON.parse(request.state))
+							}
+						]
 					: request.state;
 			const estimatedTokens = Math.max(1, Math.ceil(JSON.stringify({ questions, state }).length / 4));
 			const reservation = await options.reserveUsage({

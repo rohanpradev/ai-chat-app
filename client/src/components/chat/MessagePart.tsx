@@ -43,6 +43,7 @@ function MessagePartComponent({ part, messageId, index, onToolApprovalResponse }
       );
     case "tool-deepSearch":
     case "tool-serper":
+    case "tool-mcp":
       return (
         <Suspense
           fallback={

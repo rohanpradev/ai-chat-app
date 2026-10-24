@@ -41,6 +41,7 @@ export const aiStream = createRoute({
 	},
 	responses: {
 		[HttpStatusCodes.BAD_REQUEST]: jsonContent(CommonBadRequestResponseSchema, "Invalid request payload"),
+		[HttpStatusCodes.CONFLICT]: jsonContent(CommonErrorResponseSchema, "Conversation changed during this request"),
 		[HttpStatusCodes.NO_CONTENT]: { description: "No information provided" },
 		[HttpStatusCodes.NOT_FOUND]: jsonContent(notFoundSchema, "AI not found"),
 		[HttpStatusCodes.TOO_MANY_REQUESTS]: jsonContent(CommonErrorResponseSchema, "Too many AI requests"),

@@ -25,14 +25,14 @@ images:
   db:
     registry: docker.io
     repository: pgvector/pgvector
-    tag: 0.8.6-pg18-trixie
-    digest: ""
+    tag: 0.8.7-pg18-trixie
+    digest: sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0
     pullPolicy: Always
   redis:
     registry: dhi.io
     repository: redis
     tag: 8.10.2-debian13
-    digest: ""
+    digest: sha256:cfe44744ab9042a64dbfa89d2be9037d7058d12347e496521b31ce00f410c1a5
     pullPolicy: Always
 
 config:
@@ -85,6 +85,7 @@ secrets:
       GITHUB_CLIENT_SECRET: ""
       AI_TOOL_APPROVAL_SECRET: ""
       AI_GATEWAY_API_KEY: ""
+      MCP_SERVERS: "[]"
       SERPER_API_KEY: ""
       LANGFUSE_PUBLIC_KEY: ""
       LANGFUSE_SECRET_KEY: ""
@@ -366,11 +367,18 @@ redis:
   enabled: true
   terminationGracePeriodSeconds: 30
   podSecurityContext:
+    # Both supported Redis images can run directly as this UID. fsGroup gives
+    # the non-root process access to a fresh PVC without a root entrypoint.
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
   securityContext:
     allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: false
+    readOnlyRootFilesystem: true
     capabilities:
       drop:
         - ALL
@@ -431,5 +439,5 @@ tests:
     registry: curlimages
     repository: curl
     tag: 8.22.0
-    digest: ""
+    digest: sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
     pullPolicy: IfNotPresent

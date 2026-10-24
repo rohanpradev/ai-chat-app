@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { EmbeddingInputError } from "@/lib/embedding-errors";
 
 const documentFixture = {
 	byteSize: 128,
@@ -85,6 +86,43 @@ mock.module("@/services/embedding.service", () => ({
 }));
 
 describe("Embedding Routes", () => {
+	it("does not expose provider or database errors to clients", async () => {
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/embeddings/embeddings.index");
+		const app = createApp().route("/", router);
+		createEmbeddingDocumentMock.mockImplementationOnce(async () => {
+			throw new Error("provider authorization=secret-value database=private-record");
+		});
+		const response = await app.request("/embeddings/ingest", {
+			body: JSON.stringify({ content: "Hello embedded world" }),
+			headers: { "Content-Type": "application/json" },
+			method: "POST"
+		});
+		expect(response.status).toBe(503);
+		const payload = await response.json();
+		expect(payload.message).toBe("Internal server error");
+		expect(JSON.stringify(payload)).not.toContain("secret-value");
+		expect(JSON.stringify(payload)).not.toContain("private-record");
+	});
+
+	it("keeps actionable upload validation errors", async () => {
+		const { createApp } = await import("@/lib/create-app");
+		const { default: router } = await import("@/routes/embeddings/embeddings.index");
+		const app = createApp().route("/", router);
+		extractUploadContentMock.mockImplementationOnce(async () => {
+			throw new EmbeddingInputError("Uploaded file is empty");
+		});
+		const form = new FormData();
+		form.append("file", new File(["x"], "empty.txt", { type: "text/plain" }));
+		const response = await app.request("/embeddings/upload", {
+			body: form,
+			headers: { Origin: "http://localhost:5173" },
+			method: "POST"
+		});
+		expect(response.status).toBe(400);
+		expect((await response.json()).message).toBe("Uploaded file is empty");
+	});
+
 	it("lists vectorized documents", async () => {
 		const { createApp } = await import("@/lib/create-app");
 		const { default: router } = await import("@/routes/embeddings/embeddings.index");

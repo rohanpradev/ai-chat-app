@@ -18,6 +18,7 @@ import { Route as ChatConversationIdRouteImport } from './routes/chat/$conversat
 import { Route as ChatAiLabRouteImport } from './routes/chat/ai-lab'
 import { Route as ChatEmbeddingsRouteImport } from './routes/chat/embeddings'
 import { Route as ChatJevRouteImport } from './routes/chat/jev'
+import { Route as ChatMcpRouteImport } from './routes/chat/mcp'
 import { Route as ChatNewRouteImport } from './routes/chat/new'
 import { Route as authAuthLoginRouteImport } from './routes/(auth)/_auth/login'
 import { Route as authAuthRegisterRouteImport } from './routes/(auth)/_auth/register'
@@ -66,6 +67,11 @@ const ChatJevRoute = ChatJevRouteImport.update({
   path: '/jev',
   getParentRoute: () => ChatRoute,
 } as any)
+const ChatMcpRoute = ChatMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => ChatRoute,
+} as any)
 const ChatNewRoute = ChatNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/chat/ai-lab': typeof ChatAiLabRoute
   '/chat/embeddings': typeof ChatEmbeddingsRoute
   '/chat/jev': typeof ChatJevRoute
+  '/chat/mcp': typeof ChatMcpRoute
   '/chat/new': typeof ChatNewRoute
   '/chat/': typeof ChatIndexRoute
   '/login': typeof authAuthLoginRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/chat/ai-lab': typeof ChatAiLabRoute
   '/chat/embeddings': typeof ChatEmbeddingsRoute
   '/chat/jev': typeof ChatJevRoute
+  '/chat/mcp': typeof ChatMcpRoute
   '/chat/new': typeof ChatNewRoute
   '/chat': typeof ChatIndexRoute
   '/login': typeof authAuthLoginRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/chat/ai-lab': typeof ChatAiLabRoute
   '/chat/embeddings': typeof ChatEmbeddingsRoute
   '/chat/jev': typeof ChatJevRoute
+  '/chat/mcp': typeof ChatMcpRoute
   '/chat/new': typeof ChatNewRoute
   '/chat/': typeof ChatIndexRoute
   '/(auth)/_auth/login': typeof authAuthLoginRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/chat/ai-lab'
     | '/chat/embeddings'
     | '/chat/jev'
+    | '/chat/mcp'
     | '/chat/new'
     | '/chat/'
     | '/login'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/chat/ai-lab'
     | '/chat/embeddings'
     | '/chat/jev'
+    | '/chat/mcp'
     | '/chat/new'
     | '/chat'
     | '/login'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/chat/ai-lab'
     | '/chat/embeddings'
     | '/chat/jev'
+    | '/chat/mcp'
     | '/chat/new'
     | '/chat/'
     | '/(auth)/_auth/login'
@@ -236,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatJevRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/chat/mcp': {
+      id: '/chat/mcp'
+      path: '/mcp'
+      fullPath: '/chat/mcp'
+      preLoaderRoute: typeof ChatMcpRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/chat/new': {
       id: '/chat/new'
       path: '/new'
@@ -265,6 +284,7 @@ interface ChatRouteChildren {
   ChatAiLabRoute: typeof ChatAiLabRoute
   ChatEmbeddingsRoute: typeof ChatEmbeddingsRoute
   ChatJevRoute: typeof ChatJevRoute
+  ChatMcpRoute: typeof ChatMcpRoute
   ChatNewRoute: typeof ChatNewRoute
   ChatIndexRoute: typeof ChatIndexRoute
 }
@@ -274,6 +294,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatAiLabRoute: ChatAiLabRoute,
   ChatEmbeddingsRoute: ChatEmbeddingsRoute,
   ChatJevRoute: ChatJevRoute,
+  ChatMcpRoute: ChatMcpRoute,
   ChatNewRoute: ChatNewRoute,
   ChatIndexRoute: ChatIndexRoute,
 }

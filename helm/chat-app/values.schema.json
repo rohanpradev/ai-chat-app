@@ -809,6 +809,10 @@
 								"LANGFUSE_SECRET_KEY": {
 									"type": "string"
 								},
+								"MCP_SERVERS": {
+									"description": "JSON MCP connection configuration; contains server-side credentials",
+									"type": "string"
+								},
 								"POSTGRES_PASSWORD": {
 									"type": "string"
 								},

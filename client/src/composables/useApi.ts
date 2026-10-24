@@ -51,11 +51,12 @@ function normalizeApiError(error: unknown): Error {
 
   if (error instanceof DetailedError) {
     const status = typeof error.statusCode === "number" ? error.statusCode : 500;
-    const details = error.detail;
+    const detail = error.detail;
+    const details = detail && typeof detail === "object" && "data" in detail ? detail.data : detail;
 
     return new ApiRequestError({
       details,
-      message: getErrorMessage(details, error.message || getStatusMessage(status)),
+      message: getErrorMessage(details, getStatusMessage(status)),
       status,
     });
   }
@@ -76,6 +77,13 @@ function getErrorMessage(details: unknown, fallback: string): string {
 
 export const getApiClient = () => {
   return {
+    mcp: {
+      servers: (signal?: AbortSignal) => parseApiResponse(apiClient.mcp.servers.$get({}, { init: { signal } })),
+      inspect: (serverId: string, signal?: AbortSignal) =>
+        parseApiResponse(apiClient.mcp.inspect.$post({ json: { serverId } }, { init: { signal } })),
+      preview: (payload: InferRequestType<typeof apiClient.mcp.preview.$post>["json"], signal?: AbortSignal) =>
+        parseApiResponse(apiClient.mcp.preview.$post({ json: payload }, { init: { signal } })),
+    },
     jev: {
       status: () => parseApiResponse(apiClient.jev.status.$get()),
       evaluate: (payload: InferRequestType<typeof apiClient.jev.evaluate.$post>["json"], signal?: AbortSignal) =>
@@ -196,6 +204,8 @@ function getStatusMessage(status: number): string {
       return "Server error. Please try again.";
     case 502:
       return "Service temporarily unavailable.";
+    case 504:
+      return "The request timed out. Please try again.";
     case 503:
       return "Service temporarily unavailable.";
     default:

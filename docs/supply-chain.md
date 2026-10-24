@@ -2,9 +2,13 @@
 
 Use Bun workspaces, the root dependency catalog, and the committed `bun.lock`. CI and production installs use `bun ci` to reject manifest/lockfile drift. The 72-hour minimum release age in `bunfig.toml` applies to fresh dependency resolution; preserve it during routine upgrades.
 
-For a refresh, run `bun outdated --filter '*'`, review upstream release notes, and use `bun update --latest --recursive`. Review root overrides separately: updating direct dependencies does not refresh those pins. Keep overrides within the parent package's supported range unless a reviewed migration and runtime checks cover the change.
+The runtime baseline is Bun 1.4.4. Keep the package-manager pin, runtime engines, Bun type packages, Docker defaults, Compose defaults, environment examples, and both CI workflows aligned. Verify the multi-platform Docker digest when changing CI's Bun image. The [Bun upgrade audit](bun-upgrade-1.4.4.md) records feature decisions and rollout checks. Native checks are the default; `bun run typecheck:tsc` retains TypeScript 7.0.2 for comparison.
 
-The October 2026 refresh keeps Babel 7 and Mermaid 11 compatible with their consumers. The KaTeX 0.18.9 override is intentional: its public rendering API remains compatible, but its internal CSS classes changed, so all renderers and the stylesheet must move together. Desktop and mobile browser tests check the new markup and loaded styles. The AI SDK provider utilities are aligned with the exact version requested by the upgraded SDK packages.
+For a refresh, run `bun outdated --filter '*'`, review upstream release notes, and use `bun update --recursive` for compatible releases. Review major releases separately before using `--latest`. Review root overrides separately: updating direct dependencies does not refresh those pins. Keep overrides within the parent package's supported range unless a reviewed migration and runtime checks cover the change.
+
+The [October 23 dependency review](dependency-upgrade-2026-10-23.md) records the current versions, security baseline, official references, and intentionally deferred major upgrades. Babel 7, Mermaid 11, and KaTeX 0.18 remain aligned with their consumers. The KaTeX 0.18.11 override keeps renderers and the lazy-loaded stylesheet on the same release. AI SDK 7.0.146 and its React/MCP packages use the matching provider utilities 5.0.64. Sentry's Vite plugin now releases with its SDK and shares version 11.8.0.
+
+Client test scripts invoke Node explicitly; `.nvmrc` and CI select security-patched Node 24.22.1 LTS. Bun 1.4.4 also passes the real-SDK hook suite with jsdom, fixing the startup failure observed on 1.4.3. Node remains development tooling; application execution, server tests, installs, server builds, and native type checks remain on Bun.
 
 Before shipping, run `bun run security:check`, `bun run check`, `bun run knip`, `bun run check:migrations`, `bun run build:report`, and `bun run test:e2e`. Review new package owners, lifecycle scripts, binary downloads, and unexpected workflow or generated-file changes. `bun run check:ci` also validates deployment configuration; it requires the relevant local deployment tools.
 

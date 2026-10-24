@@ -35,7 +35,7 @@
 	"name": "@chat-app/shared",
 	"private": true,
 	"scripts": {
-		"typecheck": "bun run typecheck:tsc",
+		"typecheck": "bun check --project tsconfig.json",
 		"typecheck:tsc": "bunx --no-install --package typescript tsc --noEmit --project tsconfig.json"
 	},
 	"sideEffects": false,

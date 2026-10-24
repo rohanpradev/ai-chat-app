@@ -3,10 +3,16 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 const returningMock = mock(async () => [{ id: "chat-1" }]);
 const whereMock = mock(() => ({ returning: returningMock }));
 const deleteMock = mock(() => ({ where: whereMock }));
+const executeMock = mock(async () => undefined);
+const transactionMock = mock(
+	async (run: (tx: { execute: typeof executeMock; delete: typeof deleteMock }) => Promise<unknown>) =>
+		run({ delete: deleteMock, execute: executeMock })
+);
 
 mock.module("@/db", () => ({
 	db: {
-		delete: deleteMock
+		delete: deleteMock,
+		transaction: transactionMock
 	}
 }));
 
@@ -19,6 +25,8 @@ mock.module("@/middlewares/auth-middleware", () => ({
 
 describe("Conversation Routes", () => {
 	beforeEach(() => {
+		transactionMock.mockClear();
+		executeMock.mockClear();
 		deleteMock.mockClear();
 		whereMock.mockClear();
 		returningMock.mockClear();
@@ -40,6 +48,8 @@ describe("Conversation Routes", () => {
 			message: "Conversation deleted successfully"
 		});
 		expect(deleteMock).toHaveBeenCalledTimes(1);
+		expect(transactionMock).toHaveBeenCalledTimes(1);
+		expect(executeMock).toHaveBeenCalledTimes(1);
 	});
 
 	it("returns not found when the conversation is not owned", async () => {
