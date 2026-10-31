@@ -6,6 +6,6 @@ export const getChatsQuery = () => {
   const api = getApiClient();
   return queryOptions({
     queryKey: CHAT_QUERY_KEY.chats,
-    queryFn: () => api.conversations.list(),
+    queryFn: ({ signal }) => api.conversations.list(signal),
   });
 };

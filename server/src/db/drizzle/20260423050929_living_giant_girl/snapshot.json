@@ -1,18 +1,342 @@
 {
+  "type": "base",
+  "version": "9",
+  "dialect": "postgres",
   "id": "d699193d-381d-4e53-80a5-2e59584aa609",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
-  "version": "8",
-  "dialect": "postgres",
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "chat"
+      ],
+      "writes": [
+        "s|tbl|public.chat",
+        "n|tbl|public.chat",
+        "e|tbl|public.chat",
+        "n|rel|public.chat",
+        "n|type|public.chat",
+        "n|rel|public.chat_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "message"
+      ],
+      "writes": [
+        "s|tbl|public.message",
+        "n|tbl|public.message",
+        "e|tbl|public.message",
+        "n|rel|public.message",
+        "n|type|public.message",
+        "n|rel|public.message_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "users"
+      ],
+      "writes": [
+        "s|tbl|public.users",
+        "n|tbl|public.users",
+        "e|tbl|public.users",
+        "n|rel|public.users",
+        "n|type|public.users",
+        "n|rel|public.users_pkey",
+        "n|rel|public.users_email_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "chat",
+        "chats_title_idx"
+      ],
+      "writes": [
+        "s|idx|public.chats_title_idx",
+        "n|idx|public.chats_title_idx",
+        "e|idx|public.chats_title_idx",
+        "n|rel|public.chats_title_idx"
+      ],
+      "reads": [
+        "n|tbl|public.chat",
+        "n|sch|public",
+        "n|col|public.chat.title"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "chat",
+        "chats_updated_at_idx"
+      ],
+      "writes": [
+        "s|idx|public.chats_updated_at_idx",
+        "n|idx|public.chats_updated_at_idx",
+        "e|idx|public.chats_updated_at_idx",
+        "n|rel|public.chats_updated_at_idx"
+      ],
+      "reads": [
+        "n|tbl|public.chat",
+        "n|sch|public",
+        "n|col|public.chat.updated_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "chat",
+        "chats_user_id_idx"
+      ],
+      "writes": [
+        "s|idx|public.chats_user_id_idx",
+        "n|idx|public.chats_user_id_idx",
+        "e|idx|public.chats_user_id_idx",
+        "n|rel|public.chats_user_id_idx"
+      ],
+      "reads": [
+        "n|tbl|public.chat",
+        "n|sch|public",
+        "n|col|public.chat.user_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "chat",
+        "chats_user_updated_idx"
+      ],
+      "writes": [
+        "s|idx|public.chats_user_updated_idx",
+        "n|idx|public.chats_user_updated_idx",
+        "e|idx|public.chats_user_updated_idx",
+        "n|rel|public.chats_user_updated_idx"
+      ],
+      "reads": [
+        "n|tbl|public.chat",
+        "n|sch|public",
+        "n|col|public.chat.user_id",
+        "n|col|public.chat.updated_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "message",
+        "messages_chat_id_idx"
+      ],
+      "writes": [
+        "s|idx|public.messages_chat_id_idx",
+        "n|idx|public.messages_chat_id_idx",
+        "e|idx|public.messages_chat_id_idx",
+        "n|rel|public.messages_chat_id_idx"
+      ],
+      "reads": [
+        "n|tbl|public.message",
+        "n|sch|public",
+        "n|col|public.message.chat_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "message",
+        "messages_chat_order_idx"
+      ],
+      "writes": [
+        "s|idx|public.messages_chat_order_idx",
+        "n|idx|public.messages_chat_order_idx",
+        "e|idx|public.messages_chat_order_idx",
+        "n|rel|public.messages_chat_order_idx"
+      ],
+      "reads": [
+        "n|tbl|public.message",
+        "n|sch|public",
+        "n|col|public.message.chat_id",
+        "n|col|public.message.order"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "message",
+        "messages_created_at_idx"
+      ],
+      "writes": [
+        "s|idx|public.messages_created_at_idx",
+        "n|idx|public.messages_created_at_idx",
+        "e|idx|public.messages_created_at_idx",
+        "n|rel|public.messages_created_at_idx"
+      ],
+      "reads": [
+        "n|tbl|public.message",
+        "n|sch|public",
+        "n|col|public.message.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "message",
+        "messages_role_idx"
+      ],
+      "writes": [
+        "s|idx|public.messages_role_idx",
+        "n|idx|public.messages_role_idx",
+        "e|idx|public.messages_role_idx",
+        "n|rel|public.messages_role_idx"
+      ],
+      "reads": [
+        "n|tbl|public.message",
+        "n|sch|public",
+        "n|col|public.message.role"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "users",
+        "users_created_at_idx"
+      ],
+      "writes": [
+        "s|idx|public.users_created_at_idx",
+        "n|idx|public.users_created_at_idx",
+        "e|idx|public.users_created_at_idx",
+        "n|rel|public.users_created_at_idx"
+      ],
+      "reads": [
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.users.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "users",
+        "users_email_idx"
+      ],
+      "writes": [
+        "s|idx|public.users_email_idx",
+        "n|idx|public.users_email_idx",
+        "e|idx|public.users_email_idx",
+        "n|rel|public.users_email_idx"
+      ],
+      "reads": [
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.users.email"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "chat"
+      ],
+      "writes": [
+        "s|fk|public.chat.chat_user_id_users_id_fk",
+        "n|fk|public.chat.chat_user_id_users_id_fk",
+        "e|fk|public.chat.chat_user_id_users_id_fk",
+        "n|con|public.chat.chat_user_id_users_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.chat",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.chat.user_id",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "message"
+      ],
+      "writes": [
+        "s|fk|public.message.message_chat_id_chat_id_fk",
+        "n|fk|public.message.message_chat_id_chat_id_fk",
+        "e|fk|public.message.message_chat_id_chat_id_fk",
+        "n|con|public.message.message_chat_id_chat_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.message",
+        "n|sch|public",
+        "n|tbl|public.chat",
+        "n|sch|public",
+        "n|col|public.message.chat_id",
+        "n|col|public.chat.id",
+        "e|uniqueness|public.chat.id"
+      ]
+    }
+  ],
   "ddl": [
     {
-      "isRlsEnabled": false,
-      "name": "chat",
       "schema": "public",
+      "name": "chat",
+      "isRlsEnabled": false,
       "entityType": "tables"
     },
     {
+      "schema": "public",
+      "name": "message",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "users",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "table": "chat",
+      "name": "created_at",
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -20,22 +344,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "created_at",
-      "schema": "public",
-      "table": "chat",
       "entityType": "columns"
     },
     {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "chat_pkey",
       "schema": "public",
       "table": "chat",
-      "entityType": "pks"
-    },
-    {
+      "name": "id",
       "type": "varchar",
       "typeSchema": null,
       "notNull": true,
@@ -43,12 +357,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "id",
-      "schema": "public",
-      "table": "chat",
       "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "chat",
+      "name": "title",
       "type": "varchar(200)",
       "typeSchema": null,
       "notNull": true,
@@ -56,12 +370,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "title",
-      "schema": "public",
-      "table": "chat",
       "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "chat",
+      "name": "updated_at",
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -69,12 +383,12 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "updated_at",
-      "schema": "public",
-      "table": "chat",
       "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "chat",
+      "name": "user_id",
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -82,12 +396,207 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "user_id",
-      "schema": "public",
-      "table": "chat",
       "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "message",
+      "name": "chat_id",
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "id",
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "metadata",
+      "type": "json",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "order",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "parts",
+      "type": "json",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "role",
+      "type": "varchar(20)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "schema_version",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "email",
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "name",
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "password",
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "profile_image",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "chat",
+      "name": "chats_title_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -103,12 +612,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "chats_title_idx",
-      "schema": "public",
-      "table": "chat",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "chat",
+      "name": "chats_updated_at_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -124,12 +633,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "chats_updated_at_idx",
-      "schema": "public",
-      "table": "chat",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "chat",
+      "name": "chats_user_id_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -145,12 +654,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "chats_user_id_idx",
-      "schema": "public",
-      "table": "chat",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "chat",
+      "name": "chats_user_updated_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -173,149 +682,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "chats_user_updated_idx",
-      "schema": "public",
-      "table": "chat",
       "entityType": "indexes"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "users",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "chat_user_id_users_id_fk",
-      "schema": "public",
-      "table": "chat",
-      "entityType": "fks"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "message",
-      "schema": "public",
-      "entityType": "tables"
-    },
-    {
-      "type": "varchar(255)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "chat_id",
       "schema": "public",
       "table": "message",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "schema": "public",
-      "table": "message",
-      "entityType": "columns"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "message_pkey",
-      "schema": "public",
-      "table": "message",
-      "entityType": "pks"
-    },
-    {
-      "type": "varchar(255)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "schema": "public",
-      "table": "message",
-      "entityType": "columns"
-    },
-    {
-      "type": "json",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "metadata",
-      "schema": "public",
-      "table": "message",
-      "entityType": "columns"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "order",
-      "schema": "public",
-      "table": "message",
-      "entityType": "columns"
-    },
-    {
-      "type": "json",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "parts",
-      "schema": "public",
-      "table": "message",
-      "entityType": "columns"
-    },
-    {
-      "type": "varchar(20)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "role",
-      "schema": "public",
-      "table": "message",
-      "entityType": "columns"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "schema_version",
-      "schema": "public",
-      "table": "message",
-      "entityType": "columns"
-    },
-    {
+      "name": "messages_chat_id_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -331,12 +703,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "messages_chat_id_idx",
-      "schema": "public",
-      "table": "message",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "message",
+      "name": "messages_chat_order_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -359,12 +731,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "messages_chat_order_idx",
-      "schema": "public",
-      "table": "message",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "message",
+      "name": "messages_created_at_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -380,12 +752,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "messages_created_at_idx",
-      "schema": "public",
-      "table": "message",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "message",
+      "name": "messages_role_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -401,147 +773,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "messages_role_idx",
-      "schema": "public",
-      "table": "message",
       "entityType": "indexes"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        "chat_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "chat",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "message_chat_id_chat_id_fk",
-      "schema": "public",
-      "table": "message",
-      "entityType": "fks"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "users",
-      "schema": "public",
-      "entityType": "tables"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
       "schema": "public",
       "table": "users",
-      "entityType": "columns"
-    },
-    {
-      "type": "varchar(255)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "email",
-      "schema": "public",
-      "table": "users",
-      "entityType": "columns"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "users_pkey",
-      "schema": "public",
-      "table": "users",
-      "entityType": "pks"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "gen_random_uuid()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "schema": "public",
-      "table": "users",
-      "entityType": "columns"
-    },
-    {
-      "type": "varchar(100)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "name",
-      "schema": "public",
-      "table": "users",
-      "entityType": "columns"
-    },
-    {
-      "type": "varchar(255)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "password",
-      "schema": "public",
-      "table": "users",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "profile_image",
-      "schema": "public",
-      "table": "users",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "schema": "public",
-      "table": "users",
-      "entityType": "columns"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "email"
-      ],
-      "nullsNotDistinct": false,
-      "name": "users_email_unique",
-      "schema": "public",
-      "table": "users",
-      "entityType": "uniques"
-    },
-    {
+      "name": "users_created_at_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -557,12 +794,12 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "users_created_at_idx",
-      "schema": "public",
-      "table": "users",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "users",
+      "name": "users_email_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -578,11 +815,82 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "users_email_idx",
+      "entityType": "indexes"
+    },
+    {
+      "schema": "public",
+      "table": "chat",
+      "name": "chat_user_id_users_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "message_chat_id_chat_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "chat_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "chat",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "chat",
+      "name": "chat_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "message",
+      "name": "message_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
       "schema": "public",
       "table": "users",
-      "entityType": "indexes"
+      "name": "users_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "users",
+      "name": "users_email_unique",
+      "nameExplicit": false,
+      "columns": [
+        "email"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
     }
-  ],
-  "renames": []
+  ]
 }

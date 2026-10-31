@@ -17,8 +17,8 @@ images:
   redis:
     registry: ""
     repository: redis
-    tag: 8.10.2-trixie
-    digest: sha256:97ec88159e6d7cfb5ddef9015386087d58a912de80112f06ebdfa78fa5989901
+    tag: 8.10.3-trixie
+    digest: sha256:298641b35ac51aa999f9bb85707d6681fe635ce59cda51886a0b6adc1da37b8e
     pullPolicy: IfNotPresent
 
 config:
@@ -26,7 +26,6 @@ config:
     CLIENT_URL: http://localhost:30080
     DOMAIN: localhost
     NODE_ENV: production
-    VITE_DEV_MODE: "false"
     VITE_SENTRY_DSN: ""
     VITE_SENTRY_ENVIRONMENT: production
     VITE_SENTRY_RELEASE: ""

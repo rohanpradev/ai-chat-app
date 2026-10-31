@@ -34,30 +34,38 @@ const aliases: Record<string, SupportedLanguage> = {
   yml: "yaml",
 };
 const supportedLanguages = Object.keys(languageLoaders) as SupportedLanguage[];
-const highlighters = new Map<SupportedLanguage, ReturnType<typeof createHighlighterCore>>();
+let highlighter: ReturnType<typeof createHighlighterCore> | undefined;
+const languageLoads = new Map<SupportedLanguage, ReturnType<typeof createHighlighterCore>>();
 
 export const normalizeCompactLanguage = (language: string): SupportedLanguage | undefined => {
   const normalized = language.trim().toLowerCase();
-  const candidate = aliases[normalized] ?? normalized;
-  return candidate in languageLoaders ? (candidate as SupportedLanguage) : undefined;
+  const candidate = Object.hasOwn(aliases, normalized) ? aliases[normalized] : normalized;
+  return candidate && Object.hasOwn(languageLoaders, candidate) ? (candidate as SupportedLanguage) : undefined;
 };
 
 const getHighlighter = (language: SupportedLanguage) => {
-  const existing = highlighters.get(language);
+  const existing = languageLoads.get(language);
   if (existing) {
     return existing;
   }
 
-  const highlighter = createHighlighterCore({
+  // Reuse Shiki's expensive engine and theme registry across every code block.
+  // Each grammar remains an independent lazy import.
+  highlighter ??= createHighlighterCore({
     engine: createJavaScriptRegexEngine(),
-    langs: [languageLoaders[language]().then((module) => module.default)],
+    langs: [],
     themes: [
       import("@shikijs/themes/github-light").then((module) => module.default as ThemeRegistration),
       import("@shikijs/themes/github-dark").then((module) => module.default as ThemeRegistration),
     ],
   });
-  highlighters.set(language, highlighter);
-  return highlighter;
+  const loaded = highlighter.then(async (instance) => {
+    await instance.loadLanguage(await languageLoaders[language]().then((module) => module.default));
+    return instance;
+  });
+  languageLoads.set(language, loaded);
+  void loaded.catch(() => languageLoads.delete(language));
+  return loaded;
 };
 
 export const highlightCompactCode = (code: string, language: string) => {

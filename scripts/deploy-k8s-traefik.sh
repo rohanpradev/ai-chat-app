@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="${ROOT_DIR}/scripts/bin:${PATH}"
 VALUES_FILE="${ROOT_DIR}/k8s/traefik-values.generated.yaml"
-ENV_FILE="${ROOT_DIR}/.env"
+ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
+if [[ "${ENV_FILE}" != /* ]]; then ENV_FILE="${ROOT_DIR}/${ENV_FILE}"; fi
 TRAEFIK_NAMESPACE="${TRAEFIK_NAMESPACE:-traefik}"
 TRAEFIK_RELEASE="${TRAEFIK_RELEASE:-traefik}"
 HELM_HISTORY_MAX="${HELM_HISTORY_MAX:-10}"
@@ -64,7 +65,7 @@ TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-$(read_env TRAEFIK_CHART_REF || true)}"
 TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-$(read_env TRAEFIK_CHART_VERSION || true)}"
 GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-$(read_env GATEWAY_API_VERSION || true)}"
 TRAEFIK_CHART_REF="${TRAEFIK_CHART_REF:-oci://ghcr.io/traefik/helm/traefik}"
-TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-42.1.2}"
+TRAEFIK_CHART_VERSION="${TRAEFIK_CHART_VERSION:-42.1.3}"
 # Gateway API 1.6.3 is a patch update in the supported 1.6 release line.
 GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.6.3}"
 

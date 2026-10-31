@@ -85,17 +85,17 @@ export const getApiClient = () => {
         parseApiResponse(apiClient.mcp.preview.$post({ json: payload }, { init: { signal } })),
     },
     jev: {
-      status: () => parseApiResponse(apiClient.jev.status.$get()),
+      status: (signal?: AbortSignal) => parseApiResponse(apiClient.jev.status.$get({}, { init: { signal } })),
       evaluate: (payload: InferRequestType<typeof apiClient.jev.evaluate.$post>["json"], signal?: AbortSignal) =>
         parseApiResponse(apiClient.jev.evaluate.$post({ json: payload }, { init: { signal } })),
     },
     ai: {
-      models: async () => {
-        const result = await parseApiResponse(apiClient.ai.models.$get());
+      models: async (signal?: AbortSignal) => {
+        const result = await parseApiResponse(apiClient.ai.models.$get({}, { init: { signal } }));
         return result.data;
       },
-      usage: async () => {
-        const result = await parseApiResponse(apiClient.ai.usage.$get());
+      usage: async (signal?: AbortSignal) => {
+        const result = await parseApiResponse(apiClient.ai.usage.$get({}, { init: { signal } }));
         return result.data;
       },
       plan: async (payload: InferRequestType<typeof apiClient.ai.plan.$post>["json"]) => {
@@ -118,16 +118,14 @@ export const getApiClient = () => {
         );
         return result.data;
       },
-      get: async (id: string) => {
+      get: async (id: string, signal?: AbortSignal) => {
         const result = await parseApiResponse(
-          apiClient.conversations[":id"].$get({
-            param: { id },
-          }),
+          apiClient.conversations[":id"].$get({ param: { id } }, { init: { signal } }),
         );
         return result.data;
       },
-      list: async () => {
-        const result = await parseApiResponse(apiClient.conversations.$get());
+      list: async (signal?: AbortSignal) => {
+        const result = await parseApiResponse(apiClient.conversations.$get({}, { init: { signal } }));
         return result.data;
       },
       update: async (id: string, payload: UpdateConversationPayload) => {
@@ -153,8 +151,8 @@ export const getApiClient = () => {
         const result = await parseApiResponse(apiClient.embeddings.ingest.$post({ json: payload }));
         return result.data;
       },
-      list: async () => {
-        const result = await parseApiResponse(apiClient.embeddings.documents.$get());
+      list: async (signal?: AbortSignal) => {
+        const result = await parseApiResponse(apiClient.embeddings.documents.$get({}, { init: { signal } }));
         return result.data;
       },
       rag: async (payload: InferRequestType<typeof apiClient.embeddings.rag.$post>["json"]) => {
@@ -176,8 +174,8 @@ export const getApiClient = () => {
       },
     },
     profile: {
-      get: async () => {
-        const result = await parseApiResponse(apiClient.profile.$get());
+      get: async (signal?: AbortSignal) => {
+        const result = await parseApiResponse(apiClient.profile.$get({}, { init: { signal } }));
         return result.data;
       },
       update: async (payload: InferRequestType<typeof apiClient.profile.$patch>["form"]) => {

@@ -335,12 +335,7 @@ const MessageResponseComponent = ({ className, children, ...props }: MessageResp
   );
 };
 
-export const MessageResponse = memo(
-  MessageResponseComponent,
-  (prevProps, nextProps) =>
-    prevProps.children === nextProps.children &&
-    nextProps.isAnimating === prevProps.isAnimating
-);
+export const MessageResponse = memo(MessageResponseComponent);
 
 MessageResponse.displayName = "MessageResponse";
 

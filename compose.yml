@@ -1,6 +1,6 @@
 x-bun-build-args: &bun-build-args
-  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.4-alpine}
-  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.4-alpine}
+  BUN_DEV_IMAGE: ${BUN_DEV_IMAGE:-oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a}
+  BUN_RUNTIME_IMAGE: ${BUN_RUNTIME_IMAGE:-oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a}
   NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.31.8-alpine3.24@sha256:1ef7ca94d7879df82421428ce13bd1eaa412404953859cf7a5b6512c25e67a60}
 
 x-security-defaults: &security-defaults
@@ -169,7 +169,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${REDIS_IMAGE:-redis:8.10.2-trixie}
+    image: ${REDIS_IMAGE:-redis:8.10.3-trixie@sha256:298641b35ac51aa999f9bb85707d6681fe635ce59cda51886a0b6adc1da37b8e}
     pull_policy: always
     container_name: chat-app-redis
     environment:
@@ -246,9 +246,7 @@ services:
       args:
         <<: *bun-build-args
         VITE_API_URL: ${VITE_API_URL:-/api}
-        VITE_APP_NAME: ${VITE_APP_NAME:-Chat App}
         VITE_APP_VERSION: ${VITE_APP_VERSION:-1.0.0}
-        VITE_DEV_MODE: ${VITE_DEV_MODE:-false}
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
         VITE_SENTRY_ENVIRONMENT: ${VITE_SENTRY_ENVIRONMENT:-production}
         VITE_SENTRY_RELEASE: ${VITE_SENTRY_RELEASE:-${SENTRY_RELEASE:-}}

@@ -1,5 +1,12 @@
 import { uiMessageTools } from "@chat-app/shared/tools";
-import { type InferUITool, type InferUITools, safeValidateUIMessages, type UIMessage, validateUIMessages } from "ai";
+import {
+	type FinishReason,
+	type InferUITool,
+	type InferUITools,
+	safeValidateUIMessages,
+	type UIMessage,
+	validateUIMessages,
+} from "ai";
 import { z } from "zod";
 
 export { uiMessageTools as tools } from "@chat-app/shared/tools";
@@ -10,7 +17,17 @@ export const myUIMessageMetadataSchema = z
 	.object({
 		conversationId: z.string().optional(),
 		createdAt: isoDatetimeSchema.optional(),
-		finishReason: z.enum(["stop", "length", "content-filter", "tool-calls", "error", "other"]).optional(),
+		finishReason: z
+			.enum({
+				"content-filter": "content-filter",
+				error: "error",
+				interrupted: "interrupted",
+				length: "length",
+				other: "other",
+				stop: "stop",
+				"tool-calls": "tool-calls",
+			} satisfies { [TReason in FinishReason]: TReason })
+			.optional(),
 		model: z.string().optional(),
 		requestedModel: z.string().optional(),
 		totalTokens: z.number().optional(),

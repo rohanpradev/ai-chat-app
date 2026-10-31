@@ -9,7 +9,7 @@ const managedPath = `${fileURLToPath(new URL("scripts/bin", rootDir))}${delimite
 export const gatewayRuntimeConfiguration = Object.freeze({
 	appNamespace: "chat-app-gateway-runtime",
 	chart: "oci://ghcr.io/traefik/helm/traefik",
-	chartVersion: "42.1.2",
+	chartVersion: "42.1.3",
 	controllerNamespace: "traefik",
 	gatewayApiVersion: "v1.6.3",
 	release: "chat-app-gateway-traefik",

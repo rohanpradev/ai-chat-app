@@ -6,7 +6,8 @@ umask 077
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VALUES_FILE="${ROOT_DIR}/k8s/traefik-values.generated.yaml"
-ENV_FILE="${ROOT_DIR}/.env"
+ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
+if [[ "${ENV_FILE}" != /* ]]; then ENV_FILE="${ROOT_DIR}/${ENV_FILE}"; fi
 
 if [ ! -f "${ENV_FILE}" ]; then
   echo "Missing env file: ${ENV_FILE}" >&2
@@ -197,7 +198,7 @@ extraObjects:
         stsPreload: true
         stsSeconds: 31536000
         referrerPolicy: strict-origin-when-cross-origin
-        permissionsPolicy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+        permissionsPolicy: camera=(), microphone=(self), geolocation=(), interest-cohort=()
         customResponseHeaders:
           X-XSS-Protection: "0"
           X-Permitted-Cross-Domain-Policies: none

@@ -31,8 +31,8 @@ images:
   redis:
     registry: dhi.io
     repository: redis
-    tag: 8.10.2-debian13
-    digest: sha256:cfe44744ab9042a64dbfa89d2be9037d7058d12347e496521b31ce00f410c1a5
+    tag: 8.10.3-debian13
+    digest: sha256:f88645e2304f0eab08c66f7f9a03f1b431b614a6782e9c939b74ee0c375540d5
     pullPolicy: Always
 
 config:
@@ -54,9 +54,7 @@ config:
     SERVER_PORT: "3000"
     TRAEFIK_LOG_LEVEL: INFO
     VITE_API_URL: /api
-    VITE_APP_NAME: Chat App
     VITE_APP_VERSION: 1.0.0
-    VITE_DEV_MODE: "false"
     VITE_SENTRY_DSN: ""
     VITE_SENTRY_ENVIRONMENT: production
     VITE_SENTRY_RELEASE: ""

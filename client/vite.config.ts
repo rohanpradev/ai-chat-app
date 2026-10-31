@@ -51,7 +51,7 @@ const vendorChunkGroups = [
   },
   {
     name: "stream-plugin-vendor",
-    test: /@streamdown|anser|escape-carriage/,
+    test: /@streamdown/,
     entriesAware: true,
     priority: 33,
   },
@@ -84,16 +84,6 @@ const vendorChunkGroups = [
     test: /mermaid|@mermaid-js/,
     maxSize: maxVendorChunkBytes,
     priority: 28,
-  },
-  {
-    name: "flow-vendor",
-    test: /@xyflow/,
-    priority: 27,
-  },
-  {
-    name: "media-vendor",
-    test: /media-chrome|@rive-app/,
-    priority: 26,
   },
   {
     name: "markdown-vendor",
@@ -141,7 +131,6 @@ export default defineConfig(({ mode }) => {
       alias: {
         ...browserNodeShims,
         "@": resolve(__dirname, "./src"),
-        "@shared": resolve(__dirname, "../shared"),
       },
     },
     build: {

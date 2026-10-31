@@ -3,6 +3,7 @@ import type { McpResult } from "@chat-app/shared";
 import { generateText } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 import { createMcpTool } from "@/lib/mcp";
+import { chatToolApproval } from "@/lib/tools";
 
 const input = { action: "call", argumentsJson: '{"query":"MCP"}', name: "search", serverId: "docs" };
 const usage = {
@@ -46,6 +47,7 @@ describe("MCP chat approval", () => {
 				experimental_toolApprovalSecret: secret,
 				model: callModel,
 				prompt: "Search the docs",
+				toolApproval: chatToolApproval,
 				tools
 			});
 			expect(execute).not.toHaveBeenCalled();
@@ -55,10 +57,11 @@ describe("MCP chat approval", () => {
 			await generateText({
 				experimental_toolApprovalSecret: secret,
 				messages: [
-					...pending.response.messages,
+					...pending.responseMessages,
 					{ content: [{ approvalId: approval.approvalId, approved, type: "tool-approval-response" }], role: "tool" }
 				],
 				model: finalModel,
+				toolApproval: chatToolApproval,
 				tools
 			});
 			expect(execute).toHaveBeenCalledTimes(approved ? 1 : 0);
@@ -83,11 +86,12 @@ it("rejects a changed tool input after an approval was signed", async () => {
 		experimental_toolApprovalSecret: secret,
 		model: callModel,
 		prompt: "Search",
+		toolApproval: chatToolApproval,
 		tools
 	});
 	const approval = pending.content.find((part) => part.type === "tool-approval-request");
 	if (approval?.type !== "tool-approval-request") throw new Error("Expected approval");
-	const messages = structuredClone(pending.response.messages);
+	const messages = structuredClone(pending.responseMessages);
 	for (const message of messages)
 		if (message.role === "assistant" && Array.isArray(message.content)) {
 			for (const part of message.content) if (part.type === "tool-call") part.input = { ...input, name: "delete" };
@@ -100,6 +104,7 @@ it("rejects a changed tool input after an approval was signed", async () => {
 				{ content: [{ approvalId: approval.approvalId, approved: true, type: "tool-approval-response" }], role: "tool" }
 			],
 			model: finalModel,
+			toolApproval: chatToolApproval,
 			tools
 		})
 	).rejects.toThrow("signature verification failed");

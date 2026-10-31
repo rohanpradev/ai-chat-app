@@ -96,6 +96,12 @@ const expectFailure = ({ args, command, input, name, stderrIncludes }) => {
 };
 
 run({
+	args: ["scripts/check-toolchain.mjs"],
+	command: process.execPath,
+	name: "Check runtime and container toolchain pins",
+});
+
+run({
 	args: ["scripts/check-helm-runtime-config.mjs"],
 	command: process.execPath,
 	name: "Check Helm credential, port, and volume configuration regressions",
@@ -307,7 +313,7 @@ for (const [needle, label] of [
 		"docker.io/pgvector/pgvector@sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0",
 		"pgvector-enabled PostgreSQL image",
 	],
-	["dhi.io/redis@sha256:cfe44744ab9042a64dbfa89d2be9037d7058d12347e496521b31ce00f410c1a5", "Redis image"],
+	["dhi.io/redis@sha256:f88645e2304f0eab08c66f7f9a03f1b431b614a6782e9c939b74ee0c375540d5", "Redis image"],
 	["curlimages/curl@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777", "Helm test image"],
 	["AI_DAILY_TOKEN_LIMIT", "AI quota configuration"],
 	["kind: HTTPRoute", "Gateway HTTPRoutes"],

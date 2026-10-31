@@ -32,7 +32,11 @@ const percent = (value: number) => `${Math.round(value * 100)}%`;
 
 function JevPage() {
   const api = getApiClient();
-  const status = useQuery({ queryKey: ["jev", "status"], queryFn: api.jev.status, retry: false });
+  const status = useQuery({
+    queryKey: ["jev", "status"],
+    queryFn: ({ signal }) => api.jev.status(signal),
+    retry: false,
+  });
   const [template, setTemplate] = useState(firstTemplate?.name ?? "");
   const [state, setState] = useState(firstTemplate?.request.state ?? "");
   const [format, setFormat] = useState<"text" | "json">("text");

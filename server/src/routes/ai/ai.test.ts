@@ -1,11 +1,11 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { MyUIMessage } from "@chat-app/shared";
+import { coerceCompatibleMyUIMessages, type MyUIMessage, safeValidateMyUIMessages } from "@chat-app/shared";
 import { simulateReadableStream } from "ai";
-import { MockLanguageModelV3 } from "ai/test";
+import { MockLanguageModelV4 } from "ai/test";
 import { HTTPException } from "hono/http-exception";
 
 let persistenceFailure: Error | null = null;
-const saveConversationMock = mock(async () => {
+const saveConversationMock = mock(async (..._args: [string, MyUIMessage[], string, string | null]) => {
 	if (persistenceFailure) throw persistenceFailure;
 	return "accepted-version";
 });
@@ -21,6 +21,8 @@ const getAvailableChatModelsMock = mock(async () => [
 ]);
 const settleUsageMock = mock(async () => {});
 let streamFailure: Error | null = null;
+let streamFinishReason: "stop" | "interrupted" = "stop";
+const generationTemperatures: Array<number | undefined> = [];
 let modelInitializationFailure: Error | null = null;
 const mockUsage = {
 	inputTokens: {
@@ -101,22 +103,25 @@ mock.module("@/utils/index", () => ({
 		if (modelInitializationFailure) {
 			throw modelInitializationFailure;
 		}
-		return new MockLanguageModelV3({
-			doGenerate: async (options) => ({
-				content: [
-					{
-						text: JSON.stringify(
-							options.responseFormat?.type === "json" && options.responseFormat.name === "AIEvaluation"
-								? mockEvaluationOutput
-								: mockPlanOutput
-						),
-						type: "text"
-					}
-				],
-				finishReason: mockFinishReason,
-				usage: mockUsage,
-				warnings: []
-			}),
+		return new MockLanguageModelV4({
+			doGenerate: async (options) => {
+				generationTemperatures.push(options.temperature);
+				return {
+					content: [
+						{
+							text: JSON.stringify(
+								options.responseFormat?.type === "json" && options.responseFormat.name === "AIEvaluation"
+									? mockEvaluationOutput
+									: mockPlanOutput
+							),
+							type: "text"
+						}
+					],
+					finishReason: mockFinishReason,
+					usage: mockUsage,
+					warnings: []
+				};
+			},
 			doStream: async () => {
 				modelStreamMock();
 				if (streamFailure) {
@@ -135,7 +140,7 @@ mock.module("@/utils/index", () => ({
 							{ delta: " from test", id: "text-1", type: "text-delta" },
 							{ id: "text-1", type: "text-end" },
 							{
-								finishReason: { raw: undefined, unified: "stop" },
+								finishReason: { raw: undefined, unified: streamFinishReason },
 								logprobs: undefined,
 								type: "finish",
 								usage: {
@@ -266,6 +271,73 @@ describe("AI Routes", () => {
 		expect(streamText).toContain('"delta":"from "');
 		expect(streamText).toContain('"delta":"test"');
 	});
+
+	it("preserves interrupted partial output, metadata, and consumed usage across streaming and persistence", async () => {
+		saveConversationMock.mockClear();
+		settleUsageMock.mockClear();
+		streamFinishReason = "interrupted";
+		try {
+			const { createApp } = await import("@/lib/create-app");
+			const { default: router } = await import("@/routes/ai/ai.index");
+			const response = await createApp()
+				.route("/", router)
+				.request("/ai/text-stream", {
+					body: JSON.stringify({
+						chatId: "interrupted-chat",
+						messages: [{ id: "interrupted-user", parts: [{ text: "test", type: "text" }], role: "user" }]
+					}),
+					headers: { "Content-Type": "application/json" },
+					method: "POST"
+				});
+			expect(response.status).toBe(200);
+			const streamText = await response.text();
+			expect(streamText).toContain('"finishReason":"interrupted"');
+			expect(streamText).not.toContain('"type":"error"');
+			const messages = saveConversationMock.mock.calls.at(-1)?.[1];
+			if (!messages) throw new Error("Expected persisted stream messages");
+			expect(await safeValidateMyUIMessages(messages)).toMatchObject({ success: true });
+			expect(await coerceCompatibleMyUIMessages(messages)).toEqual(messages);
+			expect(messages?.at(-1)).toMatchObject({
+				metadata: { finishReason: "interrupted", totalTokens: 5 },
+				role: "assistant"
+			});
+			expect(messages?.at(-1)?.parts).toContainEqual({ state: "done", text: "Hello from test", type: "text" });
+			expect(settleUsageMock).toHaveBeenLastCalledWith("usage-test", {
+				inputTokens: 2,
+				outputTokens: 3,
+				status: "completed",
+				totalTokens: 5
+			});
+		} finally {
+			streamFinishReason = "stop";
+		}
+	});
+
+	it.each([
+		{ evaluationTemperature: undefined, model: "openai/gpt-5-mini", planTemperature: undefined },
+		{ evaluationTemperature: undefined, model: "openai/gpt-5-nano-2025-08-07", planTemperature: undefined },
+		{ evaluationTemperature: 0, model: "openai/gpt-4o", planTemperature: 0.2 }
+	])(
+		"uses supported structured sampling options for $model",
+		async ({ model, planTemperature, evaluationTemperature }) => {
+			generationTemperatures.length = 0;
+			const { createApp } = await import("@/lib/create-app");
+			const { default: router } = await import("@/routes/ai/ai.index");
+			const app = createApp().route("/", router);
+			for (const [path, body] of [
+				["/ai/plan", { model, prompt: "Plan this task" }],
+				["/ai/evaluate", { input: "Question", model, output: "Answer" }]
+			] as const) {
+				const response = await app.request(path, {
+					body: JSON.stringify(body),
+					headers: { "Content-Type": "application/json" },
+					method: "POST"
+				});
+				expect(response.status).toBe(200);
+			}
+			expect(generationTemperatures).toEqual([planTemperature, evaluationTemperature]);
+		}
+	);
 
 	it("marks provider stream failures as failed usage", async () => {
 		settleUsageMock.mockClear();

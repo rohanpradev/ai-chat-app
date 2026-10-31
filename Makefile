@@ -10,20 +10,23 @@ K8S_CLIENT_IMAGE ?= chat-app-client:latest
 K8S_MIGRATE_IMAGE ?= chat-app-migrate:latest
 K8S_MIGRATE_JOB ?= $(K8S_RELEASE)-migration
 ENV_FILE ?= .env
-TRAEFIK_NAMESPACE ?= $(or $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_TRAEFIK_NAMESPACE=//p' $(ENV_FILE) | tail -n 1 | tr -d '"'),chat-app-traefik)
-TRAEFIK_RELEASE ?= $(or $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_TRAEFIK_RELEASE=//p' $(ENV_FILE) | tail -n 1 | tr -d '"'),chat-app-traefik)
-DOMAIN ?= $(shell test -f $(ENV_FILE) && sed -n 's/^DOMAIN=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
-API_SLUG ?= $(or $(shell test -f $(ENV_FILE) && sed -n 's/^BASE_API_SLUG=//p' $(ENV_FILE) | tail -n 1 | tr -d '"'),api)
-K8S_GATEWAY_ENABLED ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_GATEWAY_ENABLED=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
-K8S_APP_HOSTNAME ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_APP_HOSTNAME=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
-K8S_TRAEFIK_DASHBOARD_HOSTNAME ?= $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_TRAEFIK_DASHBOARD_HOSTNAME=//p' $(ENV_FILE) | tail -n 1 | tr -d '"')
+export ENV_FILE
+COMPOSE = docker compose --env-file "$(ENV_FILE)"
+TRAEFIK_NAMESPACE ?= $(or $(shell test -f "$(ENV_FILE)" && sed -n 's/^K8S_TRAEFIK_NAMESPACE=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"'),chat-app-traefik)
+TRAEFIK_RELEASE ?= $(or $(shell test -f "$(ENV_FILE)" && sed -n 's/^K8S_TRAEFIK_RELEASE=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"'),chat-app-traefik)
+DOMAIN ?= $(shell test -f "$(ENV_FILE)" && sed -n 's/^DOMAIN=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')
+API_SLUG ?= $(or $(shell test -f "$(ENV_FILE)" && sed -n 's/^BASE_API_SLUG=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"'),api)
+K8S_GATEWAY_ENABLED ?= $(shell test -f "$(ENV_FILE)" && sed -n 's/^K8S_GATEWAY_ENABLED=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')
+K8S_APP_HOSTNAME ?= $(shell test -f "$(ENV_FILE)" && sed -n 's/^K8S_APP_HOSTNAME=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')
+K8S_TRAEFIK_DASHBOARD_HOSTNAME ?= $(shell test -f "$(ENV_FILE)" && sed -n 's/^K8S_TRAEFIK_DASHBOARD_HOSTNAME=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')
 K8S_CLIENT_URL ?= http://localhost:30080
 K8S_API_URL ?= http://localhost:30001
 K8S_API_HEALTH_URL ?= $(K8S_API_URL)/health
-K8S_GATEWAY_HTTPS_PORT ?= $(or $(shell test -f $(ENV_FILE) && sed -n 's/^K8S_TRAEFIK_WEBSECURE_NODE_PORT=//p' $(ENV_FILE) | tail -n 1 | tr -d '"'),31443)
+K8S_GATEWAY_HTTPS_PORT ?= $(or $(shell test -f "$(ENV_FILE)" && sed -n 's/^K8S_TRAEFIK_WEBSECURE_NODE_PORT=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"'),31443)
 K8S_GATEWAY_URL ?= https://$(K8S_APP_HOSTNAME):$(K8S_GATEWAY_HTTPS_PORT)
 K8S_GATEWAY_HEALTH_URL ?= $(K8S_GATEWAY_URL)/$(API_SLUG)/health
 K8S_TRAEFIK_DASHBOARD_URL ?= https://$(K8S_TRAEFIK_DASHBOARD_HOSTNAME):$(K8S_GATEWAY_HTTPS_PORT)
+DOCKER_APP_URL ?= https://$(or $(DOMAIN),localhost)
 DOCKER_TRAEFIK_DASHBOARD_URL ?= https://traefik.$(DOMAIN)
 K8S_BUILD_ARGS ?=
 K8S_MIN_MINOR ?= 35
@@ -36,29 +39,26 @@ RECREATABLE_DIRS := \
 	.vite \
 	coverage \
 	dist \
-	node_modules \
 	client/.vite \
 	client/coverage \
 	client/dist \
-	client/node_modules \
 	server/.vite \
 	server/coverage \
 	server/dist \
-	server/node_modules \
 	shared/.vite \
 	shared/coverage \
 	shared/dist \
-	shared/node_modules
+	test-results \
+	playwright-report
 
 RECREATABLE_FILES := \
-	client/src/routeTree.gen.ts \
 	helm/chat-app/values.local.yaml \
 	k8s/traefik-values.generated.yaml
 
 .DEFAULT_GOAL := help
 .DELETE_ON_ERROR:
 
-.PHONY: help setup validate ci runtime-start docker-prerequisites start stop restart status logs clean clean-k8s clean-docker clean-local clean-runtime clean-generated docker-destroy-data k8s-destroy-data build dev health local local-stop deploy-check docker docker-stop kubernetes kubernetes-stop k8s-prerequisites k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
+.PHONY: help setup validate ci runtime-start docker-prerequisites start stop restart status logs clean clean-k8s clean-docker clean-local clean-runtime clean-generated clean-dependencies docker-destroy-data k8s-destroy-data build dev health local local-stop deploy-check docker docker-stop kubernetes kubernetes-stop k8s-prerequisites k8s-setup k8s-traefik k8s-full-stack k8s-build k8s-deploy k8s-migrate k8s-status k8s-logs k8s-cleanup k8s-stop k8s-scale-status k8s-scale-disable k8s-scale-enable k8s-test _show-urls _show-k8s-urls
 
 # Default target
 help: ## Show this help message
@@ -68,42 +68,42 @@ help: ## Show this help message
 
 setup: ## Initial setup - Copy .env.example to .env and guide user
 	@echo "🚀 Setting up Chat App..."
-	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "✅ Created .env file from .env.example"; \
+	@if [ ! -f "$(ENV_FILE)" ]; then \
+		cp .env.example "$(ENV_FILE)" || exit $$?; \
+		echo "✅ Created $(ENV_FILE) from .env.example"; \
 		echo ""; \
-		echo "📝 Required: Update these 3 values in .env:"; \
+		echo "📝 Required: Update these 3 values in $(ENV_FILE):"; \
 		echo "   1. AI_GATEWAY_API_KEY    - Get from Vercel AI Gateway"; \
 		echo "   2. BETTER_AUTH_SECRET    - Generate a random 32+ char string"; \
 		echo "   3. DB_PASSWORD           - Change from the default for non-local use"; \
 		echo ""; \
 		echo "💡 Optional: For Langfuse AI observability:"; \
 		echo "   - Create a project in Langfuse Cloud"; \
-		echo "   - Copy LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY to .env"; \
+		echo "   - Copy LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY to $(ENV_FILE)"; \
 		echo "   - Restart with 'make restart'"; \
 		echo ""; \
 		echo "🎯 Next steps:"; \
-		echo "   1. Edit .env file with your values"; \
+		echo "   1. Edit $(ENV_FILE) with your values"; \
 		echo "   2. Run 'make start' to start all services"; \
-		echo "   3. Open https://localhost in your browser"; \
+		echo "   3. Open $(DOCKER_APP_URL) in your browser"; \
 	else \
-		echo "⚠️  .env file already exists"; \
+		echo "⚠️  $(ENV_FILE) already exists"; \
 		echo "💡 Run 'make validate' to check your configuration"; \
 	fi
 
 validate: ## Validate .env configuration
 	@echo "🔍 Validating configuration..."
-	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found. Run 'make setup' first."; \
+	@if [ ! -f "$(ENV_FILE)" ]; then \
+		echo "❌ $(ENV_FILE) not found. Run 'make setup' first."; \
 		exit 1; \
 	fi
 	@echo "Checking required variables..."
-	@gateway_key="$$(sed -n 's/^AI_GATEWAY_API_KEY=//p' .env | tail -n 1 | tr -d '"')"; \
+	@gateway_key="$$(sed -n 's/^AI_GATEWAY_API_KEY=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')"; \
 		case "$$gateway_key" in ""|your_*|change-me|*_here) echo "❌ AI_GATEWAY_API_KEY not set" >&2; exit 1;; esac
-	@auth_secret="$$(sed -n 's/^BETTER_AUTH_SECRET=//p' .env | tail -n 1 | tr -d '"')"; \
-		if [ -z "$$auth_secret" ]; then auth_secret="$$(sed -n 's/^JWT_SECRET=//p' .env | tail -n 1 | tr -d '"')"; fi; \
+	@auth_secret="$$(sed -n 's/^BETTER_AUTH_SECRET=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')"; \
+		if [ -z "$$auth_secret" ]; then auth_secret="$$(sed -n 's/^JWT_SECRET=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')"; fi; \
 		[ "$${#auth_secret}" -ge 32 ] || { echo "❌ BETTER_AUTH_SECRET or JWT_SECRET must contain at least 32 characters" >&2; exit 1; }
-	@db_password="$$(sed -n 's/^DB_PASSWORD=//p' .env | tail -n 1 | tr -d '"')"; \
+	@db_password="$$(sed -n 's/^DB_PASSWORD=//p' "$(ENV_FILE)" | tail -n 1 | tr -d '"')"; \
 		case "$$db_password" in ""|password|change-me|your_*|*_here) echo "❌ DB_PASSWORD is missing or still uses a placeholder" >&2; exit 1;; esac
 	@echo "✅ All required variables are set!"
 	@echo "💡 Optional: Check LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY for AI observability"
@@ -138,43 +138,43 @@ docker-prerequisites: runtime-start ## Verify Docker Engine and Compose are read
 
 start: validate docker-prerequisites ## Build, start, and wait for all Docker Compose services
 	@echo "🚀 Starting Chat App..."
-	@docker compose up --detach --build --remove-orphans --wait --wait-timeout 300
+	@$(COMPOSE) up --detach --build --remove-orphans --wait --wait-timeout 300
 	@$(MAKE) --no-print-directory health
 	@echo ""
 	@$(MAKE) --no-print-directory _show-urls
 	@echo ""
 	@echo "✅ Chat App is ready!"
-	@echo "🔗 Open https://localhost in your browser to get started"
+	@echo "🔗 Open $(DOCKER_APP_URL) in your browser to get started"
 
 stop: ## Stop Docker Compose services
 	@echo "🛑 Stopping Chat App..."
-	@docker compose down
+	@$(COMPOSE) down
 
 restart: validate docker-prerequisites ## Rebuild, recreate, and wait for Docker Compose services
 	@echo "🔄 Restarting Chat App..."
-	@docker compose up --detach --build --force-recreate --remove-orphans --wait --wait-timeout 300
+	@$(COMPOSE) up --detach --build --force-recreate --remove-orphans --wait --wait-timeout 300
 	@$(MAKE) --no-print-directory health
 	@$(MAKE) --no-print-directory status
 
 status: ## Show Docker Compose service status and URLs
 	@echo "📊 Service Status:"
 	@echo "=================="
-	@docker compose ps
+	@$(COMPOSE) ps
 	@echo ""
-	@make --no-print-directory _show-urls
+	@$(MAKE) --no-print-directory _show-urls
 
 logs: ## Show logs from all Docker Compose services
-	@docker compose logs -f
+	@$(COMPOSE) logs -f
 
 health: ## Test application health
 	@echo "🔍 Testing application and API health..."
-	@curl --fail --silent --show-error --insecure --retry 10 --retry-all-errors --retry-delay 2 https://localhost/health >/dev/null
-	@curl --fail --silent --show-error --insecure --retry 10 --retry-all-errors --retry-delay 2 https://localhost/$(API_SLUG)/health >/dev/null
+	@curl --fail --silent --show-error --insecure --retry 10 --retry-all-errors --retry-delay 2 $(DOCKER_APP_URL)/health >/dev/null
+	@curl --fail --silent --show-error --insecure --retry 10 --retry-all-errors --retry-delay 2 $(DOCKER_APP_URL)/$(API_SLUG)/health >/dev/null
 	@echo "✅ Application and API are healthy"
 
 build: ## Build Docker images
 	@echo "🔨 Building Docker images..."
-	@docker compose build --pull
+	@$(COMPOSE) build --pull
 
 clean: clean-k8s clean-docker clean-local clean-generated ## Remove recreatable app resources while preserving data volumes
 	@echo "✅ Project cleanup finished. Data volumes and shared cluster infrastructure were preserved."
@@ -192,7 +192,7 @@ clean-k8s: ## Clean Kubernetes app resources without stopping the cluster runtim
 clean-docker: ## Remove Docker Compose resources and local app images, preserving volumes
 	@echo "🐳 Cleaning Docker Compose resources..."
 	@if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then \
-		docker compose down --remove-orphans --rmi local >/dev/null 2>&1 || true; \
+		$(COMPOSE) down --remove-orphans --rmi local >/dev/null 2>&1 || true; \
 		for image in $(K8S_SERVER_IMAGE) $(K8S_CLIENT_IMAGE) $(K8S_MIGRATE_IMAGE); do \
 			docker image rm -f "$$image" >/dev/null 2>&1 || true; \
 		done; \
@@ -208,7 +208,7 @@ docker-destroy-data: ## Permanently delete this app's Docker Compose volumes (CO
 	fi
 	@command -v docker >/dev/null 2>&1 || { echo "docker is required" >&2; exit 1; }
 	@docker info >/dev/null 2>&1 || { echo "Docker is not reachable" >&2; exit 1; }
-	@docker compose down --volumes --remove-orphans
+	@$(COMPOSE) down --volumes --remove-orphans
 	@echo "Docker Compose data volumes were permanently deleted."
 
 k8s-destroy-data: ## Permanently delete this Helm release's PVCs (CONFIRM=release-name)
@@ -220,18 +220,8 @@ k8s-destroy-data: ## Permanently delete this Helm release's PVCs (CONFIRM=releas
 	@kubectl delete pvc -l app.kubernetes.io/instance=$(K8S_RELEASE) -n $(K8S_NAMESPACE) --ignore-not-found=true --wait=true
 	@echo "Persistent volumes for release $(K8S_RELEASE) were permanently deleted."
 
-clean-local: ## Stop local Bun development processes
-	@echo "🛠️  Stopping local development services..."
-	@if [ -f "$(LOCAL_PID_FILE)" ]; then \
-		while IFS= read -r pid; do \
-			case "$$pid" in ''|*[!0-9]*) continue ;; esac; \
-			if kill -0 "$$pid" 2>/dev/null; then kill "$$pid" 2>/dev/null || true; fi; \
-		done < "$(LOCAL_PID_FILE)"; \
-		rm -f "$(LOCAL_PID_FILE)"; \
-	else \
-		echo "No project-owned local development PID file found."; \
-	fi
-	@echo "✅ Local development services stopped."
+clean-local: ## Stop only verified project development processes
+	@LOCAL_PID_FILE="$(LOCAL_PID_FILE)" bun --no-env-file "$(CURDIR)/scripts/local-dev.mjs" stop
 
 clean-runtime: ## Stop local Kubernetes runtime explicitly
 	@echo "🛑 Stopping local Kubernetes runtime..."
@@ -249,8 +239,11 @@ clean-generated: ## Remove recreatable workspace artifacts without touching .env
 	@echo "🧽 Removing recreatable workspace artifacts..."
 	@rm -rf $(RECREATABLE_DIRS)
 	@rm -f $(RECREATABLE_FILES)
-	@find . -type f -name '*.tsbuildinfo' -delete
+	@find . -type d '(' -name node_modules -o -name .git -o -name .local ')' -prune -o -type f -name '*.tsbuildinfo' -exec rm -f {} +
 	@echo "✅ Removed generated workspace files. .env files were left untouched."
+
+clean-dependencies: ## Remove installed workspace dependencies; reinstall with bun ci
+	@bun run clean
 
 dev: ## Start development environment
 	@echo "🛠️  Starting development environment..."
@@ -260,32 +253,15 @@ dev: ## Start development environment
 _show-urls:
 	@echo "🌐 Application URLs:"
 	@echo "================================"
-	@echo "🎯 Main Application:    https://localhost"
-	@echo "📡 API Health Check:    https://localhost/health"
+	@echo "🎯 Main Application:    $(DOCKER_APP_URL)"
+	@echo "📡 API Health Check:    $(DOCKER_APP_URL)/health"
 	@echo "🔍 Langfuse Cloud:      https://cloud.langfuse.com"
 	@echo "⚙️  Traefik Dashboard:  $(DOCKER_TRAEFIK_DASHBOARD_URL)"
 	@echo "================================"
 
-local: ## Start local development using cloud services from .env.local
-	@echo "🛠️  Starting local development environment..."
-	@echo "☁️  Using cloud services (database/Redis from .env.local)"
-	@echo "🌐 Starting client and server..."
-	@echo "📡 Server: http://localhost:$${SERVER_PORT:-3000}"
-	@echo "🎯 Client: http://localhost:5173"
-	@echo "Press Ctrl+C to stop all services"
-	@mkdir -p "$(LOCAL_PID_DIR)"
-	@set -eu; \
-		server_pid=""; client_pid=""; \
-		cleanup() { \
-			[ -z "$$server_pid" ] || kill "$$server_pid" 2>/dev/null || true; \
-			[ -z "$$client_pid" ] || kill "$$client_pid" 2>/dev/null || true; \
-			rm -f "$(LOCAL_PID_FILE)"; \
-		}; \
-		trap cleanup EXIT HUP INT TERM; \
-		(cd server && exec bun run dev) & server_pid=$$!; \
-		(cd client && exec bun run dev) & client_pid=$$!; \
-		printf '%s\n%s\n' "$$server_pid" "$$client_pid" > "$(LOCAL_PID_FILE)"; \
-		wait
+local: ## Start client and server with the selected environment file
+	@echo "Starting client and server with $(ENV_FILE). Press Ctrl+C to stop both."
+	@LOCAL_PID_FILE="$(LOCAL_PID_FILE)" bun --no-env-file "$(CURDIR)/scripts/local-dev.mjs" start
 
 local-stop: clean-local ## Stop local development services
 
@@ -394,7 +370,7 @@ k8s-status: ## Show Kubernetes deployment status and URLs
 	@echo "Helm Releases:"
 	@helm list -n $(K8S_NAMESPACE)
 	@echo ""
-	@make --no-print-directory _show-k8s-urls
+	@$(MAKE) --no-print-directory _show-k8s-urls
 
 k8s-logs: ## Show Kubernetes logs
 	@echo "📋 Kubernetes Logs:"

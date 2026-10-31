@@ -7,7 +7,7 @@ export const getEmbeddingDocumentsQuery = () => {
   const api = getApiClient();
 
   return queryOptions({
-    queryFn: () => api.embeddings.list(),
+    queryFn: ({ signal }) => api.embeddings.list(signal),
     queryKey: EMBEDDING_QUERY_KEY.documents,
     staleTime: 30 * 1000,
   });

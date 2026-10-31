@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noConsole: Report build diagnostics to the CLI. */
 import { sentryBunPlugin } from "@sentry/bun/plugin";
 
 type ServerPackage = {
@@ -10,16 +11,13 @@ const packageJson = (await Bun.file(new URL("package.json", serverRoot)).json())
 
 const result = await Bun.build({
 	check: true,
-	entrypoints: [
-		new URL("index.ts", sourceRoot).pathname,
-		new URL("instrumentation.ts", sourceRoot).pathname,
-	],
+	entrypoints: [new URL("index.ts", sourceRoot).pathname, new URL("instrumentation.ts", sourceRoot).pathname],
 	external: Object.keys(packageJson.dependencies ?? {}),
 	outdir: new URL("dist/", serverRoot).pathname,
 	plugins: [sentryBunPlugin()],
 	root: sourceRoot.pathname,
 	target: "bun",
-	tsconfig: new URL("tsconfig.json", serverRoot).pathname,
+	tsconfig: new URL("tsconfig.json", serverRoot).pathname
 });
 
 if (!result.success) {

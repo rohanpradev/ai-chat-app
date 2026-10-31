@@ -10,6 +10,9 @@
 		},
 		"enabled": true
 	},
+	"files": {
+		"includes": ["**", "!!helm/chat-app/templates"]
+	},
 	"formatter": {
 		"bracketSameLine": true,
 		"indentStyle": "tab",
@@ -21,6 +24,9 @@
 			"bracketSpacing": true,
 			"trailingCommas": "none"
 		}
+	},
+	"markdown": {
+		"formatter": { "enabled": false }
 	},
 	"overrides": [
 		{
@@ -44,6 +50,10 @@
 	],
 	"vcs": {
 		"clientKind": "git",
-		"enabled": true
+		"enabled": true,
+		"useIgnoreFile": true
+	},
+	"yaml": {
+		"formatter": { "enabled": false }
 	}
 }

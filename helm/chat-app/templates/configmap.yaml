@@ -26,9 +26,7 @@ data:
   SERVER_PORT: {{ .Values.config.env.SERVER_PORT | quote }}
   TRAEFIK_LOG_LEVEL: {{ .Values.config.env.TRAEFIK_LOG_LEVEL | quote }}
   VITE_API_URL: {{ .Values.config.env.VITE_API_URL | quote }}
-  VITE_APP_NAME: {{ .Values.config.env.VITE_APP_NAME | quote }}
   VITE_APP_VERSION: {{ .Values.config.env.VITE_APP_VERSION | quote }}
-  VITE_DEV_MODE: {{ .Values.config.env.VITE_DEV_MODE | quote }}
   VITE_SENTRY_DSN: {{ .Values.config.env.VITE_SENTRY_DSN | quote }}
   VITE_SENTRY_ENVIRONMENT: {{ .Values.config.env.VITE_SENTRY_ENVIRONMENT | quote }}
   VITE_SENTRY_RELEASE: {{ .Values.config.env.VITE_SENTRY_RELEASE | quote }}
@@ -69,7 +67,7 @@ data:
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "0" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+        add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
         add_header Cross-Origin-Opener-Policy "same-origin" always;
         add_header Cross-Origin-Resource-Policy "same-origin" always;
         add_header X-Permitted-Cross-Domain-Policies "none" always;
@@ -100,7 +98,7 @@ data:
             add_header X-Content-Type-Options "nosniff" always;
             add_header X-XSS-Protection "0" always;
             add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-            add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+            add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
             add_header Cross-Origin-Opener-Policy "same-origin" always;
             add_header Cross-Origin-Resource-Policy "same-origin" always;
             add_header X-Permitted-Cross-Domain-Policies "none" always;
@@ -117,7 +115,7 @@ data:
             add_header X-Content-Type-Options "nosniff" always;
             add_header X-XSS-Protection "0" always;
             add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-            add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+            add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
             add_header Cross-Origin-Opener-Policy "same-origin" always;
             add_header Cross-Origin-Resource-Policy "same-origin" always;
             add_header X-Permitted-Cross-Domain-Policies "none" always;
@@ -133,7 +131,7 @@ data:
             add_header X-Content-Type-Options "nosniff" always;
             add_header X-XSS-Protection "0" always;
             add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-            add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+            add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
             add_header Cross-Origin-Opener-Policy "same-origin" always;
             add_header Cross-Origin-Resource-Policy "same-origin" always;
             add_header X-Permitted-Cross-Domain-Policies "none" always;
@@ -171,7 +169,7 @@ data:
             add_header X-Content-Type-Options "nosniff" always;
             add_header X-XSS-Protection "0" always;
             add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-            add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+            add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
             add_header Cross-Origin-Opener-Policy "same-origin" always;
             add_header Cross-Origin-Resource-Policy "same-origin" always;
             add_header X-Permitted-Cross-Domain-Policies "none" always;

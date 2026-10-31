@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MicIcon, SquareIcon } from "lucide-react";
 import type { ComponentProps } from "react";
@@ -92,6 +93,7 @@ export const SpeechInput = ({
   onTranscriptionChange,
   onAudioRecorded,
   lang = "en-US",
+  disabled,
   ...props
 }: SpeechInputProps) => {
   const [isListening, setIsListening] = useState(false);
@@ -159,6 +161,7 @@ export const SpeechInput = ({
     };
 
     const handleError = () => {
+      toast.error("Voice input failed. Check microphone permission and try again.");
       setIsListening(false);
     };
 
@@ -272,7 +275,11 @@ export const SpeechInput = ({
       if (isListening) {
         recognitionRef.current.stop();
       } else {
-        recognitionRef.current.start();
+        try {
+          recognitionRef.current.start();
+        } catch {
+          toast.error("Could not start voice input. Please try again.");
+        }
       }
     } else if (mode === "media-recorder") {
       if (isListening) {
@@ -314,7 +321,11 @@ export const SpeechInput = ({
             : "bg-primary text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground",
           className
         )}
-        disabled={isDisabled}
+        type="button"
+        aria-label={isListening ? "Stop recording" : "Record voice"}
+        aria-pressed={isListening}
+        title={isDisabled ? "Voice input requires browser speech recognition (Chrome or Edge)." : isListening ? "Stop recording" : "Record voice"}
+        disabled={disabled || isDisabled}
         onClick={toggleListening}
         {...props}
       >

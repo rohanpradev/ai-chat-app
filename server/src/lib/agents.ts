@@ -10,7 +10,7 @@ import { isStepCount, ToolLoopAgent, type ToolSet } from "ai";
 import { z } from "zod";
 import { buildAiTelemetrySettings } from "@/lib/instrumentation";
 import { createMcpTool, mcpService } from "@/lib/mcp";
-import { getActiveTools, tools } from "@/lib/tools";
+import { chatToolApproval, getActiveTools, tools } from "@/lib/tools";
 import env from "@/utils/env";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
@@ -62,11 +62,6 @@ const buildToolAvailabilityGuidance = (toolNames: EnabledRequestToolId[]) =>
 const buildAgentInstructions = (baseInstructions: readonly string[], toolNames: EnabledRequestToolId[]) =>
 	[...baseInstructions, buildToolAvailabilityGuidance(toolNames)].join("\n\n");
 
-const buildToolApprovalSettings = (activeTools: EnabledRequestToolId[]) => ({
-	...(activeTools.includes("serper") ? { serper: "user-approval" as const } : {}),
-	...(activeTools.includes("mcp") ? { mcp: "user-approval" as const } : {})
-});
-
 const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentProfile): ChatAgent =>
 	new ToolLoopAgent<AgentCallOptions, typeof agentTools>({
 		allowSystemInMessages: false,
@@ -91,11 +86,11 @@ const createChatAgent = ({ baseInstructions, functionId, stepLimit }: ChatAgentP
 				maxOutputTokens: 4096,
 				model: resolveModel(resolvedModel.id),
 				telemetry: buildAiTelemetrySettings(functionId),
-				toolApproval: buildToolApprovalSettings(activeTools),
 				tools: { ...agentTools, mcp: createMcpTool(options.userId) }
 			};
 		},
 		stopWhen: isStepCount(stepLimit),
+		toolApproval: chatToolApproval,
 		tools: agentTools
 	});
 

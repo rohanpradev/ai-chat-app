@@ -7,7 +7,7 @@ export const getAiModelsQuery = () => {
 
   return queryOptions({
     gcTime: 30 * 60 * 1000,
-    queryFn: () => api.ai.models(),
+    queryFn: ({ signal }) => api.ai.models(signal),
     queryKey: AI_QUERY_KEY.models,
     retry: 1,
     staleTime: 5 * 60 * 1000,

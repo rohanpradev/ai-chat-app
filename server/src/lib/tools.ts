@@ -261,3 +261,10 @@ export const tools = {
 
 export const getActiveTools = (toolNames: EnabledRequestToolId[] = []): EnabledRequestToolId[] =>
 	Array.from(new Set(toolNames.filter((toolName) => toolName in tools)));
+
+// AI SDK 7 owns approval policy at the call/agent boundary. Keep every
+// network-capable tool covered, including continuations of signed approvals.
+export const chatToolApproval = {
+	mcp: "user-approval",
+	serper: "user-approval"
+} as const satisfies Record<EnabledRequestToolId, "user-approval">;

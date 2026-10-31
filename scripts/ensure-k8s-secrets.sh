@@ -7,7 +7,8 @@ umask 077
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VALUES_FILE="${ROOT_DIR}/helm/chat-app/values.local.yaml"
-ENV_FILE="${ROOT_DIR}/.env"
+ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
+if [[ "${ENV_FILE}" != /* ]]; then ENV_FILE="${ROOT_DIR}/${ENV_FILE}"; fi
 
 if [ ! -f "${ENV_FILE}" ]; then
   echo "Missing env file: ${ENV_FILE}" >&2
@@ -334,8 +335,8 @@ images:
   redis:
     registry: ""
     repository: redis
-    tag: 8.10.2-trixie
-    digest: sha256:97ec88159e6d7cfb5ddef9015386087d58a912de80112f06ebdfa78fa5989901
+    tag: 8.10.3-trixie
+    digest: sha256:298641b35ac51aa999f9bb85707d6681fe635ce59cda51886a0b6adc1da37b8e
     pullPolicy: IfNotPresent
 
 config:
@@ -343,7 +344,6 @@ config:
     CLIENT_URL: ${CLIENT_URL_VALUE}
     DOMAIN: ${DOMAIN_VALUE}
     NODE_ENV: production
-    VITE_DEV_MODE: "false"
     CORS_ORIGINS: ${CORS_ORIGINS_VALUE}
 
 secrets:

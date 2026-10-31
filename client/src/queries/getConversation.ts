@@ -7,7 +7,7 @@ export const getConversationQuery = (conversationId: string) => {
 
   return queryOptions({
     gcTime: 5 * 60 * 1000,
-    queryFn: () => api.conversations.get(conversationId),
+    queryFn: ({ signal }) => api.conversations.get(conversationId, signal),
     queryKey: CHAT_QUERY_KEY.conversation(conversationId),
     refetchOnWindowFocus: true,
     retry: (failureCount, error) => {

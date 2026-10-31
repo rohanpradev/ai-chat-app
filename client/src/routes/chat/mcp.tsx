@@ -46,7 +46,7 @@ function CapabilityDetail({ capability, server }: { capability: McpCapability; s
     ),
   );
   const ready = (capability.arguments ?? []).every((argument) => !argument.required || args[argument.name]?.trim());
-  const useInChat = () => {
+  const startChat = () => {
     if (!auth.user) return;
     const userId = auth.user.id;
     const draft = buildMcpDraft({ server, capability, args, preview: includePreview ? preview.data : undefined });
@@ -172,7 +172,7 @@ function CapabilityDetail({ capability, server }: { capability: McpCapability; s
           </pre>
         </div>
       )}
-      <Button className="w-full" onClick={useInChat} disabled={createChat.isPending || preview.isPending || !ready}>
+      <Button className="w-full" onClick={startChat} disabled={createChat.isPending || preview.isPending || !ready}>
         <Sparkles className="size-4" />
         {createChat.isPending ? "Opening…" : "Use in chat"}
         <ArrowUpRight className="ml-auto size-4" />

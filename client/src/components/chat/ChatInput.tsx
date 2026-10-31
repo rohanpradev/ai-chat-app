@@ -38,6 +38,7 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
+import { SpeechInput } from "@/components/ai-elements/speech-input";
 
 const LazyAgentModePanel = lazy(async () => {
   const { AgentModePanel } = await import("@/components/chat/AgentModePanel");
@@ -178,6 +179,12 @@ export function ChatInput({
         </PromptInputBody>
         <PromptInputFooter className="flex-wrap px-2.5 pb-2.5">
           <PromptInputTools className="flex-wrap gap-1.5">
+            <SpeechInput
+              size="icon"
+              variant="ghost"
+              disabled={status !== "ready" && status !== "error"}
+              onTranscriptionChange={(text) => setInput([input, text].filter(Boolean).join(" "))}
+            />
             <PromptInputActionMenu>
               <PromptInputActionMenuTrigger className="rounded-full" />
               <PromptInputActionMenuContent>

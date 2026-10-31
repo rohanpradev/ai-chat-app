@@ -72,7 +72,7 @@ make k8s-destroy-data CONFIRM=chat-app
 
 ## Runtime verification and rollout
 
-`bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, verifies the deployed Bun version against the root package-manager pin, replaces the API pod, checks persisted sessions/conversations, and cleans up. See the [Kubernetes runbook](../../k8s/README.md) for supported tools and the [Bun upgrade audit](../../docs/bun-upgrade.md) for container and rollout evidence.
+`bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, verifies the deployed Bun version against the root package-manager pin, replaces the API pod, checks persisted sessions/conversations, and cleans up. See the [Kubernetes runbook](../../k8s/README.md) for supported tools, container checks, and rollout guidance.
 
 The disposable profile deliberately uses reserved characters in database/Redis passwords and client/server Service ports 80/8081 to exercise URL encoding and Service-to-container routing.
 

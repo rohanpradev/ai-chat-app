@@ -25,6 +25,8 @@ The repo is organized as a Bun workspace with three packages:
 
 The repo also includes a Helm chart under `helm/chat-app/` and helper scripts for local Kubernetes workflows.
 
+See [dependency maintenance](docs/supply-chain.md) for upgrade constraints and [Kubernetes operations](k8s/README.md) for deployment and rollback guidance.
+
 ## Features
 
 - Streaming chat responses through the AI SDK
@@ -84,6 +86,10 @@ Create a local `.env`:
 make setup
 ```
 
+Make targets default to the repo-root `.env`. Select another file consistently for setup, validation, Compose, Kubernetes helpers, and local development with `make ENV_FILE=.env.local <target>`.
+
+Compose health checks and printed URLs use `DOMAIN` from that file. Set `DOCKER_APP_URL` to override the base URL when needed.
+
 Then edit `.env`. At minimum set:
 
 ```text
@@ -135,6 +141,8 @@ Run the client and server directly:
 make local
 ```
 
+Press Ctrl+C or run `make local-stop` to stop both workspace process trees. The supervisor records project ownership and process identity before allowing a later stop command to signal it.
+
 Or start the Bun workspace dev scripts from the root:
 
 ```bash
@@ -163,9 +171,19 @@ Or run the combined check:
 bun run check
 ```
 
+Database schema changes use the server workspace commands:
+
+```bash
+bun run --filter @chat-app/server db:generate
+bun run --filter @chat-app/server db:migrate
+bun run check:migrations
+```
+
+Keep generated migration history committed; application startup does not run migrations.
+
 ## Docker
 
-The Compose stack pins current public upstream images (Bun 1.4.4, Nginx 1.31.8, Traefik 3.7.16, pgvector 0.8.7 on PostgreSQL 18, Redis 8.10.2, and Docker Socket Proxy 0.5.0) so a fresh local setup is reproducible and does not require private registry credentials. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images.
+The Compose stack uses current public upstream images (Bun 1.4.4, Nginx 1.31.8, Traefik 3.7.16, pgvector 0.8.7 on PostgreSQL 18, Redis 8.10.3, and Docker Socket Proxy 0.5.0). Bun, Nginx, Traefik, PostgreSQL, and Redis defaults include reviewed immutable digests. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images. `bun run check:toolchain` verifies that the selected Bun runtime, type packages, CI, Docker builds, Compose, and the root environment example agree before running the deployment checks.
 
 Compose uses the official Nginx entrypoint and a writable, temporary `/etc/nginx/conf.d` to render `BASE_API_SLUG`, `SERVER_HOST`, and `SERVER_PORT` at startup. Nginx request variables are preserved by an explicit substitution filter. Compose Nginx overrides must provide `/docker-entrypoint.sh` and its template support. Kubernetes starts Nginx directly with a chart-rendered ConfigMap, which also supports shell-less image overrides.
 
@@ -191,7 +209,7 @@ make stop
 make clean
 ```
 
-`make clean` removes recreatable application resources, local app images, project-owned Bun development processes, and generated workspace artifacts. It deliberately preserves Docker named volumes, Kubernetes PVCs, shared ingress controllers, namespaces, and the local Kubernetes runtime. Data deletion is explicit: use `make docker-destroy-data CONFIRM=chat-app` or `make k8s-destroy-data CONFIRM=chat-app` only after taking any required backup.
+`make clean` removes recreatable application resources, local app images, project-owned development processes, and generated build/test output. It preserves installed dependencies, the tracked route tree, Docker named volumes, Kubernetes PVCs, shared ingress controllers, namespaces, and the local Kubernetes runtime. Use `make clean-dependencies` separately to remove installed packages, then reinstall with `bun ci`. Data deletion is explicit: use `make docker-destroy-data CONFIRM=chat-app` or `make k8s-destroy-data CONFIRM=chat-app` only after taking any required backup.
 
 URLs:
 
@@ -260,14 +278,14 @@ TypeScript checks use Bun 1.4.4's built-in checker with each workspace's tsconfi
 bun run typecheck
 ```
 
-TypeScript 7.0.2 remains installed for editors and the comparison/fallback command `bun run typecheck:tsc`. At the repository root, use `bun run typecheck`: the existing `check` package script shadows bare `bun check`. Standalone client builds check types before Vite runs; server builds use `Bun.build({ check: true })`. Server development and tests also use `--check`, preserving the instrumentation/environment preloads and test isolation.
+TypeScript 7.0.2 remains installed for editors and the comparison/fallback command `bun run typecheck:tsc`, which CI also runs. At the repository root, use `bun run typecheck`: the existing `check` package script shadows bare `bun check`. Standalone client builds check types before Vite runs; server builds use `Bun.build({ check: true })`. Server development and tests also use `--check`, preserving the instrumentation/environment preloads and test isolation. `bun run check` first verifies runtime, exact Bun type requirements, resolved lockfile types, and container pins. See the [Bun 1.4.4 review](docs/supply-chain.md#bun-144-review) for the release assessment.
 
 The repo uses Bun's isolated linker:
 
 ```toml
 [install]
 linker = "isolated"
-minimumReleaseAge = 259200
+minimumReleaseAge = "3d"
 ```
 
 This matters for Docker. The production images copy:
@@ -293,11 +311,8 @@ AI SDK telemetry is enabled when Langfuse or Sentry credentials are present. Eac
 - `docs/supply-chain.md` - Bun/npm supply-chain policy and Shai-Hulud response playbook
 - `docs/ai-architecture.md` - agent, tool, streaming, and observability architecture
 - `docs/model-policy.md` - model catalog and upgrade policy
-- `docs/engineering-review-2026-10-22.md` - audit findings, fixes, live-model coverage, and rollout evidence
-- `docs/bun-upgrade-1.4.4.md` - current runtime/dependency upgrade and repeated verification
-- `docs/infrastructure-upgrade-2026-10-23.md` - image security patches, Kubernetes validation, and stateful rollout
+- `k8s/README.md` - Kubernetes setup, image maintenance, stateful rollout, and cleanup
 - `docs/evals.md` - release evaluation checklist for AI behavior
-- `llms.txt` - AI-readable project index for coding assistants and doc ingestion
 
 ## Common Commands
 
@@ -315,6 +330,7 @@ make deploy-check      # Compose + Dockerfile + Helm/Kubernetes validation
 make clean             # safe cleanup; preserve Docker volumes and Kubernetes PVCs
 make k8s-destroy-data CONFIRM=chat-app # intentionally delete release PVCs
 make clean-generated   # remove generated local artifacts
+make clean-dependencies # remove installed packages; reinstall with bun ci
 bun run check          # lint, typecheck, and tests
 bun run test:e2e       # desktop and mobile journeys against the production build
 bun run test:integration # persistence/quota regressions; requires migrated disposable DB_URL
@@ -328,11 +344,7 @@ The bundle report follows the Vite manifest's static imports and enforces an 800
 
 Renderer styles are scanned from the client's workspace dependencies, matching Bun's isolated linker. KaTeX styles and fonts load with the math plugin, so equations render correctly without adding math assets to the initial page load.
 
-Upgrade references: [Bun 1.4.4 audit and rollout](docs/bun-upgrade-1.4.4.md), [Bun 1.4.4 release notes](https://bun.com/blog/bun-v1.4.4), [AI SDK 7 migration guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-7-0), and [Rolldown code splitting](https://rolldown.rs/reference/OutputOptions.codeSplitting).
-
-The [October 23, 2026 dependency review](docs/dependency-upgrade-2026-10-23.md) records the current compatible refresh: AI SDK 7.0.146, Sentry 11.8.0, Vite 8.3.4, Vitest 5.0.5, and matching provider utilities. Vite's update clears six baseline security advisories. KaTeX 0.18.11 is aligned across Streamdown, Mermaid, and the lazy-loaded stylesheet. Babel 7, Mermaid 11, and Langfuse 5 remain on compatible release lines; Drizzle stays on 1.0.0-rc.4. Content-free telemetry and Sentry's minimum self-hosted version of 26.4.2 are preserved.
-
-After deployment, check chat streaming, rich answer rendering, and Sentry error/trace delivery. No database migration is needed for this refresh. Drain older application workers before relying on the new conversation conflict protection: older code does not check snapshot versions. Watch for unexpected conversation conflicts or skipped stale completions, and verify failed requests still report measured usage. Roll back the application image and dependency manifests/lockfile together if these checks regress.
+Follow the [dependency maintenance guide](docs/supply-chain.md) when updating packages or runtime images. It records compatibility holds, migration-image checks, and rollback requirements. The [AI evaluation guide](docs/evals.md) covers streaming, persistence, tool approvals, RAG, and live-model verification.
 
 ## Generated Files
 
@@ -343,7 +355,7 @@ Some files are generated by local workflows and should not be edited by hand unl
 - `k8s/traefik-values.generated.yaml`
 - workspace `dist/`, `.vite/`, `coverage/`, and `*.tsbuildinfo`
 
-To remove only recreatable generated files:
+To remove build/test output and local deployment values while preserving installed dependencies and the tracked route tree:
 
 ```bash
 make clean-generated
