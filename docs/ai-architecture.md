@@ -19,6 +19,10 @@ If a removed message ID returns to the same conversation, its revision continues
 
 The client synchronizes the current transcript to its conversation cache when a stream completes, fails, or is stopped. Conversation navigation waits for the current loader snapshot before initializing chat state, and switching conversation IDs resets the composer, attachments, and tool selections. First prompts pass from the home screen through a user- and conversation-scoped in-memory draft rather than URL search parameters; the draft is removed after handoff or when leaving the conversation.
 
+## Chat UI Components
+
+The AI Elements components in `client/src/components/ai-elements` are checked-in React source. The upstream registry moved to [shadcn/ui AI Elements](https://ui.shadcn.com/docs/ai-elements#migrating-from-ai-sdk-elements), and the copied components continue to work. Use the Radix patterns when updating a component and preserve its public props, streaming behavior, and markdown support. Chat renders the AI SDK's typed `message.parts`, including reasoning files, and uses Streamdown for progressive markdown with code, math, and diagram plugins.
+
 ## Retrieval and Usage Control
 
 Document chunks use `vector(1536)` and an HNSW cosine index provided by pgvector. Similarity filtering, ordering, and limiting run in PostgreSQL; vectors are not loaded into application memory for ranking.

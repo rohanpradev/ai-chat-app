@@ -26,13 +26,13 @@ images:
     registry: docker.io
     repository: pgvector/pgvector
     tag: 0.8.7-pg18-trixie
-    digest: sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0
+    digest: sha256:5895949dfcdf308eb0cd31c950c93c14895c77f33fbedfecf1fa511ab1d4bcd2
     pullPolicy: Always
   redis:
     registry: dhi.io
     repository: redis
     tag: 8.10.3-debian13
-    digest: sha256:f88645e2304f0eab08c66f7f9a03f1b431b614a6782e9c939b74ee0c375540d5
+    digest: sha256:ede0066d1ed8bcf8730e3fdaaef4806a4cd9f346c8598e35c22dff3e66e8b8e1
     pullPolicy: Always
 
 config:
@@ -386,11 +386,12 @@ redis:
     requests:
       cpu: 100m
       ephemeralStorage: 256Mi
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 500m
       ephemeralStorage: 1Gi
-      memory: 512Mi
+      # Leave space above the 512 MiB maxmemory for AOF buffers and fork overhead.
+      memory: 1280Mi
   persistence:
     enabled: true
     retainOnDelete: true
@@ -436,6 +437,6 @@ tests:
   image:
     registry: curlimages
     repository: curl
-    tag: 8.22.0
-    digest: sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+    tag: 8.23.0
+    digest: sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
     pullPolicy: IfNotPresent

@@ -7,6 +7,30 @@ import { ChatMessages } from "@/components/chat/ChatMessages";
 afterEach(cleanup);
 
 describe("chat markdown streaming controls", () => {
+  it("renders AI SDK reasoning images from a saved assistant message", () => {
+    const url = "data:image/png;base64,iVBORw0KGgo=";
+    render(
+      <ChatMessages
+        messages={[
+          {
+            id: "reasoning-artifacts",
+            role: "assistant",
+            parts: [
+              { type: "reasoning-file", mediaType: "image/png", url },
+              { type: "reasoning-file", mediaType: "text/html", url: "data:text/html;base64,PGI+" },
+              { type: "text", text: "Final answer" },
+            ],
+          },
+        ]}
+        status="ready"
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Assistant reasoning artifact" }).getAttribute("src")).toBe(url);
+    expect(screen.getByText("Reasoning file: text/html")).toBeTruthy();
+    expect(screen.getByText("Final answer")).toBeTruthy();
+  });
+
   it("keeps completed code blocks usable while the current answer streams", () => {
     const messages: MyUIMessage[] = [
       {

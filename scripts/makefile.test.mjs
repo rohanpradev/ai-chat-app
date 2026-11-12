@@ -68,7 +68,57 @@ test("health uses the selected hostname and API slug", () => {
 	expect(f.make("health").status).toBe(0);
 	const calls = readFileSync(join(f.root, "calls"), "utf8");
 	expect(calls).toContain("https://custom.localhost/health\n");
-	expect(calls).toContain("https://custom.localhost/v1/health\n");
+	expect(calls).toContain("https://custom.localhost/v1/ready\n");
+});
+
+test("Kubernetes values use the same image references as the Make build targets", () => {
+	const f = fixture();
+	f.write("package.json", JSON.stringify({ scripts: { "k8s:prepare": "bash scripts/ensure-k8s-secrets.sh" } }));
+	f.write("helm/chat-app/.fixture", "");
+	copyFileSync(new URL("scripts/ensure-k8s-secrets.sh", source), join(f.root, "scripts/ensure-k8s-secrets.sh"));
+	const result = f.make(
+		"k8s-setup",
+		"K8S_CLIENT_IMAGE=chat-client:preview",
+		"K8S_SERVER_IMAGE=localhost:5000/preview/chat-server:preview",
+		"K8S_MIGRATE_IMAGE=preview/chat-migrate",
+	);
+	expect(result.stderr).not.toContain("Invalid local image tag");
+	expect(result.status).toBe(0);
+	const { images } = Bun.YAML.parse(readFileSync(join(f.root, "helm/chat-app/values.local.yaml"), "utf8"));
+	for (const [component, repository, tag] of [
+		["client", "chat-client", "preview"],
+		["server", "localhost:5000/preview/chat-server", "preview"],
+		["migrate", "preview/chat-migrate", "latest"],
+	]) {
+		expect(images[component]).toEqual({ digest: "", pullPolicy: "Never", registry: "", repository, tag });
+	}
+});
+
+test("Kubernetes migration applies and waits for the same Job with a custom release", () => {
+	const f = fixture();
+	copyFileSync(new URL("scripts/run-k8s-migration.sh", source), join(f.root, "scripts/run-k8s-migration.sh"));
+	f.write(
+		"scripts/bin/helm",
+		'#!/bin/sh\nprintf "apiVersion: batch/v1\\nkind: Job\\nmetadata:\\n  name: preview-chat-app-migration\\n"\n',
+	);
+	f.write(
+		"scripts/bin/kubectl",
+		'#!/bin/sh\nprintf "%s\\n" "$*" >> "$MAKE_CALLS"\nif [ "$1" = apply ]; then cat > "$MAKE_CALLS.job"; fi\n',
+	);
+	spawnSync("chmod", ["+x", join(f.root, "scripts/bin/helm"), join(f.root, "scripts/bin/kubectl")]);
+	for (const name of ["preview-chat-app-migration", "manual-migration"]) {
+		const result = f.make(
+			"k8s-migrate",
+			"K8S_RELEASE=preview",
+			"K8S_NAMESPACE=test",
+			`K8S_MIGRATE_JOB=${name === "manual-migration" ? name : ""}`,
+		);
+		expect(result.status).toBe(0);
+		expect(JSON.parse(readFileSync(join(f.root, "calls.job"), "utf8")).metadata.name).toBe(name);
+		const calls = readFileSync(join(f.root, "calls"), "utf8");
+		expect(calls).toContain(`delete job ${name} -n test --ignore-not-found\n`);
+		expect(calls).toContain(`wait --for=condition=complete job/${name} -n test --timeout=300s\n`);
+	}
 });
 
 test("generated cleanup preserves dependencies, tracked routes, environment and local tooling", () => {

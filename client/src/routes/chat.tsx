@@ -8,11 +8,11 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { useUserLogout } from "@/composables/useLogout";
 import { conversationsQuery } from "@/lib/queries";
-import { redirectSearchValidator } from "@/lib/router-search";
+import { redirectSearchSchema } from "@/lib/router-search";
 import { Route as LoginRoute } from "@/routes/(auth)/_auth/login";
 
 export const Route = createFileRoute("/chat")({
-  validateSearch: redirectSearchValidator,
+  validateSearch: redirectSearchSchema,
   beforeLoad: ({ context, location }) => {
     if (!context.auth.isAuthenticated) {
       throw redirect({

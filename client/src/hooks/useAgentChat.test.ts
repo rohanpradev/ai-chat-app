@@ -44,6 +44,37 @@ afterEach(() => {
 });
 
 describe("saved chat cache", () => {
+  it("uses current transport settings and sends prepared attachment parts with the new turn", async () => {
+    const fetch = vi.fn().mockResolvedValue(streamResponse("Attachment received"));
+    vi.stubGlobal("fetch", fetch);
+    const { result, unmount } = setup();
+
+    act(() => {
+      result.current.setAgentMode("research");
+      result.current.setWebSearch(true);
+      result.current.setMcp(true);
+    });
+    const file = {
+      filename: "notes.txt",
+      mediaType: "text/plain",
+      type: "file" as const,
+      url: "data:text/plain;base64,bm90ZXM=",
+    };
+    await act(async () => result.current.sendPromptMessage({ files: [file], text: "Read these notes" }));
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const request = JSON.parse(fetch.mock.calls[0]?.[1].body);
+    expect(request).toMatchObject({
+      agentMode: "research",
+      chatId: conversation.id,
+      message: { parts: [file, { text: "Read these notes", type: "text" }], role: "user" },
+      tools: ["serper", "mcp"],
+      trigger: "submit-message",
+    });
+    expect(request).not.toHaveProperty("messages");
+    unmount();
+  });
+
   it("restores the current transcript after streaming and regeneration", async () => {
     const fetch = vi
       .fn()

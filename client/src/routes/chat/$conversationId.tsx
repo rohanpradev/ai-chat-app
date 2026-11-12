@@ -1,7 +1,6 @@
 import { coerceCompatibleMyUIMessages } from "@chat-app/shared";
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
@@ -29,7 +28,7 @@ const conversationSearchSchema = z.object({
 
 export const Route = createFileRoute("/chat/$conversationId")({
   remountDeps: ({ params }) => params.conversationId,
-  validateSearch: zodValidator(conversationSearchSchema),
+  validateSearch: conversationSearchSchema,
   loader: {
     // Chat state is initialized once; never mount it from an old router snapshot.
     staleReloadMode: "blocking",

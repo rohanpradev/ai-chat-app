@@ -12,13 +12,13 @@ images:
     registry: ""
     repository: pgvector/pgvector
     tag: 0.8.7-pg18-trixie
-    digest: sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0
+    digest: sha256:5895949dfcdf308eb0cd31c950c93c14895c77f33fbedfecf1fa511ab1d4bcd2
     pullPolicy: IfNotPresent
   redis:
     registry: ""
     repository: redis
     tag: 8.10.3-trixie
-    digest: sha256:298641b35ac51aa999f9bb85707d6681fe635ce59cda51886a0b6adc1da37b8e
+    digest: sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53
     pullPolicy: IfNotPresent
 
 config:

@@ -143,7 +143,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      target: "esnext",
+      target: "baseline-widely-available",
       minify: "oxc",
       chunkSizeWarningLimit: maxIntentionalChunkWarningKb,
     },

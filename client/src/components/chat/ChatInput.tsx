@@ -8,7 +8,7 @@ import {
 } from "@chat-app/shared";
 import type { ChatStatus } from "ai";
 import { GlobeIcon, Plug } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { type Dispatch, lazy, type SetStateAction, Suspense } from "react";
 import { toast } from "sonner";
 import {
   Attachment,
@@ -48,7 +48,7 @@ const LazyAgentModePanel = lazy(async () => {
 interface ChatInputProps {
   availableModels: AIModelDefinition[];
   input: string;
-  setInput: (value: string) => void;
+  setInput: Dispatch<SetStateAction<string>>;
   agentMode: AgentMode;
   setAgentMode: (value: AgentMode) => void;
   model: AIModelId;
@@ -128,7 +128,7 @@ export function ChatInput({
     }
 
     await onMessageSend({ ...message, text });
-    setInput("");
+    setInput((current) => (current === message.text ? "" : current));
   };
 
   const handleAgentModeChange = (value: string) => {

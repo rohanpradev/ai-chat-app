@@ -78,23 +78,24 @@ import {
 // Helpers
 // ============================================================================
 
-const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    // FileReader uses callback-based API, wrapping in Promise is necessary
-    // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      reader.onloadend = () => resolve(reader.result as string);
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
+const convertBlobUrlToDataUrl = async (url: string): Promise<string> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Could not load attachment");
   }
+
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("loadend", () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(reader.error ?? new Error("Could not read attachment"));
+      }
+    });
+    reader.readAsDataURL(blob);
+  });
 };
 
 const captureScreenshot = async (): Promise<File | null> => {
@@ -502,7 +503,7 @@ export type PromptInputProps = Omit<
   // bytes
   maxFileSize?: number;
   onError?: (err: {
-    code: "max_files" | "max_file_size" | "accept";
+    code: "max_files" | "max_file_size" | "accept" | "file_read";
     message: string;
   }) => void;
   onSubmit: (
@@ -531,6 +532,7 @@ export const PromptInput = ({
   // Refs
   const inputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const isSubmittingRef = useRef(false);
 
   // ----- Local attachments (only used when no provider)
   const [items, setItems] = useState<(FileUIPart & { id: string })[]>([]);
@@ -735,11 +737,6 @@ export const PromptInput = ({
     ? controller.attachments.openFileDialog
     : openFileDialogLocal;
 
-  const clear = useCallback(() => {
-    clearAttachments();
-    clearReferencedSources();
-  }, [clearAttachments, clearReferencedSources]);
-
   // Let provider know about our hidden file input so external menus can call openFileDialog()
   useEffect(() => {
     if (!usingProvider) {
@@ -871,62 +868,56 @@ export const PromptInput = ({
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = useCallback(
     async (event) => {
       event.preventDefault();
+      if (isSubmittingRef.current) {
+        return;
+      }
 
       const form = event.currentTarget;
+      const messageField = form.elements.namedItem("message");
+      const textarea = messageField instanceof HTMLTextAreaElement ? messageField : null;
       const text = usingProvider
         ? controller.textInput.value
-        : (() => {
-            const formData = new FormData(form);
-            return (formData.get("message") as string) || "";
-          })();
+        : String(new FormData(form).get("message") ?? "");
 
-      // Reset form immediately after capturing text to avoid race condition
-      // where user input during async blob conversion would be lost
-      if (!usingProvider) {
-        form.reset();
-      }
-
+      isSubmittingRef.current = true;
       try {
-        // Convert blob URLs to data URLs asynchronously
-        const convertedFiles: FileUIPart[] = await Promise.all(
-          files.map(async ({ id: _id, ...item }) => {
-            if (item.url?.startsWith("blob:")) {
-              const dataUrl = await convertBlobUrlToDataUrl(item.url);
-              // If conversion failed, keep the original blob URL
-              return {
-                ...item,
-                url: dataUrl ?? item.url,
-              };
-            }
-            return item;
-          })
-        );
+        let convertedFiles: FileUIPart[];
+        try {
+          convertedFiles = await Promise.all(
+            files.map(async ({ id: _id, ...item }) => ({
+              ...item,
+              url: item.url.startsWith("blob:") ? await convertBlobUrlToDataUrl(item.url) : item.url,
+            })),
+          );
+        } catch {
+          onError?.({
+            code: "file_read",
+            message: "An attachment couldn’t be read. Remove it and attach it again.",
+          });
+          return;
+        }
 
-        const result = onSubmit({ files: convertedFiles, text }, event);
+        await onSubmit({ files: convertedFiles, text }, event);
 
-        // Handle both sync and async onSubmit
-        if (result instanceof Promise) {
-          try {
-            await result;
-            clear();
-            if (usingProvider) {
-              controller.textInput.clear();
-            }
-          } catch {
-            // Don't clear on error - user may want to retry
-          }
+        for (const file of files) {
+          remove(file.id);
+        }
+        clearReferencedSources();
+        if (textarea && textarea.value !== text) {
+          return;
+        }
+        if (usingProvider) {
+          controller.textInput.clear();
         } else {
-          // Sync function completed without throwing, clear inputs
-          clear();
-          if (usingProvider) {
-            controller.textInput.clear();
-          }
+          form.reset();
         }
       } catch {
-        // Don't clear on error - user may want to retry
+        // Keep the draft available for another attempt.
+      } finally {
+        isSubmittingRef.current = false;
       }
     },
-    [usingProvider, controller, files, onSubmit, clear]
+    [usingProvider, controller, files, onSubmit, onError, remove, clearReferencedSources]
   );
 
   // Render with or without local provider

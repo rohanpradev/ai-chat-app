@@ -1,9 +1,13 @@
 /** @vitest-environment jsdom */
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useStreamdownPlugins } from "@/components/ai-elements/use-streamdown-plugins";
 
 afterEach(cleanup);
+
+vi.mock("@streamdown/mermaid", () => {
+  throw new Error("Diagram renderer could not be loaded");
+});
 
 describe("content-driven markdown plugins", () => {
   it("leaves plain reasoning free of optional rendering plugins", async () => {
@@ -17,6 +21,13 @@ describe("content-driven markdown plugins", () => {
 
     await waitFor(() => expect(result.current.code?.supportsLanguage("typescript")).toBe(true));
     expect(result.current.code?.getSupportedLanguages()).not.toContain("rust");
+  });
+
+  it("still loads code highlighting when the diagram renderer fails to load", async () => {
+    const { result } = renderHook(() => useStreamdownPlugins("```mermaid\ngraph TD\n```\n\n```ts\nconst n = 1;\n```"));
+
+    await waitFor(() => expect(result.current.code?.supportsLanguage("typescript")).toBe(true));
+    expect(result.current.mermaid).toBeUndefined();
   });
 
   it("retains the full upstream language support when another grammar is requested", async () => {

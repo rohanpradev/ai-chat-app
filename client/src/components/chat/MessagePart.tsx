@@ -18,6 +18,23 @@ function MessagePartComponent({ part, messageId, index, onToolApprovalResponse }
       return index > 0 ? (
         <div aria-hidden="true" key={`${messageId}-${index}`} className="my-2 h-px bg-border" />
       ) : null;
+    case "reasoning-file":
+      if (
+        part.mediaType.startsWith("image/") &&
+        (part.url.startsWith(`data:${part.mediaType};base64,`) || part.url.startsWith("https://"))
+      ) {
+        return (
+          <img
+            src={part.url}
+            alt="Assistant reasoning artifact"
+            className="max-w-full rounded"
+            decoding="async"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        );
+      }
+      return <div className="text-sm text-muted-foreground">Reasoning file: {part.mediaType}</div>;
     case "file":
       if (part.mediaType?.startsWith("image/")) {
         return (

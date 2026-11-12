@@ -1,25 +1,25 @@
 {
 	"dependencies": {
-		"@ai-sdk/mcp": "^2.0.84",
-		"@ai-sdk/otel": "^1.0.153",
-		"@better-auth/drizzle-adapter": "^1.7.12",
+		"@ai-sdk/mcp": "catalog:",
+		"@ai-sdk/otel": "catalog:",
+		"@better-auth/drizzle-adapter": "^1.7.18",
 		"@chat-app/shared": "workspace:*",
 		"@hono/zod-openapi": "catalog:",
-		"@langfuse/otel": "^5.14.0",
-		"@langfuse/tracing": "^5.14.0",
-		"@opentelemetry/api": "~1.9.1",
-		"@opentelemetry/sdk-node": "^0.223.0",
-		"@scalar/hono-api-reference": "^0.12.14",
-		"@sentry/bun": "^11.9.0",
-		"@sentry/hono": "^11.9.0",
+		"@langfuse/otel": "^6.1.1",
+		"@langfuse/tracing": "^6.1.1",
+		"@opentelemetry/api": "~1.10.0",
+		"@opentelemetry/sdk-node": "^0.301.0",
+		"@scalar/hono-api-reference": "^0.12.18",
+		"@sentry/bun": "^11.11.0",
+		"@sentry/hono": "^11.11.0",
 		"ai": "catalog:",
-		"better-auth": "^1.7.12",
+		"better-auth": "^1.7.18",
 		"drizzle-orm": "1.0.0-rc.5",
 		"hono": "catalog:",
 		"hono-pino": "^0.10.3",
 		"pino": "^10.4.0",
 		"pino-pretty": "^13.2.0",
-		"unpdf": "^1.9.1",
+		"unpdf": "^2.1.0",
 		"zod": "catalog:"
 	},
 	"description": "AI-powered module using vercel AI SDK",
@@ -28,7 +28,7 @@
 		"@types/node": "catalog:",
 		"bun-types": "1.4.4",
 		"drizzle-kit": "1.0.0-rc.5",
-		"postgres": "^3.4.9"
+		"postgres": "^4.1.0"
 	},
 	"engines": {
 		"bun": ">=1.4.4"

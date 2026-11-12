@@ -83,17 +83,22 @@ spec:
           ports:
             - name: postgres
               containerPort: 5432
+          # Ignore the socket-only bootstrap server and allow time for WAL recovery.
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
           livenessProbe:
             exec:
-              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
-            initialDelaySeconds: 15
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
           readinessProbe:
             exec:
-              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
-            initialDelaySeconds: 5
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -199,17 +204,22 @@ spec:
           ports:
             - name: redis
               containerPort: 6379
+          # Loading a snapshot or replaying AOF can take longer than liveness allows.
+          startupProbe:
+            exec:
+              command: ["redis-cli", "-e", "ping"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
           livenessProbe:
             exec:
-              command: ["redis-cli", "ping"]
-            initialDelaySeconds: 10
+              command: ["redis-cli", "-e", "ping"]
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
           readinessProbe:
             exec:
-              command: ["redis-cli", "ping"]
-            initialDelaySeconds: 5
+              command: ["redis-cli", "-e", "ping"]
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

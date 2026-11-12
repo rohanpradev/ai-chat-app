@@ -133,14 +133,6 @@ const getPartBaseKey = (messageId: string, part: ChatMessagePart, index: number)
     return `${messageId}:${baseType}:${part.id}`;
   }
 
-  if ("text" in part && typeof part.text === "string") {
-    return `${messageId}:${baseType}:${index}`;
-  }
-
-  if ("url" in part && typeof part.url === "string") {
-    return `${messageId}:${baseType}:${part.url}`;
-  }
-
   return `${messageId}:${baseType}:${index}`;
 };
 

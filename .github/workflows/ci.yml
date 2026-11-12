@@ -20,7 +20,7 @@ concurrency:
 env:
   BUN_VERSION: 1.4.4
   BUN_IMAGE: oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a
-  NGINX_IMAGE: nginx:1.31.8-alpine3.24@sha256:1ef7ca94d7879df82421428ce13bd1eaa412404953859cf7a5b6512c25e67a60
+  NGINX_IMAGE: nginx:1.31.8-alpine3.24@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11
   HELM_VERSION: 4.3.1
   KIND_VERSION: v0.33.0
   KIND_NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
@@ -101,7 +101,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:0.8.7-pg18-trixie@sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0
+        image: pgvector/pgvector:0.8.7-pg18-trixie@sha256:5895949dfcdf308eb0cd31c950c93c14895c77f33fbedfecf1fa511ab1d4bcd2
         env:
           POSTGRES_DB: chatapp_test
           POSTGRES_USER: postgres
@@ -109,7 +109,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d chatapp_test"
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d chatapp_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -453,14 +453,34 @@ jobs:
           cache-from: type=gha,scope=migrate
           cache-to: type=gha,scope=migrate,mode=max
 
-      - name: Validate Docker Compose
-        run: |
-          set -euo pipefail
-          docker compose config --quiet
-          echo "Docker Compose configuration is valid"
-
       - name: Test migration container runtime
         run: node scripts/check-migrate-container.mjs chat-app-migrate:latest
+
+      - name: Test the Docker Compose stack
+        env:
+          COMPOSE_PROJECT_NAME: chat-app-ci
+        run: |
+          set -euo pipefail
+
+          cleanup() {
+            if [ "$?" -ne 0 ]; then
+              docker compose ps --all || true
+              docker compose logs --tail=100 || true
+            fi
+            docker compose down --volumes --remove-orphans
+          }
+          trap cleanup EXIT
+
+          # Compose expects project-service tags for services with a build definition.
+          for service in client server migrate; do
+            docker tag "chat-app-${service}:latest" "${COMPOSE_PROJECT_NAME}-${service}:latest"
+          done
+
+          docker compose up --no-build --wait --wait-timeout 300
+          make health
+          schema="$(docker compose exec -T db psql -U postgres -d chatapp -Atq \
+            -c "SELECT to_regclass('public.chat') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')")"
+          test "$schema" = t
 
       - name: Setup Helm for runtime checks
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1

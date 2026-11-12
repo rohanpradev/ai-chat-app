@@ -78,6 +78,10 @@ The disposable profile deliberately uses reserved characters in database/Redis p
 
 The API needs at least 40 seconds of termination grace: 10 seconds for routing propagation, then the application's stream drain and cleanup. The chart rejects shorter values.
 
+PostgreSQL and Redis have five-minute startup probe budgets for initialization and persistence recovery. PostgreSQL probes its TCP listener so the temporary initialization server cannot mark the pod ready. Redis probes use authenticated `PING` and fail on command errors.
+
+Bundled Redis requests 512 MiB and has a 1280 MiB container memory limit. Its 512 MiB eviction threshold leaves room for allocator overhead, AOF buffers, and copy-on-write during persistence. Check peak container memory during AOF rewrites and watch for `OOMKilled` after rollout, especially when overriding `redis.resources`.
+
 When `exposure.gateway.create=true`, set `httpPort` and `httpsPort` to the controller's actual listening ports. The defaults (8000/8443) match the generated Traefik configuration. Disabling TLS now omits the HTTPS listener entirely.
 
 MCP connections are optional. Set `secrets.app.data.MCP_SERVERS` to the JSON connection array, or include `MCP_SERVERS` in the existing app Secret. The default is `[]`. Each connection must specify allowed user IDs and tool names; production also requires `AI_TOOL_APPROVAL_SECRET`. See [MCP configuration](../../docs/mcp.md).

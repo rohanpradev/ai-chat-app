@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useCreateChat } from "@/queries/createChat";
 import { Route as ConversationRoute } from "@/routes/chat/$conversationId";
 import { Route as ChatIndexRoute } from "@/routes/chat/index";
@@ -10,61 +12,53 @@ export const Route = createFileRoute("/chat/new")({
 
 function NewChatComponent() {
   const navigate = useNavigate();
-  const { mutate: createChat, status, error } = useCreateChat();
+  const { mutate: createChat, isError } = useCreateChat();
   const hasStartedCreateRef = useRef(false);
+
+  const startCreate = useCallback(() => {
+    createChat("New Chat", {
+      onSuccess: ({ id }) => {
+        void navigate({ to: ConversationRoute.to, params: { conversationId: id }, replace: true });
+      },
+    });
+  }, [createChat, navigate]);
 
   useEffect(() => {
     if (hasStartedCreateRef.current) {
       return;
     }
-
     hasStartedCreateRef.current = true;
-    createChat("New Chat", {
-      onSuccess: (response) => {
-        if (response?.id) {
-          navigate({
-            to: ConversationRoute.to,
-            params: { conversationId: response.id },
-            replace: true,
-          });
-        } else {
-          navigate({ to: ChatIndexRoute.to, replace: true });
-        }
-      },
-      onError: () => {
-        navigate({ to: ChatIndexRoute.to, replace: true });
-      },
-    });
-  }, [createChat, navigate]);
+    startCreate();
+  }, [startCreate]);
 
-  if (status === "pending") {
+  if (!isError) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Creating new chat...</p>
-        </div>
+      <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground" role="status">
+        <Spinner aria-hidden="true" />
+        <span>Creating new chat…</span>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="text-center">
-          <h2 className="text-lg font-semibold mb-2">Failed to create chat</h2>
-          <p className="text-gray-600 mb-4">Something went wrong. Please try again.</p>
-          <button
+  return (
+    <div className="flex flex-1 items-center justify-center p-4">
+      <div className="space-y-3 text-center">
+        <div role="alert">
+          <h2 className="text-lg font-semibold">Failed to create chat</h2>
+        </div>
+        <div className="flex justify-center gap-2">
+          <Button
+            onClick={() => void navigate({ to: ChatIndexRoute.to, replace: true })}
             type="button"
-            onClick={() => navigate({ to: ChatIndexRoute.to, replace: true })}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            variant="outline"
           >
-            Go Back
-          </button>
+            Go back
+          </Button>
+          <Button onClick={startCreate} type="button">
+            Retry
+          </Button>
         </div>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }

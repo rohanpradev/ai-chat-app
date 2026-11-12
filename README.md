@@ -67,7 +67,7 @@ docs/                   Architecture, security, eval, and policy docs
 ## Prerequisites
 
 - Bun `1.4.4` (matches CI and the production runtime)
-- Node.js `24.22.1` LTS on `PATH` for Vitest/jsdom and browser tooling (`nvm use` reads `.nvmrc`; supported alternatives: `22.22.2+`, `24.15.0+`, or `26+`)
+- Node.js `24.22.2` LTS on `PATH` for Vitest/jsdom and browser tooling (`nvm use` reads `.nvmrc`; supported alternatives: `22.22.2+`, `24.15.0+`, or `26+`)
 - Docker Desktop or OrbStack
 - `kubectl` within one minor version of the cluster server, plus Helm `4.3.1`, for Kubernetes workflows
 - Vercel AI Gateway API key
@@ -183,7 +183,7 @@ Keep generated migration history committed; application startup does not run mig
 
 ## Docker
 
-The Compose stack uses current public upstream images (Bun 1.4.4, Nginx 1.31.8, Traefik 3.7.16, pgvector 0.8.7 on PostgreSQL 18, Redis 8.10.3, and Docker Socket Proxy 0.5.0). Bun, Nginx, Traefik, PostgreSQL, and Redis defaults include reviewed immutable digests. Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images. `bun run check:toolchain` verifies that the selected Bun runtime, type packages, CI, Docker builds, Compose, and the root environment example agree before running the deployment checks.
+The Compose stack pins public upstream images by digest (Bun 1.4.4, Nginx 1.31.8, Traefik 3.7.18, pgvector 0.8.7 on PostgreSQL 18, Redis 8.10.3, and Docker Socket Proxy 0.5.0). Production can override `DOCKER_SOCKET_PROXY_IMAGE`, `BUN_DEV_IMAGE`, `BUN_RUNTIME_IMAGE`, `NGINX_IMAGE`, `TRAEFIK_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` with reviewed, digest-pinned images. `bun run check:toolchain` verifies build and runtime pins. `bun run check:deploy` also verifies service image pins across Compose, Helm, CI, and the root environment example.
 
 Compose uses the official Nginx entrypoint and a writable, temporary `/etc/nginx/conf.d` to render `BASE_API_SLUG`, `SERVER_HOST`, and `SERVER_PORT` at startup. Nginx request variables are preserved by an explicit substitution filter. Compose Nginx overrides must provide `/docker-entrypoint.sh` and its template support. Kubernetes starts Nginx directly with a chart-rendered ConfigMap, which also supports shell-less image overrides.
 
@@ -195,7 +195,11 @@ Start the full local stack:
 make start
 ```
 
-This starts the configured container runtime when possible, rebuilds the application images, and waits for every service plus both public health routes before returning. The stack includes Traefik, its private read-only Docker API proxy, PostgreSQL, Redis, the migration job, API server, and client. Traefik never mounts the host Docker socket directly; the proxy exposes only container discovery, network discovery, events, ping, and version reads on an internal-only network. Discovery is limited by the project-owned `com.chatapp.traefik.scope=edge` label because Traefik reserves `traefik.*` labels for routing configuration. Outbound version and anonymous-usage checks are disabled because releases are pinned and reviewed explicitly.
+This starts the configured container runtime when possible, rebuilds the application images, and waits for Nginx health and API readiness through Traefik. PostgreSQL must accept TCP connections before migrations start, and the migration service must complete before the API starts. CI boots this same Compose stack with the built images and verifies that the chat table and pgvector extension exist.
+
+Traefik discovers containers through a private read-only Docker API proxy. The proxy exposes container discovery, network discovery, events, ping, and version reads on an internal-only network. Discovery is limited by the project-owned `com.chatapp.traefik.scope=edge` label because Traefik reserves `traefik.*` labels for routing configuration. Outbound version and anonymous-usage checks are disabled because releases are pinned and reviewed explicitly.
+
+On shutdown, Compose gives the API and Traefik up to 40 seconds before force-stopping them. The API can drain in-flight requests for up to 25 seconds and Traefik's HTTPS entry point allows up to 30 seconds.
 Traefik 3.7's stricter encoded-path protections remain enabled. Relax `encodeQuerySemicolons`, `sanitizePath`, or encoded-character handling only for a backend with a verified RFC 3986 compatibility requirement and matching route tests.
 The server image compiles the Hono entrypoint and its observability preload during the Docker build with `bun run --filter @chat-app/server build`, then starts `dist/index.js` with `dist/instrumentation.js` preloaded. Sentry's Bun build plugin instruments Hono during compilation, while the preload initializes Sentry before the transformed Hono module loads; production startup does not execute TypeScript source.
 
@@ -216,6 +220,7 @@ URLs:
 - App: `https://localhost`
 - App/Nginx health: `https://localhost/health`
 - API health through the proxy: `https://localhost/api/health`
+- API readiness through the proxy: `https://localhost/api/ready`
 - Langfuse Cloud: `https://cloud.langfuse.com`
 
 Validate the Docker and deployment configuration without starting the stack:

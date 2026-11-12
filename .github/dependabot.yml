@@ -17,9 +17,25 @@ updates:
       default-days: 3
     open-pull-requests-limit: 5
     groups:
+      better-auth:
+        patterns:
+          - "better-auth"
+          - "@better-auth/*"
+        update-types: [minor, patch]
+      ai-sdk:
+        patterns:
+          - "ai"
+          - "@ai-sdk/*"
+        update-types: [minor, patch]
+      drizzle:
+        patterns:
+          - "drizzle-kit"
+          - "drizzle-orm"
+        update-types: [minor, patch]
       workspace-javascript:
         patterns:
           - "*"
+        update-types: [minor, patch]
   - package-ecosystem: docker
     directories:
       - /

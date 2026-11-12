@@ -34,7 +34,7 @@ export const useStreamdownPlugins = (content: unknown) => {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const [cjkPlugin, codePlugin, mathPlugin, mermaidPlugin] = await Promise.all([
+      const [cjkPlugin, codePlugin, mathPlugin, mermaidPlugin] = await Promise.allSettled([
         requirements.cjk ? import("@streamdown/cjk").then((module) => module.cjk) : undefined,
         requirements.code
           ? import("@/lib/streamdown-code-plugin").then((module) =>
@@ -49,10 +49,10 @@ export const useStreamdownPlugins = (content: unknown) => {
 
       if (active) {
         setPlugins({
-          ...(cjkPlugin ? { cjk: cjkPlugin } : {}),
-          ...(codePlugin ? { code: codePlugin } : {}),
-          ...(mathPlugin ? { math: mathPlugin } : {}),
-          ...(mermaidPlugin ? { mermaid: mermaidPlugin } : {}),
+          ...(cjkPlugin.status === "fulfilled" && cjkPlugin.value ? { cjk: cjkPlugin.value } : {}),
+          ...(codePlugin.status === "fulfilled" && codePlugin.value ? { code: codePlugin.value } : {}),
+          ...(mathPlugin.status === "fulfilled" && mathPlugin.value ? { math: mathPlugin.value } : {}),
+          ...(mermaidPlugin.status === "fulfilled" && mermaidPlugin.value ? { mermaid: mermaidPlugin.value } : {}),
         });
       }
     };

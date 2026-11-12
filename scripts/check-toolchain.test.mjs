@@ -100,7 +100,7 @@ test.each(["Dockerfile", "server/Dockerfile.migrate", "compose.yml", ".env.examp
 	(file) => {
 		expect(() =>
 			checkToolchain({
-				read: altered(file, (source) => source.replace(/(@sha256:[a-f0-9]{64})/, "")),
+				read: altered(file, (source) => source.replace(/(oven\/bun:[^@\s]+)@sha256:[a-f0-9]{64}/, "$1")),
 				runtime: pinned,
 			}),
 		).toThrow(/Bun build image|Compose BUN_DEV_IMAGE|\.env\.example BUN_DEV_IMAGE/);

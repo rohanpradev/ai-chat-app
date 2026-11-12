@@ -8,7 +8,8 @@ K8S_RELEASE ?= chat-app
 K8S_SERVER_IMAGE ?= chat-app-server:latest
 K8S_CLIENT_IMAGE ?= chat-app-client:latest
 K8S_MIGRATE_IMAGE ?= chat-app-migrate:latest
-K8S_MIGRATE_JOB ?= $(K8S_RELEASE)-migration
+K8S_MIGRATE_JOB ?=
+export K8S_SERVER_IMAGE K8S_CLIENT_IMAGE K8S_MIGRATE_IMAGE
 ENV_FILE ?= .env
 export ENV_FILE
 COMPOSE = docker compose --env-file "$(ENV_FILE)"
@@ -169,7 +170,7 @@ logs: ## Show logs from all Docker Compose services
 health: ## Test application health
 	@echo "🔍 Testing application and API health..."
 	@curl --fail --silent --show-error --insecure --retry 10 --retry-all-errors --retry-delay 2 $(DOCKER_APP_URL)/health >/dev/null
-	@curl --fail --silent --show-error --insecure --retry 10 --retry-all-errors --retry-delay 2 $(DOCKER_APP_URL)/$(API_SLUG)/health >/dev/null
+	@curl --fail --silent --show-error --insecure --retry 10 --retry-all-errors --retry-delay 2 $(DOCKER_APP_URL)/$(API_SLUG)/ready >/dev/null
 	@echo "✅ Application and API are healthy"
 
 build: ## Build Docker images
@@ -336,12 +337,11 @@ k8s-deploy: ## Deploy to Kubernetes with Helm chart
 
 k8s-migrate: ## Run database migrations against the deployed Kubernetes database
 	@echo "Running Kubernetes database migration..."
-	@NAMESPACE=$(K8S_NAMESPACE) RELEASE_NAME=$(K8S_RELEASE) JOB_NAME=$(K8S_MIGRATE_JOB) MIGRATE_IMAGE=$(K8S_MIGRATE_IMAGE) bash scripts/run-k8s-migration.sh
+	@NAMESPACE="$(K8S_NAMESPACE)" RELEASE_NAME="$(K8S_RELEASE)" JOB_NAME="$(K8S_MIGRATE_JOB)" bash scripts/run-k8s-migration.sh
 
 k8s-test: ## Run a basic Kubernetes smoke test against the deployed app
 	@echo "Running Kubernetes smoke test..."
-	@kubectl rollout status deployment/$(K8S_RELEASE)-server -n $(K8S_NAMESPACE) --timeout=300s
-	@kubectl rollout status deployment/$(K8S_RELEASE)-client -n $(K8S_NAMESPACE) --timeout=300s
+	@kubectl rollout status deployment -l "app.kubernetes.io/instance=$(K8S_RELEASE),app.kubernetes.io/component in (server,client)" -n "$(K8S_NAMESPACE)" --timeout=300s
 	@helm test $(K8S_RELEASE) -n $(K8S_NAMESPACE) --logs --timeout 2m
 	@if [ "$(K8S_GATEWAY_ENABLED)" = "true" ] || [ "$(K8S_GATEWAY_ENABLED)" = "TRUE" ]; then \
 		if curl -kfSs $(K8S_GATEWAY_HEALTH_URL) >/dev/null 2>&1; then \

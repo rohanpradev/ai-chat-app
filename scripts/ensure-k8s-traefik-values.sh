@@ -63,8 +63,8 @@ TRAEFIK_DASHBOARD_USER="${TRAEFIK_DASHBOARD_USER:-admin}"
 TRAEFIK_DASHBOARD_PASSWORD="${TRAEFIK_DASHBOARD_PASSWORD:-change-me}"
 TRAEFIK_IMAGE_REGISTRY="${TRAEFIK_IMAGE_REGISTRY:-docker.io}"
 TRAEFIK_IMAGE_REPOSITORY="${TRAEFIK_IMAGE_REPOSITORY:-library/traefik}"
-TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-v3.7.16}"
-TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.16}"
+TRAEFIK_IMAGE_TAG="${TRAEFIK_IMAGE_TAG:-v3.7.18}"
+TRAEFIK_VERSION_OVERRIDE="${TRAEFIK_VERSION_OVERRIDE:-3.7.18}"
 
 for node_port in "${TRAEFIK_WEB_NODE_PORT}" "${TRAEFIK_WEBSECURE_NODE_PORT}"; do
   if [[ ! "${node_port}" =~ ^[0-9]+$ ]] || ((node_port < 30000 || node_port > 32767)); then
@@ -81,12 +81,6 @@ fi
 if [[ ${#K8S_APP_NAMESPACE} -gt 63 || ! "${K8S_APP_NAMESPACE}" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
   echo "K8S_APP_NAMESPACE must be a valid Kubernetes namespace name, got: ${K8S_APP_NAMESPACE}" >&2
   exit 1
-fi
-
-if [ -n "${TRAEFIK_IMAGE_DIGEST:-}" ]; then
-  IMAGE_TAG="${TRAEFIK_IMAGE_TAG}@${TRAEFIK_IMAGE_DIGEST}"
-else
-  IMAGE_TAG="${TRAEFIK_IMAGE_TAG}"
 fi
 
 if [ -z "${DHI_USERNAME:-}" ]; then
@@ -112,7 +106,8 @@ IMAGE_BLOCK=$(cat <<EOF
 image:
   registry: ${TRAEFIK_IMAGE_REGISTRY}
   repository: ${TRAEFIK_IMAGE_REPOSITORY}
-  tag: ${IMAGE_TAG}
+  tag: "${TRAEFIK_IMAGE_TAG}"
+  digest: "${TRAEFIK_IMAGE_DIGEST}"
   pullPolicy: Always
 versionOverride: "${TRAEFIK_VERSION_OVERRIDE}"
 EOF

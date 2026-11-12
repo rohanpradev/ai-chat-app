@@ -1,5 +1,6 @@
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const rootDir = new URL("..", import.meta.url);
 const boolEnv = (name) => ["1", "true", "yes", "on"].includes((process.env[name] ?? "").toLowerCase());
@@ -95,6 +96,45 @@ const expectFailure = ({ args, command, input, name, stderrIncludes }) => {
 	}
 };
 
+const readTracked = (path) => readFileSync(new URL(path, rootDir), "utf8");
+const readYaml = (path) => Bun.YAML.parse(readTracked(path));
+const envExample = readTracked(".env.example");
+const imageDefaults = readYaml("compose.yml").services;
+const chartValues = readYaml("helm/chat-app/values.yaml");
+const localChartValues = readYaml("helm/chat-app/values.local.yaml.template");
+const testChartValues = readYaml("helm/chat-app/values.test.yaml");
+const traefikValues = readYaml("k8s/traefik-values.test.yaml");
+const imagePin = ({ repository, tag, digest }) => `${repository}:${tag}@${digest}`;
+const exampleValue = (key) => new RegExp(`^${key}=(.+)$`, "m").exec(envExample)?.[1];
+const servicePins = {};
+for (const [service, variable] of [
+	["docker-socket-proxy", "DOCKER_SOCKET_PROXY_IMAGE"],
+	["traefik", "TRAEFIK_IMAGE"],
+	["db", "POSTGRES_IMAGE"],
+	["redis", "REDIS_IMAGE"],
+]) {
+	const image = exampleValue(variable);
+	assert.match(image ?? "", /:[^@\s]+@sha256:[a-f0-9]{64}$/, `${variable} must pin a tag and digest`);
+	assert.equal(imageDefaults[service].image, `\${${variable}:-${image}}`, `${service} Compose image default`);
+	servicePins[service] = image;
+}
+
+const ciWorkflow = readYaml(".github/workflows/ci.yml");
+assert.equal(ciWorkflow.jobs["database-regressions"].services.postgres.image, servicePins.db, "CI PostgreSQL image");
+assert.equal(imagePin(chartValues.images.db), servicePins.db, "Production PostgreSQL image");
+assert.equal(imagePin(localChartValues.images.db), servicePins.db, "Local PostgreSQL image");
+assert.equal(imagePin(localChartValues.images.redis), servicePins.redis, "Local Redis image");
+assert.equal(imagePin(testChartValues.images.redis), servicePins.redis, "CI Redis image");
+assert.equal(traefikValues.image.registry, exampleValue("TRAEFIK_IMAGE_REGISTRY"), "Local Traefik registry");
+assert.equal(traefikValues.image.repository, exampleValue("TRAEFIK_IMAGE_REPOSITORY"), "Local Traefik repository");
+assert.equal(imagePin(traefikValues.image).replace(/^library\//, ""), servicePins.traefik, "CI Traefik image");
+assert.equal(traefikValues.image.tag, exampleValue("TRAEFIK_IMAGE_TAG"), "Local Traefik image tag");
+assert.equal(traefikValues.image.digest, exampleValue("TRAEFIK_IMAGE_DIGEST"), "Local Traefik image digest");
+assert.equal(traefikValues.versionOverride, exampleValue("TRAEFIK_VERSION_OVERRIDE"), "Local Traefik version override");
+for (const image of [chartValues.images.redis, chartValues.tests.image]) {
+	assert.match(image.digest, /^sha256:[a-f0-9]{64}$/, `${image.repository} must pin an image digest`);
+}
+
 run({
 	args: ["scripts/check-toolchain.mjs"],
 	command: process.execPath,
@@ -189,6 +229,18 @@ if (
 		"Redis must retain its official image startup privileges for permission repair and privilege dropping.",
 	);
 }
+
+const { db, client, server, migrate } = composeConfig.services;
+assert.match(db.healthcheck.test[1], /pg_isready -h 127\.0\.0\.1/, "Compose waits for PostgreSQL TCP readiness");
+assert.deepEqual(redisService.healthcheck.test, ["CMD", "redis-cli", "-e", "ping"]);
+assert.equal(migrate.depends_on.db.condition, "service_healthy");
+assert.equal(server.depends_on.migrate.condition, "service_completed_successfully");
+assert.equal(client.healthcheck.test.at(-1), "http://127.0.0.1:8080/health");
+assert.match(server.healthcheck.test.at(-1), /'\/ready'/);
+assert.equal(server.labels["traefik.http.services.api.loadbalancer.healthcheck.path"], "/ready");
+assert.equal(server.stop_grace_period, "40s", "Compose allows the API to drain and close resources");
+assert.equal(traefikService.stop_grace_period, "40s");
+assert.ok(traefikCommand.includes("--entrypoints.websecure.transport.lifecycle.gracetimeout=30s"));
 
 for (const serviceName of ["client", "server", "migrate"]) {
 	if (composeConfig.services?.[serviceName]?.read_only !== true) {
@@ -309,12 +361,9 @@ for (const [needle, label] of [
 	["kind: NetworkPolicy", "NetworkPolicies"],
 	["kind: HorizontalPodAutoscaler", "HPAs"],
 	["kind: PodDisruptionBudget", "PDBs"],
-	[
-		"docker.io/pgvector/pgvector@sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0",
-		"pgvector-enabled PostgreSQL image",
-	],
-	["dhi.io/redis@sha256:f88645e2304f0eab08c66f7f9a03f1b431b614a6782e9c939b74ee0c375540d5", "Redis image"],
-	["curlimages/curl@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777", "Helm test image"],
+	[`docker.io/pgvector/pgvector@${chartValues.images.db.digest}`, "pgvector-enabled PostgreSQL image"],
+	[`dhi.io/redis@${chartValues.images.redis.digest}`, "Redis image"],
+	[`curlimages/curl@${chartValues.tests.image.digest}`, "Helm test image"],
 	["AI_DAILY_TOKEN_LIMIT", "AI quota configuration"],
 	["kind: HTTPRoute", "Gateway HTTPRoutes"],
 	["startupProbe:", "startup probes"],
@@ -337,6 +386,24 @@ const clientDeployment = manifestDocument(defaultGatewayRender.stdout, "Deployme
 const migrationJob = manifestDocument(defaultGatewayRender.stdout, "Job", "chat-app-migration");
 const dbPvc = manifestDocument(defaultGatewayRender.stdout, "PersistentVolumeClaim", "chat-app-db-data");
 const redisPvc = manifestDocument(defaultGatewayRender.stdout, "PersistentVolumeClaim", "chat-app-redis-data");
+
+for (const component of ["db", "redis"]) {
+	const { spec } = Bun.YAML.parse(manifestDocument(defaultGatewayRender.stdout, "StatefulSet", `chat-app-${component}`));
+	const [container] = spec.template.spec.containers;
+	for (const probe of ["startupProbe", "readinessProbe", "livenessProbe"]) {
+		const command = container[probe].exec.command;
+		if (component === "db") {
+			assert.match(command.at(-1), /pg_isready -h 127\.0\.0\.1/, `${component} ${probe} checks the TCP listener`);
+		} else {
+			assert.deepEqual(command, ["redis-cli", "-e", "ping"], `${component} ${probe} fails on Redis errors`);
+		}
+	}
+	assert.ok(container.startupProbe.periodSeconds * container.startupProbe.failureThreshold >= 300);
+	if (component === "redis") {
+		assert.equal(container.args[container.args.indexOf("--maxmemory") + 1], "512mb");
+		assert.equal(container.resources.limits.memory, "1280Mi", "Redis has headroom for persistence rewrites");
+	}
+}
 
 assertNotIncludes(serverDeployment, "\n  replicas:", "server replicas while its HPA is enabled");
 assertNotIncludes(clientDeployment, "\n  replicas:", "client replicas while its HPA is enabled");
