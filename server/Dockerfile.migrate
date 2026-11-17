@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG BUN_VERSION=1.4.4
-ARG BUN_DEV_IMAGE=oven/bun:${BUN_VERSION}-alpine
+ARG BUN_DEV_IMAGE=oven/bun:${BUN_VERSION}-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a
 FROM ${BUN_DEV_IMAGE} AS workspace-manifests
 
 WORKDIR /app
@@ -27,13 +27,19 @@ COPY --link --from=migrate-deps --chown=65532:65532 /app/node_modules ./node_mod
 COPY --link --from=migrate-deps --chown=65532:65532 /app/server/node_modules ./server/node_modules
 COPY --link --from=migrate-deps --chown=65532:65532 /app/shared/node_modules ./shared/node_modules
 COPY --link --from=migrate-deps --chown=65532:65532 /app/package.json ./
+COPY --link --chown=65532:65532 tsconfig.json ./tsconfig.json
 COPY --link --chown=65532:65532 server/package.json ./server/package.json
+COPY --link --chown=65532:65532 server/tsconfig.json ./server/tsconfig.json
 COPY --link --chown=65532:65532 server/drizzle.config.ts ./server/drizzle.config.ts
 COPY --link --chown=65532:65532 shared/ ./shared/
 COPY --link --chown=65532:65532 server/src/db ./server/src/db
+COPY --link --chown=65532:65532 server/src/lib/embedding-config.ts ./server/src/lib/embedding-config.ts
 COPY --link --chown=65532:65532 --chmod=0555 server/docker-entrypoint.migrate.sh /app/entrypoint.sh
 
 WORKDIR /app/server
 USER 65532
+# Drizzle rc.5 compares the schema while checking incremental snapshots. Fail the
+# image build if its runtime schema dependencies or path aliases are missing.
+RUN bun -e 'await import("./src/db/schema.ts")'
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["bun", "run", "db:migrate"]

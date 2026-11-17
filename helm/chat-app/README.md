@@ -72,11 +72,15 @@ make k8s-destroy-data CONFIRM=chat-app
 
 ## Runtime verification and rollout
 
-`bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, verifies the deployed Bun version against the root package-manager pin, replaces the API pod, checks persisted sessions/conversations, and cleans up. See the [Kubernetes runbook](../../k8s/README.md) for supported tools and the [Bun upgrade audit](../../docs/bun-upgrade.md) for container and rollout evidence.
+`bun run check:k8s <local-or-test-context>` installs the built app images with dummy credentials in a disposable namespace, runs migrations and API journeys, verifies the deployed Bun version against the root package-manager pin, replaces the API pod, checks persisted sessions/conversations, and cleans up. See the [Kubernetes runbook](../../k8s/README.md) for supported tools, container checks, and rollout guidance.
 
 The disposable profile deliberately uses reserved characters in database/Redis passwords and client/server Service ports 80/8081 to exercise URL encoding and Service-to-container routing.
 
 The API needs at least 40 seconds of termination grace: 10 seconds for routing propagation, then the application's stream drain and cleanup. The chart rejects shorter values.
+
+PostgreSQL and Redis have five-minute startup probe budgets for initialization and persistence recovery. PostgreSQL probes its TCP listener so the temporary initialization server cannot mark the pod ready. Redis probes use authenticated `PING` and fail on command errors.
+
+Bundled Redis requests 512 MiB and has a 1280 MiB container memory limit. Its 512 MiB eviction threshold leaves room for allocator overhead, AOF buffers, and copy-on-write during persistence. Check peak container memory during AOF rewrites and watch for `OOMKilled` after rollout, especially when overriding `redis.resources`.
 
 When `exposure.gateway.create=true`, set `httpPort` and `httpsPort` to the controller's actual listening ports. The defaults (8000/8443) match the generated Traefik configuration. Disabling TLS now omits the HTTPS listener entirely.
 

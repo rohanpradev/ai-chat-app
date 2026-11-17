@@ -1,9 +1,9 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, join, relative } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const lockText = readFileSync(join(repoRoot, "bun.lock"), "utf8");
+const lock = Bun.JSON5.parse(readFileSync(join(repoRoot, "bun.lock"), "utf8"));
 
 const affectedPackageVersions = new Map([
 	["@mistralai/mistralai", ["2.2.2", "2.2.3", "2.2.4"]],
@@ -38,30 +38,30 @@ const suspiciousFilenames = new Set([
 const ignoredDirs = new Set([".git", ".next", ".turbo", "coverage", "dist", "node_modules", "out", "out-order"]);
 
 const findings = [];
+const lockedVersions = new Set(Object.values(lock.packages).map(([resolution]) => resolution));
 
 for (const [packageName, versions] of affectedPackageVersions) {
 	for (const version of versions) {
-		if (lockText.includes(`"${packageName}": ["${packageName}@${version}"`)) {
+		if (lockedVersions.has(`${packageName}@${version}`)) {
 			findings.push(`Compromised package version in bun.lock: ${packageName}@${version}`);
 		}
 	}
 }
 
 const walk = (dir) => {
-	for (const entry of readdirSync(dir)) {
-		if (ignoredDirs.has(entry)) {
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
+		if (ignoredDirs.has(entry.name)) {
 			continue;
 		}
 
-		const path = join(dir, entry);
-		const stats = statSync(path);
+		const path = join(dir, entry.name);
 
-		if (stats.isDirectory()) {
+		if (entry.isDirectory()) {
 			walk(path);
 			continue;
 		}
 
-		if (suspiciousFilenames.has(basename(path))) {
+		if (suspiciousFilenames.has(entry.name)) {
 			findings.push(`Suspicious supply-chain artifact: ${relative(repoRoot, path)}`);
 		}
 	}

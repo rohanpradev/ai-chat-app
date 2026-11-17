@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
-import { tools } from "@/lib/tools";
+import { generateText } from "ai";
+import { MockLanguageModelV3 } from "ai/test";
+import { chatToolApproval, tools } from "@/lib/tools";
 
 const originalFetch = globalThis.fetch;
 const isAsyncIterable = (value: unknown): value is AsyncIterable<unknown> =>
@@ -10,6 +12,55 @@ afterEach(() => {
 });
 
 describe("serper tool", () => {
+	for (const approved of [false, true]) {
+		it(`requires a signed approval before web search and ${approved ? "executes once after approval" : "does not execute after denial"}`, async () => {
+			const fetchSearch = mock(async () => Response.json({ organic: [] }));
+			globalThis.fetch = Object.assign(fetchSearch, { preconnect: originalFetch.preconnect });
+			const input = { q: "current package documentation" };
+			const usage = {
+				inputTokens: { cacheRead: undefined, cacheWrite: undefined, noCache: 10, total: 10 },
+				outputTokens: { reasoning: undefined, text: 5, total: 5 }
+			};
+			const secret = "serper-approval-test-secret-at-least-32-characters";
+			const pending = await generateText({
+				experimental_toolApprovalSecret: secret,
+				model: new MockLanguageModelV3({
+					doGenerate: async () => ({
+						content: [{ input: JSON.stringify(input), toolCallId: "search-1", toolName: "serper", type: "tool-call" }],
+						finishReason: { raw: "tool_calls", unified: "tool-calls" },
+						usage,
+						warnings: []
+					})
+				}),
+				prompt: "Find current documentation",
+				toolApproval: chatToolApproval,
+				tools: { serper: tools.serper }
+			});
+			expect(fetchSearch).not.toHaveBeenCalled();
+			const approval = pending.content.find((part) => part.type === "tool-approval-request");
+			if (approval?.type !== "tool-approval-request") throw new Error("Expected a signed search approval request");
+			expect(approval.signature).toBeTruthy();
+			await generateText({
+				experimental_toolApprovalSecret: secret,
+				messages: [
+					...pending.responseMessages,
+					{ content: [{ approvalId: approval.approvalId, approved, type: "tool-approval-response" }], role: "tool" }
+				],
+				model: new MockLanguageModelV3({
+					doGenerate: async () => ({
+						content: [{ text: "Done", type: "text" }],
+						finishReason: { raw: "stop", unified: "stop" },
+						usage,
+						warnings: []
+					})
+				}),
+				toolApproval: chatToolApproval,
+				tools: { serper: tools.serper }
+			});
+			expect(fetchSearch).toHaveBeenCalledTimes(approved ? 1 : 0);
+		});
+	}
+
 	it("normalizes Serper responses for the UI and model", async () => {
 		globalThis.fetch = mock(async () => {
 			return new Response(

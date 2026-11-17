@@ -8,7 +8,7 @@ import {
 } from "@chat-app/shared";
 import type { ChatStatus } from "ai";
 import { GlobeIcon, Plug } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { type Dispatch, lazy, type SetStateAction, Suspense } from "react";
 import { toast } from "sonner";
 import {
   Attachment,
@@ -38,6 +38,7 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
+import { SpeechInput } from "@/components/ai-elements/speech-input";
 
 const LazyAgentModePanel = lazy(async () => {
   const { AgentModePanel } = await import("@/components/chat/AgentModePanel");
@@ -47,7 +48,7 @@ const LazyAgentModePanel = lazy(async () => {
 interface ChatInputProps {
   availableModels: AIModelDefinition[];
   input: string;
-  setInput: (value: string) => void;
+  setInput: Dispatch<SetStateAction<string>>;
   agentMode: AgentMode;
   setAgentMode: (value: AgentMode) => void;
   model: AIModelId;
@@ -127,7 +128,7 @@ export function ChatInput({
     }
 
     await onMessageSend({ ...message, text });
-    setInput("");
+    setInput((current) => (current === message.text ? "" : current));
   };
 
   const handleAgentModeChange = (value: string) => {
@@ -178,6 +179,12 @@ export function ChatInput({
         </PromptInputBody>
         <PromptInputFooter className="flex-wrap px-2.5 pb-2.5">
           <PromptInputTools className="flex-wrap gap-1.5">
+            <SpeechInput
+              size="icon"
+              variant="ghost"
+              disabled={status !== "ready" && status !== "error"}
+              onTranscriptionChange={(text) => setInput([input, text].filter(Boolean).join(" "))}
+            />
             <PromptInputActionMenu>
               <PromptInputActionMenuTrigger className="rounded-full" />
               <PromptInputActionMenuContent>

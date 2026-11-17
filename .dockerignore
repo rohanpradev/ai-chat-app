@@ -13,7 +13,6 @@
 **/.env.*
 .env.local
 .env.*.local
-!server/.env.docker
 !.env.example
 
 # --- Build output ---

@@ -15,6 +15,7 @@ import {
 } from "@/lib/embedding-config";
 import { EmbeddingInputError } from "@/lib/embedding-errors";
 import { buildAiTelemetrySettings } from "@/lib/instrumentation";
+import { modelTemperature } from "@/lib/model-sampling";
 import { estimateTokens as estimateUsageTokens, reserveUsage, settleUsage } from "@/services/usage.service";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
@@ -635,7 +636,7 @@ export const answerWithRag = async (userId: string, request: RagRequest, abortSi
 			model: resolveModel(selectedModel.id),
 			prompt,
 			telemetry: buildAiTelemetrySettings("ai-rag-answer"),
-			temperature: 0.2
+			temperature: modelTemperature(selectedModel.id, 0.2)
 		});
 
 		const result = {

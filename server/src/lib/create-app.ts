@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { except } from "hono/combine";
 import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { etag, RETAINED_304_HEADERS } from "hono/etag";
@@ -25,6 +26,7 @@ export function createApp() {
 	const app = createRouter();
 	const useAppMiddleware = (middleware: MiddlewareHandler<AppBindings, "*">) => app.use("*", middleware);
 	const apiPathPrefix = `/${env.BASE_API_SLUG}`;
+	const isPrivateApiPath = (path: string) => path.startsWith(`${apiPathPrefix}/`) && path !== `${apiPathPrefix}/health`;
 
 	useAppMiddleware(
 		asAppMiddleware(
@@ -39,15 +41,6 @@ export function createApp() {
 	useAppMiddleware(asAppMiddleware(serveEmojiFavicon("🔥")));
 
 	useAppMiddleware(pinoLogger());
-
-	useAppMiddleware(
-		asAppMiddleware(
-			bodyLimit({
-				maxSize: 25 * 1024 * 1024,
-				onError: (c) => c.json({ message: "Request body must be 25MB or smaller" }, HttpStatusCodes.PAYLOAD_TOO_LARGE)
-			})
-		)
-	);
 
 	useAppMiddleware(
 		asAppMiddleware(
@@ -101,6 +94,23 @@ export function createApp() {
 		)
 	);
 
+	useAppMiddleware(async (c, next) => {
+		await next();
+		if (isPrivateApiPath(c.req.path)) {
+			const isEventStream = c.res.headers.get("content-type")?.toLowerCase().startsWith("text/event-stream");
+			c.header("Cache-Control", isEventStream ? "no-store, no-transform" : "no-store");
+		}
+	});
+
+	useAppMiddleware(
+		asAppMiddleware(
+			bodyLimit({
+				maxSize: 25 * 1024 * 1024,
+				onError: (c) => c.json({ message: "Request body must be 25MB or smaller" }, HttpStatusCodes.PAYLOAD_TOO_LARGE)
+			})
+		)
+	);
+
 	const csrfMiddleware = asAppMiddleware(
 		csrf({
 			origin: (origin) => {
@@ -135,7 +145,7 @@ export function createApp() {
 		})
 	);
 	useAppMiddleware(async (c, next) => {
-		if (c.req.method !== "GET" && c.req.method !== "HEAD") {
+		if (isPrivateApiPath(c.req.path) || (c.req.method !== "GET" && c.req.method !== "HEAD")) {
 			await next();
 			return;
 		}
@@ -155,26 +165,8 @@ export function createApp() {
 		await etagMiddleware(c, async () => {});
 	});
 
-	useAppMiddleware(async (c, next) => {
-		await next();
-
-		const isApiResponse = c.req.path.startsWith(`${apiPathPrefix}/`);
-		const isHealthCheck = c.req.path === `${apiPathPrefix}/health`;
-		if (isApiResponse && !isHealthCheck) {
-			c.header("Cache-Control", "no-store");
-		}
-	});
-
-	const requestTimeout = asAppMiddleware(timeout(180_000));
 	const aiStreamPath = `${apiPathPrefix}/ai/text-stream`;
-	useAppMiddleware(async (c, next) => {
-		if (c.req.path === aiStreamPath) {
-			await next();
-			return;
-		}
-
-		await requestTimeout(c, next);
-	});
+	useAppMiddleware(asAppMiddleware(except((c) => c.req.path === aiStreamPath, timeout(180_000))));
 
 	const healthResponse = { status: "ok" } as const;
 	const readyResponse = { status: "ready" } as const;

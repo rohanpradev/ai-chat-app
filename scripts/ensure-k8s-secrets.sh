@@ -7,7 +7,8 @@ umask 077
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VALUES_FILE="${ROOT_DIR}/helm/chat-app/values.local.yaml"
-ENV_FILE="${ROOT_DIR}/.env"
+ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
+if [[ "${ENV_FILE}" != /* ]]; then ENV_FILE="${ROOT_DIR}/${ENV_FILE}"; fi
 
 if [ ! -f "${ENV_FILE}" ]; then
   echo "Missing env file: ${ENV_FILE}" >&2
@@ -232,6 +233,23 @@ yaml_escape() {
   return 0
 }
 
+local_image_values() {
+  local repository="$1" tag=latest
+  if [[ "${repository##*/}" == *:* ]]; then
+    tag="${repository##*:}"
+    repository="${repository%:*}"
+  fi
+  if [[ -z "${repository}" || "${repository}" == *@* || "${repository}" == */ || "${repository}" =~ [[:space:]] || ! "${tag}" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+    echo "Invalid local image tag: $1" >&2
+    return 1
+  fi
+  printf '{registry: "", repository: "%s", tag: "%s", digest: "", pullPolicy: Never}' "$(yaml_escape "${repository}")" "${tag}"
+}
+
+CLIENT_IMAGE_VALUES="$(local_image_values "${K8S_CLIENT_IMAGE:-chat-app-client:latest}")"
+SERVER_IMAGE_VALUES="$(local_image_values "${K8S_SERVER_IMAGE:-chat-app-server:latest}")"
+MIGRATE_IMAGE_VALUES="$(local_image_values "${K8S_MIGRATE_IMAGE:-chat-app-migrate:latest}")"
+
 TRAEFIK_NAMESPACE="${K8S_TRAEFIK_NAMESPACE:-chat-app-traefik}"
 TRAEFIK_GATEWAY_NAME="${K8S_TRAEFIK_GATEWAY_NAME:-chat-app-gateway}"
 TRAEFIK_WEBSECURE_NODE_PORT="${K8S_TRAEFIK_WEBSECURE_NODE_PORT:-31443}"
@@ -316,26 +334,20 @@ cat > "${VALUES_TMP}" <<EOF
 # This file contains local secrets and is intentionally ignored by git.
 ${IMAGE_PULL_SECRETS_BLOCK}
 images:
-  client:
-    tag: latest
-    pullPolicy: Never
-  server:
-    tag: latest
-    pullPolicy: Never
-  migrate:
-    tag: latest
-    pullPolicy: Never
+  client: ${CLIENT_IMAGE_VALUES}
+  server: ${SERVER_IMAGE_VALUES}
+  migrate: ${MIGRATE_IMAGE_VALUES}
   db:
     registry: ""
     repository: pgvector/pgvector
     tag: 0.8.7-pg18-trixie
-    digest: sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0
+    digest: sha256:5895949dfcdf308eb0cd31c950c93c14895c77f33fbedfecf1fa511ab1d4bcd2
     pullPolicy: IfNotPresent
   redis:
     registry: ""
     repository: redis
-    tag: 8.10.2-trixie
-    digest: sha256:97ec88159e6d7cfb5ddef9015386087d58a912de80112f06ebdfa78fa5989901
+    tag: 8.10.3-trixie
+    digest: sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53
     pullPolicy: IfNotPresent
 
 config:
@@ -343,7 +355,6 @@ config:
     CLIENT_URL: ${CLIENT_URL_VALUE}
     DOMAIN: ${DOMAIN_VALUE}
     NODE_ENV: production
-    VITE_DEV_MODE: "false"
     CORS_ORIGINS: ${CORS_ORIGINS_VALUE}
 
 secrets:

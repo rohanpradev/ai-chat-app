@@ -36,7 +36,7 @@ Compose passes `MCP_SERVERS` from the environment. Helm supports `secrets.app.da
 
 ## Protocol and execution
 
-The official `@ai-sdk/mcp` 2.0.66 HTTP client negotiates the stable MCP **2026-07-28** protocol with legacy initialization fallback. The integration uses tools, listed resources, and prompts; it does not claim support for every MCP extension. Resource templates, OAuth account linking, interactive MCP Apps, elicitation, and background tasks are not exposed here.
+The official `@ai-sdk/mcp` 2.x HTTP client negotiates the stable MCP **2026-07-28** protocol with legacy initialization fallback. The integration uses tools, listed resources, and prompts; it does not claim support for every MCP extension. Resource templates, OAuth account linking, interactive MCP Apps, elicitation, and background tasks are not exposed here.
 
 Each operation owns and closes its client; no cross-user session or credential cache exists. Initialization and execution share a 20-second cancellation deadline. Tool calls have no automatic retries, avoiding accidental duplicate writes. Catalog pagination is followed with a limit of 100 entries per category and visible truncation. Remote tool inputs are validated against their advertised JSON Schema using Zod; schemas the validator cannot interpret fail closed. Tool output is bounded to 24,000 characters, binary payloads are omitted, and remote errors are sanitized.
 

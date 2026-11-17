@@ -1,16 +1,17 @@
 import { defineConfig } from "drizzle-kit";
 
+// biome-ignore lint/style/noProcessEnv: Drizzle reads its CLI configuration before application startup.
 const dbUrl = process.env.DB_URL ?? process.env.DATABASE_URL;
 
 if (!dbUrl) {
-  throw new Error("Database URL is required");
+	throw new Error("Database URL is required");
 }
 
 export default defineConfig({
-  dialect: "postgresql",
-  schema: "./src/db/schema.ts",
-  out: "./src/db/drizzle",
-  dbCredentials: {
-    url: dbUrl,
-  },
+	dbCredentials: {
+		url: dbUrl
+	},
+	dialect: "postgresql",
+	out: "./src/db/drizzle",
+	schema: "./src/db/schema.ts"
 });

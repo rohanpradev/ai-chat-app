@@ -11,6 +11,7 @@ import {
 } from "@chat-app/shared";
 import { generateText, Output } from "ai";
 import { buildAiTelemetrySettings } from "@/lib/instrumentation";
+import { modelTemperature } from "@/lib/model-sampling";
 import { estimateTokens, reserveUsage, settleUsage } from "@/services/usage.service";
 import { resolveModel, resolveModelSelection } from "@/utils/index";
 
@@ -106,7 +107,7 @@ export const generateStructuredPlan = async (
 			}),
 			prompt,
 			telemetry: buildAiTelemetrySettings("ai-structured-plan"),
-			temperature: 0.2
+			temperature: modelTemperature(resolvedModel.id, 0.2)
 		});
 		const metadata = buildMetadata({
 			finishReason: result.finishReason,
@@ -167,7 +168,7 @@ export const evaluateAIOutput = async (
 			}),
 			prompt,
 			telemetry: buildAiTelemetrySettings("ai-evaluate-output"),
-			temperature: 0
+			temperature: modelTemperature(resolvedModel.id, 0)
 		});
 		const metadata = buildMetadata({
 			finishReason: result.finishReason,

@@ -2,7 +2,7 @@
 
 ## Source of Truth
 
-The approved chat model catalog lives in `shared/models.ts`. The server may check the OpenAI model list at runtime, but it only exposes approved IDs from that shared catalog.
+The chat selector uses the account's available Vercel AI Gateway language models. `shared/models.ts` defines the default and fallback catalog; server-side model selection validates requests against the available Gateway catalog.
 
 ## Default Model
 

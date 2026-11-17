@@ -12,13 +12,13 @@ images:
     registry: ""
     repository: pgvector/pgvector
     tag: 0.8.7-pg18-trixie
-    digest: sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0
+    digest: sha256:5895949dfcdf308eb0cd31c950c93c14895c77f33fbedfecf1fa511ab1d4bcd2
     pullPolicy: IfNotPresent
   redis:
     registry: ""
     repository: redis
-    tag: 8.10.2-trixie
-    digest: sha256:97ec88159e6d7cfb5ddef9015386087d58a912de80112f06ebdfa78fa5989901
+    tag: 8.10.3-trixie
+    digest: sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53
     pullPolicy: IfNotPresent
 
 config:
@@ -26,7 +26,6 @@ config:
     CLIENT_URL: http://localhost:30080
     DOMAIN: localhost
     NODE_ENV: production
-    VITE_DEV_MODE: "false"
     VITE_SENTRY_DSN: ""
     VITE_SENTRY_ENVIRONMENT: production
     VITE_SENTRY_RELEASE: ""

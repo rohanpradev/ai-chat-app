@@ -671,14 +671,7 @@
 							"minLength": 1,
 							"type": "string"
 						},
-						"VITE_APP_NAME": {
-							"type": "string"
-						},
 						"VITE_APP_VERSION": {
-							"type": "string"
-						},
-						"VITE_DEV_MODE": {
-							"enum": ["true", "false"],
 							"type": "string"
 						},
 						"VITE_SENTRY_DSN": {

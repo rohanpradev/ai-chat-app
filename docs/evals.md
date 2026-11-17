@@ -69,6 +69,21 @@ DB_URL=postgres://postgres:postgres@localhost:5432/chatapp_test bun run test:int
 
 The database suite creates isolated test users and deletes them afterward. It tests actual concurrent writes, deletion races, revision history, ownership, quota reservations, and failed usage settlement. Ordinary unit runs skip this suite; CI runs it in a dedicated PostgreSQL service and requires it before building release images.
 
+## Live-Service Checks
+
+Migrate a disposable PostgreSQL database with pgvector and start a disposable Redis instance before running the live suite:
+
+```bash
+export LIVE_TEST_DB_URL='postgres://USER:PASSWORD@127.0.0.1:PORT/DISPOSABLE_DATABASE'
+export LIVE_TEST_REDIS_URL='redis://127.0.0.1:PORT'
+export LIVE_TEST_ALLOW_BILLING=1
+bun run test:live
+```
+
+The command loads the repo-root `.env` for the Gateway key and optional Serper key. It makes billed model/search calls, uses synthetic users and documents, then deletes their cascading data. It sets isolated auth/approval secrets and disables external telemetry. `LIVE_TEST_MODEL` selects another model from the Gateway catalog. The suite does not run migrations automatically.
+
+Use the actual browser to verify streamed code/math rendering, reload persistence, a follow-up using saved context, and a narrow viewport. External MCP execution, GitHub OAuth, and Sentry/Langfuse delivery require configured target services; deterministic fixtures do not establish those integrations' production health.
+
 ## Model Upgrade Smoke Test
 
 - Confirm the candidate appears in `GET /{BASE_API_SLUG}/ai/models` through the Vercel AI Gateway catalog.

@@ -11,6 +11,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
+import { SpeechInput } from "@/components/ai-elements/speech-input";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { Label } from "@/components/ui/label";
 import { type ConversationDraft, conversationDraftKey } from "@/lib/conversation-draft";
@@ -129,7 +130,12 @@ export function ChatEmptyState() {
             />
           </PromptInputBody>
           <PromptInputFooter className="px-4 pb-4">
-            <span className="text-xs text-muted-foreground">A fresh conversation starts here.</span>
+            <SpeechInput
+              size="icon"
+              variant="ghost"
+              disabled={status === "pending"}
+              onTranscriptionChange={(text) => setPrompt([prompt, text].filter(Boolean).join(" "))}
+            />
             <PromptInputSubmit
               aria-label="Start conversation"
               disabled={status === "pending" || !prompt.trim()}

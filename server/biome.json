@@ -1,49 +1,49 @@
 {
-	"root": false,
 	"extends": "//",
 	"files": {
-		"includes": ["src/**", "!**/drizzle/**", "!dist/**"],
-		"ignoreUnknown": true
+		"ignoreUnknown": true,
+		"includes": ["src/**", "!!src/db/drizzle", "!!dist"]
 	},
 	"javascript": {
+		"assist": {
+			"enabled": true
+		},
 		"formatter": {
 			"quoteStyle": "double",
 			"semicolons": "always",
 			"trailingCommas": "none"
-		},
-		"assist": {
-			"enabled": true
 		}
 	},
 	"linter": {
-		"enabled": true,
 		"domains": {
 			"project": "recommended"
 		},
+		"enabled": true,
 		"rules": {
-			"recommended": true,
+			"preset": "recommended",
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			},
 			"style": {
-				"noProcessEnv": "error",
-				"useImportType": "error",
-				"useBlockStatements": "off",
-				"useTrimStartEnd": "error",
 				"noNestedTernary": "error",
+				"noProcessEnv": "error",
+				"useBlockStatements": "off",
 				"useFilenamingConvention": {
 					"level": "error",
 					"options": {
-						"strictCase": false,
-						"filenameCases": ["kebab-case", "export"]
+						"filenameCases": ["kebab-case", "export"],
+						"strictCase": false
 					}
-				}
+				},
+				"useImportType": "error",
+				"useTrimStartEnd": "error"
 			},
 			"suspicious": {
 				"noConsole": "warn",
 				"noExplicitAny": "off",
 				"noIrregularWhitespace": "error"
-			},
-			"security": {
-				"noDangerouslySetInnerHtml": "off"
 			}
 		}
-	}
+	},
+	"root": false
 }

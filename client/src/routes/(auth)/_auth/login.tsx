@@ -13,12 +13,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { ApiRequestError } from "@/composables/useApi";
 import { useUserLogin } from "@/composables/useLoginUser";
 import { authClient } from "@/lib/auth-client";
-import { redirectSearchValidator } from "@/lib/router-search";
+import { redirectSearchSchema } from "@/lib/router-search";
 import { Route as RegisterRoute } from "@/routes/(auth)/_auth/register";
 import { Route as IndexRoute } from "@/routes/index";
 
 export const Route = createFileRoute("/(auth)/_auth/login")({
-  validateSearch: redirectSearchValidator,
+  validateSearch: redirectSearchSchema,
   beforeLoad: ({ context, search }) => {
     if (context.auth.isAuthenticated) {
       const redirectTo = search.redirect || IndexRoute.to;

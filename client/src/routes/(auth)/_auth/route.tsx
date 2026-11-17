@@ -1,11 +1,11 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Check, Sparkles } from "lucide-react";
 import { BrandMark } from "@/components/ui/brand-mark";
-import { redirectSearchValidator } from "@/lib/router-search";
+import { redirectSearchSchema } from "@/lib/router-search";
 import { Route as IndexRoute } from "@/routes/index";
 
 export const Route = createFileRoute("/(auth)/_auth")({
-  validateSearch: redirectSearchValidator,
+  validateSearch: redirectSearchSchema,
   beforeLoad: ({ context: { auth }, search }) => {
     if (auth.isAuthenticated) {
       const redirectTo = search.redirect || IndexRoute.to;

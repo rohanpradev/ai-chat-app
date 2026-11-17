@@ -22,7 +22,7 @@ import { estimateTokens, getUsageSummary, reserveUsage, settleUsage } from "@/se
 import { resolveModelSelection } from "@/utils/index";
 
 const streamingProxyHeaders = {
-	"Cache-Control": "no-cache, no-transform",
+	"Cache-Control": "no-store, no-transform",
 	"X-Accel-Buffering": "no"
 } as const;
 

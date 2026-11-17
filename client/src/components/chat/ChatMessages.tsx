@@ -133,14 +133,6 @@ const getPartBaseKey = (messageId: string, part: ChatMessagePart, index: number)
     return `${messageId}:${baseType}:${part.id}`;
   }
 
-  if ("text" in part && typeof part.text === "string") {
-    return `${messageId}:${baseType}:${index}`;
-  }
-
-  if ("url" in part && typeof part.url === "string") {
-    return `${messageId}:${baseType}:${part.url}`;
-  }
-
   return `${messageId}:${baseType}:${index}`;
 };
 
@@ -180,8 +172,9 @@ export function ChatMessages({
           className="min-h-[40vh]"
         />
       )}
-      {messages.map((message) => {
-        const isStreamingMessage = status === "streaming" && message.role === "assistant";
+      {messages.map((message, messageIndex) => {
+        const isStreamingMessage =
+          status === "streaming" && message.role === "assistant" && messageIndex === messages.length - 1;
         const canRegenerate = message.role === "assistant" && (status === "ready" || status === "error");
         const reasoningParts = message.parts.filter(isReasoningPart);
         const sourceParts = message.parts.filter(isSourcePart);
@@ -220,7 +213,7 @@ export function ChatMessages({
               ) : null}
               {getRenderableParts(message.id, visibleParts).map(({ index, key, part }) =>
                 part.type === "text" ? (
-                  <MessageResponse isAnimating={isStreamingMessage} key={key}>
+                  <MessageResponse isAnimating={isStreamingMessage && part.state !== "done"} key={key}>
                     {part.text}
                   </MessageResponse>
                 ) : (

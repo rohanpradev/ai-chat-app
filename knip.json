@@ -52,45 +52,22 @@
 			"entry": [
 				"scripts/check-helm-runtime-config.mjs",
 				"scripts/check-k8s-gateway.test.mjs",
+				"scripts/check-toolchain.test.mjs",
 				"scripts/ensure-kubectl.mjs",
-				"scripts/kubectl.test.mjs"
+				"scripts/kubectl.test.mjs",
+				"scripts/local-dev.mjs"
 			],
 			"ignoreBinaries": ["helm", "kubectl", "make"]
 		},
 		"client": {
 			"ignoreBinaries": ["vite!"],
-			"ignoreDependencies": [
-				"@radix-ui/react-hover-card",
-				"@radix-ui/react-progress",
-				"@radix-ui/react-scroll-area",
-				"@rive-app/react-webgl2",
-				"@tailwindcss/oxide",
-				"@xyflow/react",
-				"embla-carousel-react",
-				"media-chrome",
-				"react-jsx-parser",
-				"tokenlens",
-				"web-vitals"
-			],
-			"ignoreFiles": [
-				"src/components/ai-elements/**",
-				"src/components/ui/**",
-				"src/reportWebVitals.ts",
-				"src/test/setup.ts",
-				"src/hooks/useLoadConversation.ts",
-				"src/queries/getProfile.ts",
-				"src/components/errors/ChatNotFound.tsx",
-				"src/components/chat/ChatApp.tsx",
-				"src/components/chat/ToolCallDisplay.tsx",
-				"src/lib/browser-node-shims/diagnostics-channel.ts"
-			]
+			"ignoreFiles": ["src/lib/browser-node-shims/diagnostics-channel.ts"]
 		},
 		"server": {
 			"drizzle": {
 				"config": []
 			},
-			"entry": ["drizzle.config.ts", "src/instrumentation.ts"],
-			"ignoreFiles": ["src/utils/db-utils.ts"]
+			"entry": ["drizzle.config.ts", "src/instrumentation.ts"]
 		}
 	}
 }

@@ -10,8 +10,8 @@ images:
   redis:
     registry: docker.io
     repository: redis
-    tag: 8.10.2-trixie
-    digest: sha256:97ec88159e6d7cfb5ddef9015386087d58a912de80112f06ebdfa78fa5989901
+    tag: 8.10.3-trixie
+    digest: sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53
 
 config:
   env:

@@ -1,31 +1,29 @@
 {
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "target": "ESNext",
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    // Enable latest features
-    "lib": ["ESNext", "DOM"],
-    "module": "ESNext",
-    // Bundler mode
-    "moduleResolution": "bundler",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@server/*": ["./*"],
-      "@shared/*": ["../shared/*"],
-      "hono": ["./node_modules/hono"],
-      "hono/*": ["./node_modules/hono/*"],
-    },
-    // Best practices
-    "strict": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
-    "noPropertyAccessFromIndexSignature": false,
-    // Reject unused declarations at the server boundary too.
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noEmit": true,
-    "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-  },
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "hono/jsx",
+		// Enable latest features
+		"lib": ["ESNext", "DOM"],
+		"module": "ESNext",
+		// Bundler mode
+		"moduleResolution": "bundler",
+		"noEmit": true,
+		"noFallthroughCasesInSwitch": true,
+		"noPropertyAccessFromIndexSignature": false,
+		"noUncheckedSideEffectImports": true,
+		// Reject unused declarations at the server boundary too.
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"paths": {
+			"@/*": ["./src/*"],
+			"hono": ["./node_modules/hono"],
+			"hono/*": ["./node_modules/hono/*"]
+		},
+		"skipLibCheck": true,
+		// Best practices
+		"strict": true,
+		"target": "ESNext",
+		"verbatimModuleSyntax": true
+	},
+	"extends": "../tsconfig.json"
 }
