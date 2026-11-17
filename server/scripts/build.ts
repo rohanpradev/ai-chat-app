@@ -14,7 +14,7 @@ const result = await Bun.build({
 	entrypoints: [new URL("index.ts", sourceRoot).pathname, new URL("instrumentation.ts", sourceRoot).pathname],
 	external: Object.keys(packageJson.dependencies ?? {}),
 	outdir: new URL("dist/", serverRoot).pathname,
-	plugins: [sentryBunPlugin()],
+	plugins: [sentryBunPlugin({ telemetry: false })],
 	root: sourceRoot.pathname,
 	target: "bun",
 	tsconfig: new URL("tsconfig.json", serverRoot).pathname

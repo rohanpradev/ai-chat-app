@@ -2,18 +2,18 @@
 	"dependencies": {
 		"@ai-sdk/mcp": "catalog:",
 		"@ai-sdk/otel": "catalog:",
-		"@better-auth/drizzle-adapter": "^1.7.18",
+		"@better-auth/drizzle-adapter": "^1.7.23",
 		"@chat-app/shared": "workspace:*",
 		"@hono/zod-openapi": "catalog:",
 		"@langfuse/otel": "^6.1.1",
 		"@langfuse/tracing": "^6.1.1",
 		"@opentelemetry/api": "~1.10.0",
-		"@opentelemetry/sdk-node": "^0.301.0",
-		"@scalar/hono-api-reference": "^0.12.18",
-		"@sentry/bun": "^11.11.0",
-		"@sentry/hono": "^11.11.0",
+		"@opentelemetry/sdk-node": "^0.301.2",
+		"@scalar/hono-api-reference": "^0.12.20",
+		"@sentry/bun": "^11.12.0",
+		"@sentry/hono": "^11.12.0",
 		"ai": "catalog:",
-		"better-auth": "^1.7.18",
+		"better-auth": "^1.7.23",
 		"drizzle-orm": "1.0.0-rc.5",
 		"hono": "catalog:",
 		"hono-pino": "^0.10.3",
@@ -28,7 +28,7 @@
 		"@types/node": "catalog:",
 		"bun-types": "1.4.4",
 		"drizzle-kit": "1.0.0-rc.5",
-		"postgres": "^4.1.0"
+		"postgres": "^4.1.1"
 	},
 	"engines": {
 		"bun": ">=1.4.4"

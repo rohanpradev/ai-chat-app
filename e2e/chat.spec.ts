@@ -91,7 +91,7 @@ test("loads rich answer renderers in the production bundle", async ({ page }, te
 	await expect(reasoningImage).toHaveJSProperty("naturalWidth", 1);
 	await expect(page.locator("pre").filter({ hasText: "const answer = 42;" })).toBeVisible();
 	await expect(page.locator(".katex")).toBeVisible();
-	// KaTeX 0.18 prefixes internal classes; markup and lazy-loaded CSS must agree.
+	// KaTeX markup and lazy-loaded CSS must agree on the prefixed classes.
 	await expect(page.locator(".katex .katex-base").first()).toBeVisible();
 	await expect(page.locator(".katex .katex-base").first()).toHaveCSS("display", "inline-block");
 	await expect(page.locator(".katex-mathml")).toHaveCSS("position", "absolute");
@@ -101,6 +101,30 @@ test("loads rich answer renderers in the production bundle", async ({ page }, te
 		await page.locator("body").evaluate((body) => body.clientWidth),
 	);
 	await page.screenshot({ fullPage: true, path: testInfo.outputPath("rich-answer.png") });
+});
+
+test("lays out mixed-direction answers and keeps long code and tables scrollable", async ({ page }) => {
+	await page.setViewportSize({ height: 600, width: page.viewportSize()?.width ?? 393 });
+	const code = Array.from({ length: 40 }, (_, index) => `console.log(${index})`).join("\n");
+	const rows = Array.from({ length: 30 }, (_, index) => `| Item ${index} | ${index} |`).join("\n");
+	await mockAuthenticatedApp(page, {
+		answer: `Here is the result.\n\nهذا هو الجواب.\n\n\`\`\`js\n${code}\n\`\`\`\n\n| Item | Count |\n| --- | --- |\n${rows}`,
+	});
+	await page.goto("/chat");
+	await page.getByLabel("Prompt").fill("Show a bilingual example");
+	await page.getByRole("button", { name: "Start conversation" }).click();
+
+	await expect(page.getByText("Here is the result.")).toHaveCSS("direction", "ltr");
+	await expect(page.getByText("هذا هو الجواب.")).toHaveCSS("direction", "rtl");
+	const codeViewport = page.locator('[data-streamdown="code-block-body"]');
+	await expect(codeViewport).toHaveCSS("max-height", "300px");
+	await expect(codeViewport.locator("pre")).toHaveCSS("direction", "ltr");
+	const tableViewport = page.getByRole("table").locator("..");
+	await expect(tableViewport).toHaveCSS("max-height", "240px");
+	for (const viewport of [codeViewport, tableViewport]) {
+		await expect(viewport).toHaveCSS("overflow-y", "auto");
+		expect(await viewport.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+	}
 });
 
 test("redirects an unauthenticated visitor to login", async ({ page }) => {

@@ -211,7 +211,7 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Streamdown isAnimating={isStreaming} plugins={plugins}>{children}</Streamdown>
+      <Streamdown dir="auto" isAnimating={isStreaming} plugins={plugins}>{children}</Streamdown>
     </CollapsibleContent>
     );
   }

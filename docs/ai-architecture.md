@@ -6,7 +6,7 @@
 2. The server validates the request with shared Zod schemas.
 3. The selected agent mode resolves to an AI SDK agent.
 4. Accepted messages are saved before model preparation. A storage failure releases the quota reservation and prevents a provider call; a preparation failure leaves the prompt available after a refresh.
-5. The agent streams UI-message parts back through SSE.
+5. The agent streams UI-message parts back through SSE with `Cache-Control: no-store, no-transform` so intermediaries neither store nor transform chat output.
 6. Completed conversations update a current-message projection and append immutable message revisions.
 
 Conversation writes take a PostgreSQL advisory transaction lock per chat and compare the current message revisions with the request's snapshot inside that lock. Concurrent accepted inputs return `409` before starting a provider call. A stream that finishes after a newer turn or deletion keeps the latest stored projection intact and still settles its provider usage. Deletion uses the same lock and cascades over current messages and revision history, so an earlier stream cannot recreate a deleted chat.

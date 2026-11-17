@@ -327,7 +327,10 @@ const MessageResponseComponent = ({ className, children, ...props }: MessageResp
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
+      codeBlockMaxHeight="min(400px, 50dvh)"
+      dir="auto"
       plugins={plugins}
+      tableMaxHeight="min(300px, 40dvh)"
       {...props}
     >
       {children}

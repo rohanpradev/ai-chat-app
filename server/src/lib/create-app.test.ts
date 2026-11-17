@@ -109,6 +109,23 @@ describe("App Creation", () => {
 		expect(response.headers.get("etag")).toBeNull();
 	});
 
+	it("includes CORS, security, and cache headers when an API request exceeds the body limit", async () => {
+		const app = createApp();
+		const path = `/${env.BASE_API_SLUG}/upload`;
+		app.post(path, (c) => c.json({ uploaded: true }));
+
+		const response = await app.request(path, {
+			body: new Uint8Array(25 * 1024 * 1024 + 1),
+			headers: { Origin: env.CLIENT_URL },
+			method: "POST"
+		});
+
+		expect(response.status).toBe(413);
+		expect(response.headers.get("access-control-allow-origin")).toBe(env.CLIENT_URL);
+		expect(response.headers.get("cache-control")).toBe("no-store");
+		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+	});
+
 	it("returns event streams without waiting for completion or generating an ETag", async () => {
 		const app = createApp();
 		let closeStream = () => {};
@@ -119,15 +136,16 @@ describe("App Creation", () => {
 			}
 		});
 
+		const streamPath = `/${env.BASE_API_SLUG}/events`;
 		app.get(
-			"/events",
+			streamPath,
 			(_c) =>
 				new Response(stream, {
-					headers: { "Content-Type": "text/event-stream" }
+					headers: { "Cache-Control": "no-cache, no-transform", "Content-Type": "text/event-stream" }
 				})
 		);
 
-		const responsePromise = Promise.resolve(app.request("/events"));
+		const responsePromise = Promise.resolve(app.request(streamPath));
 		const outcome = await Promise.race([
 			responsePromise.then(() => "response" as const),
 			Bun.sleep(100).then(() => "timeout" as const)
@@ -136,6 +154,7 @@ describe("App Creation", () => {
 		const response = await responsePromise;
 
 		expect(outcome).toBe("response");
+		expect(response.headers.get("cache-control")).toBe("no-store, no-transform");
 		expect(response.headers.get("etag")).toBeNull();
 		expect(await response.text()).toContain('"type":"start"');
 	});
@@ -289,12 +308,13 @@ describe("App Creation", () => {
 		expect(html).toContain("<title>Chat App API Reference</title>");
 		expect(response.headers.get("content-security-policy")).toContain("script-src");
 		expect(response.headers.get("content-security-policy")).toContain("'nonce-");
-		expect(html).toContain("@scalar/api-reference@1.62.5");
+		expect(html).toContain("@scalar/api-reference@1.78.1");
 		expect(html).toContain('"title": "App API"');
 		expect(html).toContain('"url": "/doc"');
 		expect(html).toContain('"title": "Auth API"');
 		expect(html).toContain('"url": "/api/auth/open-api/generate-schema"');
 		expect(html).toContain('"preferredSecurityScheme": "CookieAuth"');
 		expect(html).toContain('"telemetry": false');
+		expect(html).toContain('"withDefaultFonts": false');
 	});
 });

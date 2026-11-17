@@ -5,7 +5,7 @@ import { asAppMiddleware } from "@/lib/hono-compat";
 import type { AppOpenAPI } from "@/lib/types";
 import env from "@/utils/env";
 
-const SCALAR_CDN = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.62.5";
+const SCALAR_CDN = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.78.1";
 
 const scalarFetch: typeof fetch = Object.assign(
 	(input: string | Request | URL, init?: RequestInit) =>
@@ -82,7 +82,8 @@ export default function configureOpenAPI(app: AppOpenAPI) {
 				{ title: "Auth API", url: `/${env.BASE_API_SLUG}/auth/open-api/generate-schema` }
 			],
 			telemetry: false,
-			theme: "deepSpace"
+			theme: "deepSpace",
+			withDefaultFonts: false
 		}))
 	);
 }
