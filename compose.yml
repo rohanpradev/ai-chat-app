@@ -20,7 +20,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${DOCKER_SOCKET_PROXY_IMAGE:-ghcr.io/tecnativa/docker-socket-proxy:v0.5.0}
+    image: ${DOCKER_SOCKET_PROXY_IMAGE:-ghcr.io/tecnativa/docker-socket-proxy:3.4}
     pull_policy: always
     container_name: chat-app-docker-socket-proxy
     environment:
@@ -45,7 +45,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${TRAEFIK_IMAGE:-traefik:v3.7.16@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2}
+    image: ${TRAEFIK_IMAGE:-traefik:v3.8.0@sha256:00c9734983e74ae35a1fc18eaee9e9da13f3dde95c4e45b3b8c3b60e0dbd2d17}
     cap_drop:
       - ALL
     cap_add:
@@ -130,7 +130,7 @@ services:
     <<:
       - *security-defaults
       - *logging-defaults
-    image: ${POSTGRES_IMAGE:-pgvector/pgvector:0.8.7-pg18-trixie@sha256:9d9c930220cb9bf2f956d10a8f909cf9973d9672ca0278aef2c1e6facccad2e0}
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:0.8.7-pg18-trixie@sha256:ab49524d18df7200b74ac9a475e1db6297fc1eb57da4c214c63d10ecc4b754fa}
     pull_policy: always
     container_name: chat-app-db
     environment:
